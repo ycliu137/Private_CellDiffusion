@@ -3,3 +3,5 @@ from sc_integration.integration_DIF import integration_diffusion, integration_hi
 from sc_integration.integration_GCN import integration_gcn
 from sc_integration.mnn_graph import build_mnn_graph
 from sc_integration.harmony_mnn_graph import build_harmony_mnn_graph
+from sc_integration.scvi_mnn_graph import build_scvi_mnn_graph
+from sc_integration.omnn_graph_scvi import build_omnn_scvi_graph

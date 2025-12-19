@@ -10,3 +10,5 @@ scikit_learn==1.7.1
 scipy==1.16.0
 torch==2.7.0
 umap_learn==0.5.7
+scvi-tools
+ipykernel
