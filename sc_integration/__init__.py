@@ -1,3 +1,5 @@
 from sc_integration.integration_graph import build_integration_graph, build_integration_loss_adj
 from sc_integration.integration_DIF import integration_diffusion, integration_high_throughput_mode
 from sc_integration.integration_GCN import integration_gcn
+from sc_integration.mnn_graph import build_mnn_graph
+from sc_integration.harmony_mnn_graph import build_harmony_mnn_graph
