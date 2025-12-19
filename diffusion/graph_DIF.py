@@ -132,9 +132,9 @@ def graph_diffusion(adata,
         
 
         # Backprop and Update
-        loss.backward()
-        cur_loss = loss.item()
-        optimizer.step()
+        loss.backward() # compute the gradient of the loss with respect to the model parameters
+        cur_loss = loss.item() # get the current loss
+        optimizer.step() # update the model parameters
         
         if epoch%50 == 0:
             info_log.interval_print(f"----------------> Epoch: {epoch+1}/{max_epoch}, Current loss: {cur_loss:.4f}")
