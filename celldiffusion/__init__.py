@@ -7,3 +7,5 @@ from diffusion.graph_DIF import graph_diffusion
 import sc_integration as inte
 
 from utils import utility_fn as util
+
+import sc_evaluation as eval
