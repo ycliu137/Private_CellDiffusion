@@ -4,6 +4,7 @@ Integration pipeline: build graph, add random edges, run diffusion, evaluate
 import sys
 from pathlib import Path
 import csv
+import pandas as pd
 
 # Add project root to path first, before importing celldiffusion
 project_root = Path(__file__).parent.parent.parent
@@ -22,6 +23,14 @@ print(f"Loading encoded data from: {input_h5ad}")
 adata = sc.read_h5ad(input_h5ad)
 
 print(f"Data shape: {adata.shape}")
+
+# Step 0: Create node_batch_mt (required by build_integration_loss_adj)
+print("\n=== Creating node_batch_mt ===")
+if 'node_batch_mt' not in adata.obsm:
+    adata.obsm['node_batch_mt'] = pd.get_dummies(adata.obs[params.batch_key]).to_numpy()
+    print("Created node_batch_mt")
+else:
+    print("node_batch_mt already exists")
 
 # Step 1: Build integration loss adjacency
 print("\n=== Building integration loss adjacency ===")
