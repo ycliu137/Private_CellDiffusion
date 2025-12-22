@@ -34,7 +34,7 @@ if params.device == "cuda":
         # Add small random delay to stagger simultaneous task starts
         initial_delay = random.uniform(0, 2)
         time.sleep(initial_delay)
-        wait_interval = 0.5  # Check every 0.5 seconds
+        wait_interval = 5  # Check every 5 seconds
         waited = 0
         while True:
             try:
@@ -47,7 +47,7 @@ if params.device == "cuda":
                 break
             except RuntimeError as e:
                 if "busy" in str(e).lower() or "unavailable" in str(e).lower():
-                    print(f"GPU is busy, waiting... ({waited:.1f}s)")
+                    #print(f"GPU is busy, waiting... ({waited:.1f}s)")
                     time.sleep(wait_interval)
                     waited += wait_interval
                 else:
