@@ -58,6 +58,8 @@ rule encode_features:
         h5ad = str(PREPROCESSED_H5AD)
     output:
         h5ad = str(ENCODED_H5AD)
+    resources:
+        gpu=1  # Limit GPU usage to one task at a time
     params:
         D_encode_list = config["feature_encoder"]["D_encode_list"],
         D_decode_list = config["feature_encoder"]["D_decode_list"],

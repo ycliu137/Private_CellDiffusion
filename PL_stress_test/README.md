@@ -148,7 +148,11 @@ All parameters can be adjusted in `config.yaml`. Key parameters include:
 ## Notes
 
 - The pipeline uses GPU if available and `device: "cuda"` is set in config
-- **GPU Usage**: When running multiple k values with GPU, use `--cores 1` or `--jobs 1` to avoid CUDA device conflicts (multiple tasks cannot share the same GPU simultaneously)
+- **GPU Usage**: When running with GPU, use `--cores 1` or `--jobs 1` or `--resources gpu=1` to avoid CUDA device conflicts (multiple tasks cannot share the same GPU simultaneously)
+- If you encounter "CUDA device is busy" errors, try:
+  - Checking GPU status: `nvidia-smi`
+  - Killing any processes using the GPU: `nvidia-smi` and identify PIDs, then `kill <PID>`
+  - Using CPU instead: set `device: "cpu"` in `config.yaml`
 - Intermediate files are saved to allow resuming from any step
 - Metrics are appended to the CSV file, so multiple runs will accumulate results
 - The pipeline follows the exact workflow from `Data_Integration_stress_tests.ipynb`
