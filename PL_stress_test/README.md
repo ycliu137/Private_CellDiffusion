@@ -130,8 +130,8 @@ The pipeline consists of three main steps:
 
 - `data/outputs/stress_tests_pbmc10k/preprocessed.h5ad` - Preprocessed data
 - `data/outputs/stress_tests_pbmc10k/encoded.h5ad` - Feature encoded data
-- `data/outputs/stress_tests_pbmc10k/scDiffusion_integration_k{k}.h5ad` - Final integrated data for each k value (e.g., k=0, 10, 20, ..., 100)
-- `data/outputs/stress_tests_pbmc10k/metrics_log.csv` - Metrics log with purity scores for all k values
+- `data/outputs/stress_tests_pbmc10k/scDiffusion_integration_k{k}_kadd{k_add}.h5ad` - Final integrated data for each k and k_add combination
+- `data/outputs/stress_tests_pbmc10k/metrics_log.csv` - Metrics log with purity scores for all k and k_add combinations
 
 ## Configuration
 
@@ -141,7 +141,7 @@ All parameters can be adjusted in `config.yaml`. Key parameters include:
 - **Feature encoder**: Architecture dimensions, training epochs, learning rate
 - **Integration graph**: Number of edges per node, MNN k parameter
 - **Integration loss adjacency**: List of k values to test (e.g., `[0, 10, 20, ..., 100]`)
-- **Random edges**: Number of random edges to add (`k_add`), random seed
+- **Random edges**: List of k_add values to test (e.g., `[0, 10, 20, ..., 100]`), random seed
 - **Integration diffusion**: Model architecture, training parameters
 - **Device**: `"cuda"` or `"cpu"`
 
