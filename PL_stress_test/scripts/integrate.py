@@ -54,16 +54,8 @@ cd.inte.build_integration_graph(
 
 print(f"Integration graph shape: {adata.uns['integration_edge_index'].shape}")
 
-# Step 3: Evaluate neighbor purity before adding random edges
-print("\n=== Evaluating neighbor purity (before random edges) ===")
-neighbor_purity_before = cd.eval.evaluate_neighbor_purity(
-    adata,
-    label_key=params.label_key,
-    graph_key='integration_edge_index'
-)
-print(f"Neighbor purity (before): {neighbor_purity_before}")
 
-# Step 4: Add random edges
+# Step 3: Add random edges
 print(f"\n=== Adding random edges (k_add={params.k_add}, seed={params.seed}) ===")
 cd.eval.add_random_edges(
     adata,
@@ -73,6 +65,15 @@ cd.eval.add_random_edges(
     seed=params.seed,
     device=params.device
 )
+
+# Step 4: Evaluate neighbor purity before integration
+print("\n=== Evaluating neighbor purity (before random edges) ===")
+neighbor_purity_before = cd.eval.evaluate_neighbor_purity(
+    adata,
+    label_key=params.label_key,
+    graph_key='integration_edge_index'
+)
+print(f"Neighbor purity (before): {neighbor_purity_before}")
 
 print(f"Integration graph shape after adding random edges: {adata.uns['integration_edge_index'].shape}")
 
