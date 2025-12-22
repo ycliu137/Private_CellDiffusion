@@ -60,6 +60,7 @@ rule encode_features:
         h5ad = str(ENCODED_H5AD)
     resources:
         gpu=1  # Limit GPU usage to one task at a time
+    threads: 1  # Limit threads to help ensure sequential execution
     params:
         D_encode_list = config["feature_encoder"]["D_encode_list"],
         D_decode_list = config["feature_encoder"]["D_decode_list"],
@@ -78,6 +79,7 @@ rule integrate:
         metrics = str(OUTPUT_DIR / "metrics_log_k{k}_kadd{k_add}.csv")
     resources:
         gpu=1  # Limit GPU usage to one task at a time
+    threads: 1  # Limit threads to help ensure sequential execution
     params:
         # Integration graph params
         n_edges_per_node = config["integration_graph"]["n_edges_per_node"],

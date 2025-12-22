@@ -41,10 +41,12 @@ fi
 #   ./run.sh --cores 4          # Run with 4 cores
 #   ./run.sh --cores 1          # Run with 1 core (sequential)
 
-# Default: use 8 cores with GPU resource limit
+# Default: use 1 core with GPU resource limit to ensure GPU tasks run sequentially
+# This prevents CUDA "device busy" errors when multiple tasks try to use GPU simultaneously
 if [ $# -eq 0 ]; then
-    echo "Running snakemake with default settings: --cores 8 --resources gpu=1"
-    snakemake --cores 8 --resources gpu=1
+    echo "Running snakemake with default settings: --cores 1 --resources gpu=1"
+    echo "Note: Using 1 core to ensure GPU tasks run sequentially and avoid CUDA conflicts"
+    snakemake --cores 1 --resources gpu=1
 else
     snakemake "$@"
 fi
