@@ -36,17 +36,18 @@ fi
 # Run snakemake with user-provided arguments or default
 # Usage: ./run.sh [snakemake options]
 # Examples:
-#   ./run.sh                    # Run with default settings (--cores 8 --resources gpu=1)
+#   ./run.sh                    # Run with default settings (--jobs 1 --resources gpu=1)
 #   ./run.sh --dry-run          # Dry run to see what will be executed
-#   ./run.sh --cores 4          # Run with 4 cores
-#   ./run.sh --cores 1          # Run with 1 core (sequential)
+#   ./run.sh --jobs 4           # Run with up to 4 concurrent jobs
+#   ./run.sh --jobs 1           # Run with 1 concurrent job (sequential)
 
-# Default: use 1 core with GPU resource limit to ensure GPU tasks run sequentially
+# Default: use --jobs 1 with GPU resource limit to ensure GPU tasks run strictly sequentially
 # This prevents CUDA "device busy" errors when multiple tasks try to use GPU simultaneously
+# --jobs 1 limits the number of jobs that can run concurrently, which is more restrictive than --cores 1
 if [ $# -eq 0 ]; then
-    echo "Running snakemake with default settings: --cores 1 --resources gpu=1"
-    echo "Note: Using 1 core to ensure GPU tasks run sequentially and avoid CUDA conflicts"
-    snakemake --cores 1 --resources gpu=1
+    echo "Running snakemake with default settings: --jobs 1 --resources gpu=1"
+    echo "Note: Using --jobs 1 to ensure GPU tasks run strictly sequentially and avoid CUDA conflicts"
+    snakemake --jobs 1 --resources gpu=1
 else
     snakemake "$@"
 fi

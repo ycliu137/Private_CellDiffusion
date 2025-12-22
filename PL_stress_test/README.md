@@ -63,19 +63,19 @@ snakemake --cores 1
 ./run.sh --cores 1
 ```
 
-**Important for GPU usage**: When using GPU (`device: "cuda"` in config), limit parallel tasks to avoid CUDA conflicts. The default `./run.sh` script uses `--cores 1 --resources gpu=1` to ensure sequential execution:
+**Important for GPU usage**: When using GPU (`device: "cuda"` in config), limit parallel tasks to avoid CUDA conflicts. The default `./run.sh` script uses `--jobs 1 --resources gpu=1` to ensure strictly sequential execution:
 ```bash
 # Default: Sequential execution (recommended for GPU)
-./run.sh  # Uses --cores 1 --resources gpu=1
+./run.sh  # Uses --jobs 1 --resources gpu=1
 
-# Option 1: Use only 1 core to run tasks sequentially
-snakemake --cores 1
+# Option 1: Use --jobs 1 to limit concurrent jobs (recommended)
+snakemake --jobs 1 --resources gpu=1
 
 # Option 2: Use resources to limit GPU usage (still allows parallel non-GPU tasks)
-snakemake --cores 8 --resources gpu=1
+snakemake --jobs 8 --resources gpu=1
 
-# Option 3: Limit concurrent jobs explicitly
-snakemake --cores 8 --jobs 1
+# Option 3: Use --cores 1 (less restrictive than --jobs 1)
+snakemake --cores 1 --resources gpu=1
 ```
 
 ### Dry run (preview what will be executed)
@@ -159,11 +159,11 @@ All parameters can be adjusted in `config.yaml`. Key parameters include:
 ## Notes
 
 - The pipeline uses GPU if available and `device: "cuda"` is set in config
-- **GPU Usage**: The default `./run.sh` script uses `--cores 1 --resources gpu=1` to ensure GPU tasks run sequentially and avoid CUDA "device busy" errors. Multiple GPU tasks cannot share the same GPU simultaneously.
+- **GPU Usage**: The default `./run.sh` script uses `--jobs 1 --resources gpu=1` to ensure GPU tasks run strictly sequentially and avoid CUDA "device busy" errors. Multiple GPU tasks cannot share the same GPU simultaneously. Use `--jobs 1` (not `--cores 1`) to limit concurrent jobs.
 - If you encounter "CUDA device is busy" errors, try:
   - Checking GPU status: `nvidia-smi`
   - Killing any processes using the GPU: `nvidia-smi` and identify PIDs, then `kill <PID>`
-  - Using the default sequential execution: `./run.sh` (uses `--cores 1`)
+  - Using the default sequential execution: `./run.sh` (uses `--jobs 1`)
   - Using CPU instead: set `device: "cpu"` in `config.yaml`
 - Intermediate files are saved to allow resuming from any step
 - Metrics are appended to the CSV file, so multiple runs will accumulate results
