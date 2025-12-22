@@ -63,6 +63,18 @@ snakemake --cores 1
 ./run.sh --cores 1
 ```
 
+**Important for GPU usage**: When using GPU (`device: "cuda"` in config), limit parallel tasks to avoid CUDA conflicts:
+```bash
+# Option 1: Use only 1 core to run tasks sequentially
+snakemake --cores 1
+
+# Option 2: Use resources to limit GPU usage (if using cluster/slurm)
+snakemake --cores 8 --resources gpu=1
+
+# Option 3: Limit concurrent jobs explicitly
+snakemake --cores 8 --jobs 1
+```
+
 ### Dry run (preview what will be executed)
 
 ```bash
@@ -136,6 +148,7 @@ All parameters can be adjusted in `config.yaml`. Key parameters include:
 ## Notes
 
 - The pipeline uses GPU if available and `device: "cuda"` is set in config
+- **GPU Usage**: When running multiple k values with GPU, use `--cores 1` or `--jobs 1` to avoid CUDA device conflicts (multiple tasks cannot share the same GPU simultaneously)
 - Intermediate files are saved to allow resuming from any step
 - Metrics are appended to the CSV file, so multiple runs will accumulate results
 - The pipeline follows the exact workflow from `Data_Integration_stress_tests.ipynb`
