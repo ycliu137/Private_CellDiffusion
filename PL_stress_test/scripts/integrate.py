@@ -4,12 +4,13 @@ Integration pipeline: build graph, add random edges, run diffusion, evaluate
 import sys
 from pathlib import Path
 import csv
-import scanpy as sc
-import celldiffusion as cd
 
-# Add project root to path
+# Add project root to path first, before importing celldiffusion
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
+
+import scanpy as sc
+import celldiffusion as cd
 
 # Load input data
 input_h5ad = snakemake.input.h5ad
