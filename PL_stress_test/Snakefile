@@ -1,0 +1,132 @@
+"""
+Snakemake workflow for CellDiffusion stress test pipeline
+"""
+
+import os
+from pathlib import Path
+
+# Load configuration
+configfile: "config.yaml"
+
+# Input files
+INPUT_H5AD = config["data"]["input_path"]
+
+# Output directory - handle both absolute and relative paths
+output_dir_str = config["data"]["output_dir"]
+if Path(output_dir_str).is_absolute():
+    OUTPUT_DIR = Path(output_dir_str)
+else:
+    # For relative paths, resolve from current working directory
+    OUTPUT_DIR = Path(output_dir_str).resolve()
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+# Output files
+PREPROCESSED_H5AD = OUTPUT_DIR / "preprocessed.h5ad"
+ENCODED_H5AD = OUTPUT_DIR / "encoded.h5ad"
+
+# Get list of k values
+K_VALUES = config["integration_loss_adj"]["k"]
+
+# Rule all: define final outputs for all k values and aggregated metrics
+rule all:
+    input:
+        expand(str(OUTPUT_DIR / "scDiffusion_integration_k{k}.h5ad"), k=K_VALUES),
+        str(OUTPUT_DIR / "metrics_log.csv")
+
+# Rule: Preprocess data
+rule preprocess:
+    input:
+        h5ad = INPUT_H5AD
+    output:
+        h5ad = str(PREPROCESSED_H5AD)
+    params:
+        min_cells = config["preprocess"]["min_cells"],
+        target_sum = config["preprocess"]["target_sum"],
+        n_top_genes = config["preprocess"]["n_top_genes"],
+        min_mean = config["preprocess"]["min_mean"],
+        max_mean = config["preprocess"]["max_mean"],
+        min_disp = config["preprocess"]["min_disp"]
+    script:
+        "scripts/preprocess.py"
+
+# Rule: Feature encoding
+rule encode_features:
+    input:
+        h5ad = str(PREPROCESSED_H5AD)
+    output:
+        h5ad = str(ENCODED_H5AD)
+    params:
+        D_encode_list = config["feature_encoder"]["D_encode_list"],
+        D_decode_list = config["feature_encoder"]["D_decode_list"],
+        max_epoch = config["feature_encoder"]["max_epoch"],
+        lr = config["feature_encoder"]["lr"],
+        device = config["device"]
+    script:
+        "scripts/encode_features.py"
+
+# Rule: Build integration graph and run integration (with k as wildcard)
+rule integrate:
+    input:
+        h5ad = str(ENCODED_H5AD)
+    output:
+        h5ad = str(OUTPUT_DIR / "scDiffusion_integration_k{k}.h5ad"),
+        metrics = str(OUTPUT_DIR / "metrics_log_k{k}.csv")
+    params:
+        # Integration graph params
+        n_edges_per_node = config["integration_graph"]["n_edges_per_node"],
+        k_mnn = config["integration_graph"]["k_mnn"],
+        # Loss adj params - use wildcard k
+        loss_adj_k = lambda wildcards: int(wildcards.k),
+        # Random edges params
+        k_add = config["random_edges"]["k_add"],
+        seed = config["random_edges"]["seed"],
+        # Integration diffusion params
+        max_epoch = config["integration_diffusion"]["max_epoch"],
+        lr = config["integration_diffusion"]["lr"],
+        num_features_diffusion = config["integration_diffusion"]["num_features_diffusion"],
+        num_heads_diffusion = config["integration_diffusion"]["num_heads_diffusion"],
+        num_steps_diffusion = config["integration_diffusion"]["num_steps_diffusion"],
+        time_increment_diffusion = config["integration_diffusion"]["time_increment_diffusion"],
+        # Evaluation params
+        label_key = config["evaluation"]["label_key"],
+        batch_key = config["evaluation"]["batch_key"],
+        eval_k_mnn = config["evaluation"]["k_mnn"],
+        # Device
+        device = config["device"],
+        # Pass k value for metrics logging
+        k_value = lambda wildcards: int(wildcards.k)
+    script:
+        "scripts/integrate.py"
+
+# Rule: Aggregate metrics from all k values
+rule aggregate_metrics:
+    input:
+        metrics_files = expand(str(OUTPUT_DIR / "metrics_log_k{k}.csv"), k=K_VALUES)
+    output:
+        metrics = str(OUTPUT_DIR / "metrics_log.csv")
+    run:
+        import csv
+        from pathlib import Path
+        
+        # Read all individual metrics files and combine
+        all_data = []
+        header_written = False
+        for metrics_file in input.metrics_files:
+            metrics_path = Path(metrics_file)
+            if metrics_path.exists() and metrics_path.stat().st_size > 0:
+                with open(metrics_path, 'r') as f:
+                    reader = csv.reader(f)
+                    header = next(reader)  # Read header
+                    if not header_written:
+                        # Use the first header (should be the same for all)
+                        all_data.append(header)
+                        header_written = True
+                    for row in reader:
+                        if row:  # Skip empty rows
+                            all_data.append(row)
+        
+        # Write combined metrics
+        with open(output.metrics, 'w', newline='') as f:
+            writer = csv.writer(f)
+            for row in all_data:
+                writer.writerow(row)
