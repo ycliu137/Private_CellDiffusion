@@ -123,14 +123,13 @@ adata.write(output_h5ad)
 # Save metrics
 print(f"\n=== Saving metrics ===")
 print(f"Saving metrics to: {metrics_csv}")
-# Get k_value and k_add_value from params (passed from Snakefile)
-k_value = getattr(params, 'k_value', params.loss_adj_k)
+# Get k_add_value from params (passed from Snakefile)
 k_add_value = getattr(params, 'k_add_value', params.k_add)
 # Write metrics with header (each combination writes to its own file)
 with open(metrics_csv, mode="w", newline="") as f:
     writer = csv.writer(f)
-    writer.writerow(["loss_adj_k", "k_added", "neighbor_purity_before", "neighbor_purity_after"])
-    writer.writerow([k_value, k_add_value, neighbor_purity_before, neighbor_purity_after])
+    writer.writerow(["k_added", "neighbor_purity_before", "neighbor_purity_after"])
+    writer.writerow([k_add_value, neighbor_purity_before, neighbor_purity_after])
 
 print("\n=== Integration pipeline complete! ===")
 

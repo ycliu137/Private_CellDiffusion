@@ -129,12 +129,20 @@ The pipeline consists of three main steps:
    - Compute UMAP for visualization
    - Save results and metrics
 
+4. **Aggregate Metrics** (`aggregate_metrics` rule)
+   - Combine individual metrics files into a single CSV
+
+5. **Plot Metrics** (`plot_metrics` rule)
+   - Generate a line plot comparing neighbor purity before and after integration vs k_added
+   - Saves plot as PDF
+
 ## Output Files
 
 - `data/outputs/stress_tests_pbmc10k/preprocessed.h5ad` - Preprocessed data
 - `data/outputs/stress_tests_pbmc10k/encoded.h5ad` - Feature encoded data
-- `data/outputs/stress_tests_pbmc10k/scDiffusion_integration_k{k}_kadd{k_add}.h5ad` - Final integrated data for each k and k_add combination
-- `data/outputs/stress_tests_pbmc10k/metrics_log.csv` - Metrics log with purity scores for all k and k_add combinations
+- `data/outputs/stress_tests_pbmc10k/scDiffusion_integration_kadd{k_add}.h5ad` - Final integrated data for each k_add combination (k is fixed in config)
+- `data/outputs/stress_tests_pbmc10k/metrics_log.csv` - Metrics log with purity scores for all k_add combinations
+- `data/outputs/stress_tests_pbmc10k/metrics_plot.pdf` - Line plot showing neighbor purity before and after integration vs k_added
 
 ## Configuration
 
@@ -143,7 +151,7 @@ All parameters can be adjusted in `config.yaml`. Key parameters include:
 - **Preprocessing**: `min_cells`, `n_top_genes`, normalization parameters
 - **Feature encoder**: Architecture dimensions, training epochs, learning rate
 - **Integration graph**: Number of edges per node, MNN k parameter
-- **Integration loss adjacency**: List of k values to test (e.g., `[0, 10, 20, ..., 100]`)
+- **Integration loss adjacency**: Single k value (e.g., `50`)
 - **Random edges**: List of k_add values to test (e.g., `[0, 10, 20, ..., 100]`), random seed
 - **Integration diffusion**: Model architecture, training parameters
 - **Device**: `"cuda"` or `"cpu"`
