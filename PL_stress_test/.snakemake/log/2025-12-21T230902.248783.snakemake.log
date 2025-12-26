@@ -1,0 +1,52 @@
+Assuming unrestricted shared filesystem usage.
+host: scc-507
+Building DAG of jobs...
+Using shell: /bin/bash
+Provided cores: 1 (use --cores to define parallelism)
+Rules claiming more threads will be scaled down.
+Provided resources: gpu=1
+Job stats:
+job                  count
+-----------------  -------
+aggregate_metrics        1
+all                      1
+integrate               11
+total                   13
+
+Select jobs to execute...
+Execute 1 jobs...
+[Sun Dec 21 23:09:02 2025]
+localrule integrate:
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc10k/encoded.h5ad
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc10k/scDiffusion_integration_k50_kadd100.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc10k/metrics_log_k50_kadd100.csv
+    jobid: 13
+    reason: Missing output files: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc10k/scDiffusion_integration_k50_kadd100.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc10k/metrics_log_k50_kadd100.csv
+    wildcards: k=50, k_add=100
+    resources: tmpdir=/scratch/2460558.1.czcb-buyin, gpu=1
+Select jobs to execute...
+[Sun Dec 21 23:22:16 2025]
+Finished jobid: 13 (Rule: integrate)
+1 of 13 steps (8%) done
+Execute 1 jobs...
+[Sun Dec 21 23:22:16 2025]
+localrule integrate:
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc10k/encoded.h5ad
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc10k/scDiffusion_integration_k50_kadd30.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc10k/metrics_log_k50_kadd30.csv
+    jobid: 6
+    reason: Missing output files: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc10k/scDiffusion_integration_k50_kadd30.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc10k/metrics_log_k50_kadd30.csv
+    wildcards: k=50, k_add=30
+    resources: tmpdir=/scratch/2460558.1.czcb-buyin, gpu=1
+Select jobs to execute...
+[Sun Dec 21 23:29:59 2025]
+Finished jobid: 6 (Rule: integrate)
+2 of 13 steps (15%) done
+Execute 1 jobs...
+[Sun Dec 21 23:29:59 2025]
+localrule integrate:
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc10k/encoded.h5ad
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc10k/scDiffusion_integration_k50_kadd70.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc10k/metrics_log_k50_kadd70.csv
+    jobid: 10
+    reason: Missing output files: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc10k/scDiffusion_integration_k50_kadd70.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc10k/metrics_log_k50_kadd70.csv
+    wildcards: k=50, k_add=70
+    resources: tmpdir=/scratch/2460558.1.czcb-buyin, gpu=1
+Select jobs to execute...

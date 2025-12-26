@@ -1,0 +1,57 @@
+Assuming unrestricted shared filesystem usage.
+host: scc1
+Building DAG of jobs...
+Using shell: /usr/bin/bash
+Provided cores: 8
+Rules claiming more threads will be scaled down.
+Job stats:
+job                  count
+-----------------  -------
+aggregate_metrics        1
+all                      1
+encode_features          1
+integrate               11
+preprocess               1
+total                   15
+
+Select jobs to execute...
+Execute 1 jobs...
+[Sun Dec 21 20:45:08 2025]
+localrule preprocess:
+    input: /projectnb/czlab/A00/ycliu/scRNA_integration_benchmark_datasets/PBMC10K/pbmc10k.h5ad
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/preprocessed.h5ad
+    jobid: 3
+    reason: Missing output files: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/preprocessed.h5ad
+    resources: tmpdir=/scratch
+[Sun Dec 21 20:45:39 2025]
+Finished jobid: 3 (Rule: preprocess)
+1 of 15 steps (7%) done
+Select jobs to execute...
+Execute 1 jobs...
+[Sun Dec 21 20:45:39 2025]
+localrule encode_features:
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/preprocessed.h5ad
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/encoded.h5ad
+    jobid: 2
+    reason: Missing output files: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/encoded.h5ad; Input files updated by another job: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/preprocessed.h5ad
+    resources: tmpdir=/scratch
+RuleException:
+CalledProcessError in file "/projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/Snakefile", line 65:
+Command 'set -euo pipefail;  /projectnb/czproj/packages/ycliu/envs/dif_snake_env/bin/python3.12 /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/.snakemake/scripts/tmpa3dn1j_n.encode_features.py' returned non-zero exit status 1.
+[Sun Dec 21 20:45:43 2025]
+Error in rule encode_features:
+    message: None
+    jobid: 2
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/preprocessed.h5ad
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/encoded.h5ad
+Shutting down, this might take some time.
+Exiting because a job execution failed. Look below for error messages
+[Sun Dec 21 20:45:43 2025]
+Error in rule encode_features:
+    message: None
+    jobid: 2
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/preprocessed.h5ad
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/encoded.h5ad
+Complete log(s): /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/.snakemake/log/2025-12-21T204507.405030.snakemake.log
+WorkflowError:
+At least one job did not complete successfully.

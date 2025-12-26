@@ -1,0 +1,242 @@
+Assuming unrestricted shared filesystem usage.
+host: scc-507
+Building DAG of jobs...
+Using shell: /bin/bash
+Provided cores: 8
+Rules claiming more threads will be scaled down.
+Job stats:
+job                  count
+-----------------  -------
+aggregate_metrics        1
+all                      1
+encode_features          1
+integrate               11
+total                   14
+
+Select jobs to execute...
+Execute 1 jobs...
+[Sun Dec 21 22:07:01 2025]
+localrule encode_features:
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/preprocessed.h5ad
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/encoded.h5ad
+    jobid: 2
+    reason: Missing output files: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/encoded.h5ad
+    resources: tmpdir=/scratch/2460558.1.czcb-buyin
+[Sun Dec 21 22:08:33 2025]
+Finished jobid: 2 (Rule: encode_features)
+1 of 14 steps (7%) done
+Select jobs to execute...
+Execute 9 jobs...
+[Sun Dec 21 22:08:33 2025]
+localrule integrate:
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/encoded.h5ad
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/scDiffusion_integration_k0.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/metrics_log_k0.csv
+    jobid: 1
+    reason: Missing output files: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/scDiffusion_integration_k0.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/metrics_log_k0.csv; Input files updated by another job: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/encoded.h5ad
+    wildcards: k=0
+    resources: tmpdir=/scratch/2460558.1.czcb-buyin
+[Sun Dec 21 22:08:33 2025]
+localrule integrate:
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/encoded.h5ad
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/scDiffusion_integration_k40.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/metrics_log_k40.csv
+    jobid: 7
+    reason: Missing output files: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/scDiffusion_integration_k40.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/metrics_log_k40.csv; Input files updated by another job: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/encoded.h5ad
+    wildcards: k=40
+    resources: tmpdir=/scratch/2460558.1.czcb-buyin
+[Sun Dec 21 22:08:33 2025]
+localrule integrate:
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/encoded.h5ad
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/scDiffusion_integration_k80.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/metrics_log_k80.csv
+    jobid: 11
+    reason: Missing output files: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/metrics_log_k80.csv, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/scDiffusion_integration_k80.h5ad; Input files updated by another job: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/encoded.h5ad
+    wildcards: k=80
+    resources: tmpdir=/scratch/2460558.1.czcb-buyin
+[Sun Dec 21 22:08:33 2025]
+localrule integrate:
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/encoded.h5ad
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/scDiffusion_integration_k10.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/metrics_log_k10.csv
+    jobid: 4
+    reason: Missing output files: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/metrics_log_k10.csv, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/scDiffusion_integration_k10.h5ad; Input files updated by another job: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/encoded.h5ad
+    wildcards: k=10
+    resources: tmpdir=/scratch/2460558.1.czcb-buyin
+[Sun Dec 21 22:08:33 2025]
+localrule integrate:
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/encoded.h5ad
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/scDiffusion_integration_k50.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/metrics_log_k50.csv
+    jobid: 8
+    reason: Missing output files: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/scDiffusion_integration_k50.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/metrics_log_k50.csv; Input files updated by another job: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/encoded.h5ad
+    wildcards: k=50
+    resources: tmpdir=/scratch/2460558.1.czcb-buyin
+[Sun Dec 21 22:08:33 2025]
+localrule integrate:
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/encoded.h5ad
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/scDiffusion_integration_k90.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/metrics_log_k90.csv
+    jobid: 12
+    reason: Missing output files: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/metrics_log_k90.csv, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/scDiffusion_integration_k90.h5ad; Input files updated by another job: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/encoded.h5ad
+    wildcards: k=90
+    resources: tmpdir=/scratch/2460558.1.czcb-buyin
+[Sun Dec 21 22:08:33 2025]
+localrule integrate:
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/encoded.h5ad
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/scDiffusion_integration_k20.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/metrics_log_k20.csv
+    jobid: 5
+    reason: Missing output files: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/scDiffusion_integration_k20.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/metrics_log_k20.csv; Input files updated by another job: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/encoded.h5ad
+    wildcards: k=20
+    resources: tmpdir=/scratch/2460558.1.czcb-buyin
+[Sun Dec 21 22:08:33 2025]
+localrule integrate:
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/encoded.h5ad
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/scDiffusion_integration_k30.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/metrics_log_k30.csv
+    jobid: 6
+    reason: Missing output files: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/metrics_log_k30.csv, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/scDiffusion_integration_k30.h5ad; Input files updated by another job: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/encoded.h5ad
+    wildcards: k=30
+    resources: tmpdir=/scratch/2460558.1.czcb-buyin
+[Sun Dec 21 22:08:33 2025]
+localrule integrate:
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/encoded.h5ad
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/scDiffusion_integration_k70.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/metrics_log_k70.csv
+    jobid: 10
+    reason: Missing output files: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/scDiffusion_integration_k70.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/metrics_log_k70.csv; Input files updated by another job: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/encoded.h5ad
+    wildcards: k=70
+    resources: tmpdir=/scratch/2460558.1.czcb-buyin
+Select jobs to execute...
+RuleException:
+CalledProcessError in file "/projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/Snakefile", line 99:
+Command 'set -euo pipefail;  /projectnb/czproj/packages/ycliu/envs/dif_snake_env/bin/python3.12 /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/.snakemake/scripts/tmpqa81ecv7.integrate.py' returned non-zero exit status 1.
+[Sun Dec 21 22:08:39 2025]
+Error in rule integrate:
+    message: None
+    jobid: 1
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/encoded.h5ad
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/scDiffusion_integration_k0.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/metrics_log_k0.csv
+RuleException:
+CalledProcessError in file "/projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/Snakefile", line 99:
+Command 'set -euo pipefail;  /projectnb/czproj/packages/ycliu/envs/dif_snake_env/bin/python3.12 /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/.snakemake/scripts/tmpqwehbee5.integrate.py' returned non-zero exit status 1.
+RuleException:
+CalledProcessError in file "/projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/Snakefile", line 99:
+Command 'set -euo pipefail;  /projectnb/czproj/packages/ycliu/envs/dif_snake_env/bin/python3.12 /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/.snakemake/scripts/tmpuh3c944u.integrate.py' returned non-zero exit status 1.
+[Sun Dec 21 22:08:39 2025]
+Error in rule integrate:
+    message: None
+    jobid: 12
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/encoded.h5ad
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/scDiffusion_integration_k90.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/metrics_log_k90.csv
+[Sun Dec 21 22:08:39 2025]
+Error in rule integrate:
+    message: None
+    jobid: 10
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/encoded.h5ad
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/scDiffusion_integration_k70.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/metrics_log_k70.csv
+RuleException:
+CalledProcessError in file "/projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/Snakefile", line 99:
+Command 'set -euo pipefail;  /projectnb/czproj/packages/ycliu/envs/dif_snake_env/bin/python3.12 /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/.snakemake/scripts/tmppaazsmdh.integrate.py' returned non-zero exit status 1.
+[Sun Dec 21 22:08:39 2025]
+Error in rule integrate:
+    message: None
+    jobid: 11
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/encoded.h5ad
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/scDiffusion_integration_k80.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/metrics_log_k80.csv
+RuleException:
+CalledProcessError in file "/projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/Snakefile", line 99:
+Command 'set -euo pipefail;  /projectnb/czproj/packages/ycliu/envs/dif_snake_env/bin/python3.12 /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/.snakemake/scripts/tmp8r73q8iq.integrate.py' returned non-zero exit status 1.
+[Sun Dec 21 22:08:39 2025]
+Error in rule integrate:
+    message: None
+    jobid: 5
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/encoded.h5ad
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/scDiffusion_integration_k20.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/metrics_log_k20.csv
+RuleException:
+CalledProcessError in file "/projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/Snakefile", line 99:
+Command 'set -euo pipefail;  /projectnb/czproj/packages/ycliu/envs/dif_snake_env/bin/python3.12 /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/.snakemake/scripts/tmpirjyuj_o.integrate.py' returned non-zero exit status 1.
+[Sun Dec 21 22:08:39 2025]
+Error in rule integrate:
+    message: None
+    jobid: 6
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/encoded.h5ad
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/scDiffusion_integration_k30.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/metrics_log_k30.csv
+RuleException:
+CalledProcessError in file "/projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/Snakefile", line 99:
+Command 'set -euo pipefail;  /projectnb/czproj/packages/ycliu/envs/dif_snake_env/bin/python3.12 /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/.snakemake/scripts/tmp5amt0053.integrate.py' returned non-zero exit status 1.
+[Sun Dec 21 22:08:39 2025]
+Error in rule integrate:
+    message: None
+    jobid: 4
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/encoded.h5ad
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/scDiffusion_integration_k10.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/metrics_log_k10.csv
+RuleException:
+CalledProcessError in file "/projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/Snakefile", line 99:
+Command 'set -euo pipefail;  /projectnb/czproj/packages/ycliu/envs/dif_snake_env/bin/python3.12 /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/.snakemake/scripts/tmpmntwjn6c.integrate.py' returned non-zero exit status 1.
+[Sun Dec 21 22:08:39 2025]
+Error in rule integrate:
+    message: None
+    jobid: 7
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/encoded.h5ad
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/scDiffusion_integration_k40.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/metrics_log_k40.csv
+RuleException:
+CalledProcessError in file "/projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/Snakefile", line 99:
+Command 'set -euo pipefail;  /projectnb/czproj/packages/ycliu/envs/dif_snake_env/bin/python3.12 /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/.snakemake/scripts/tmpnur1v_kx.integrate.py' returned non-zero exit status 1.
+[Sun Dec 21 22:08:40 2025]
+Error in rule integrate:
+    message: None
+    jobid: 8
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/encoded.h5ad
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/scDiffusion_integration_k50.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/metrics_log_k50.csv
+Shutting down, this might take some time.
+Exiting because a job execution failed. Look below for error messages
+[Sun Dec 21 22:08:40 2025]
+Error in rule integrate:
+    message: None
+    jobid: 1
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/encoded.h5ad
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/scDiffusion_integration_k0.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/metrics_log_k0.csv
+[Sun Dec 21 22:08:40 2025]
+Error in rule integrate:
+    message: None
+    jobid: 11
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/encoded.h5ad
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/scDiffusion_integration_k80.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/metrics_log_k80.csv
+[Sun Dec 21 22:08:40 2025]
+Error in rule integrate:
+    message: None
+    jobid: 7
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/encoded.h5ad
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/scDiffusion_integration_k40.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/metrics_log_k40.csv
+[Sun Dec 21 22:08:40 2025]
+Error in rule integrate:
+    message: None
+    jobid: 4
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/encoded.h5ad
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/scDiffusion_integration_k10.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/metrics_log_k10.csv
+[Sun Dec 21 22:08:40 2025]
+Error in rule integrate:
+    message: None
+    jobid: 12
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/encoded.h5ad
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/scDiffusion_integration_k90.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/metrics_log_k90.csv
+[Sun Dec 21 22:08:40 2025]
+Error in rule integrate:
+    message: None
+    jobid: 8
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/encoded.h5ad
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/scDiffusion_integration_k50.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/metrics_log_k50.csv
+[Sun Dec 21 22:08:40 2025]
+Error in rule integrate:
+    message: None
+    jobid: 5
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/encoded.h5ad
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/scDiffusion_integration_k20.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/metrics_log_k20.csv
+[Sun Dec 21 22:08:40 2025]
+Error in rule integrate:
+    message: None
+    jobid: 6
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/encoded.h5ad
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/scDiffusion_integration_k30.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/metrics_log_k30.csv
+[Sun Dec 21 22:08:40 2025]
+Error in rule integrate:
+    message: None
+    jobid: 10
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/encoded.h5ad
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/scDiffusion_integration_k70.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/data/outputs/stress_tests_pbmc10k/metrics_log_k70.csv
+Complete log(s): /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/.snakemake/log/2025-12-21T220656.568275.snakemake.log
+WorkflowError:
+At least one job did not complete successfully.

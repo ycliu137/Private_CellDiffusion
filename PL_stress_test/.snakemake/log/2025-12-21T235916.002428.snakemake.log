@@ -1,0 +1,27 @@
+Assuming unrestricted shared filesystem usage.
+host: scc-507
+Building DAG of jobs...
+Using shell: /bin/bash
+Provided cores: 1 (use --cores to define parallelism)
+Rules claiming more threads will be scaled down.
+Provided resources: gpu=1
+Job stats:
+job                  count
+-----------------  -------
+aggregate_metrics        1
+all                      1
+integrate               11
+plot_metrics             1
+total                   14
+
+Select jobs to execute...
+Execute 1 jobs...
+[Sun Dec 21 23:59:16 2025]
+localrule integrate:
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc10k/encoded.h5ad
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc10k/scDiffusion_integration_kadd20.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc10k/metrics_log_kadd20.csv
+    jobid: 5
+    reason: Missing output files: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc10k/scDiffusion_integration_kadd20.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc10k/metrics_log_kadd20.csv
+    wildcards: k_add=20
+    resources: tmpdir=/scratch/2460558.1.czcb-buyin, gpu=1
+Select jobs to execute...
