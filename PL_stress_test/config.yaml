@@ -59,3 +59,7 @@ umap:
 # Device
 device: "cuda"  # or "cpu"
 
+# SCIB evaluation parameters
+scib_evaluation:
+  n_jobs: 1  # Number of parallel jobs for scib benchmark (1 is recommended for stability)
+

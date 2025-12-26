@@ -29,12 +29,16 @@ K_VALUE = config["integration_loss_adj"]["k"]
 k_add_config = config["random_edges"]["k_add"]
 K_ADD_VALUES = [k_add_config] if not isinstance(k_add_config, list) else k_add_config
 
-# Rule all: define final outputs for all k_add combinations, aggregated metrics, and plot
+# Rule all: define final outputs for all k_add combinations, aggregated metrics, plot, aggregated X_dif, scib evaluation, and scib plot
 rule all:
     input:
         expand(str(OUTPUT_DIR / "scDiffusion_integration_kadd{k_add}.h5ad"), k_add=K_ADD_VALUES),
         str(OUTPUT_DIR / "metrics_log.csv"),
-        str(OUTPUT_DIR / "metrics_plot.pdf")
+        str(OUTPUT_DIR / "metrics_plot.pdf"),
+        str(OUTPUT_DIR / "aggregated_X_dif.h5ad"),
+        str(OUTPUT_DIR / "scib_results_table.csv"),
+        str(OUTPUT_DIR / "scib_results_table_plot.pdf"),
+        str(OUTPUT_DIR / "scib_evaluation_plot.pdf")
 
 # Rule: Preprocess data
 rule preprocess:
@@ -148,3 +152,38 @@ rule plot_metrics:
         pdf = str(OUTPUT_DIR / "metrics_plot.pdf")
     script:
         "scripts/plot_metrics.py"
+
+
+# Rule: Aggregate X_dif from all integration outputs
+rule aggregate_X_dif:
+    input:
+        h5ad_files = expand(str(OUTPUT_DIR / "scDiffusion_integration_kadd{k_add}.h5ad"), k_add=K_ADD_VALUES)
+    output:
+        h5ad = str(OUTPUT_DIR / "aggregated_X_dif.h5ad")
+    script:
+        "scripts/aggregate_X_dif.py"
+
+
+# Rule: SCIB evaluation - benchmark different k_add integration results
+rule scib_evaluation:
+    input:
+        h5ad = str(OUTPUT_DIR / "aggregated_X_dif.h5ad")
+    output:
+        results = str(OUTPUT_DIR / "scib_benchmarker.pkl"),
+        table = str(OUTPUT_DIR / "scib_results_table.csv"),
+        plot = str(OUTPUT_DIR / "scib_results_table_plot.pdf")
+    params:
+        batch_key = config["evaluation"]["batch_key"],
+        label_key = config["evaluation"]["label_key"],
+        n_jobs = config.get("scib_evaluation", {}).get("n_jobs", 1)
+    script:
+        "scripts/scib_evaluation.py"
+
+# Rule: Plot SCIB evaluation results - aggregate scores vs k_add
+rule scib_evaluation_plot:
+    input:
+        table = str(OUTPUT_DIR / "scib_results_table.csv")
+    output:
+        pdf = str(OUTPUT_DIR / "scib_evaluation_plot.pdf")
+    script:
+        "scripts/scib_evaluation_plot.py"
