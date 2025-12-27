@@ -100,6 +100,9 @@ plot_config = {
     'Bio conservation': {'color': '#2ca02c', 'marker': '^', 'linestyle': '-.', 'label': 'Bio conservation'}
 }
 
+# Collect all values to determine unified y-axis range
+all_values = []
+
 # Plot each aggregate score
 for score_name, col_name in found_scores.items():
     if col_name in df.columns:
@@ -107,10 +110,14 @@ for score_name, col_name in found_scores.items():
         k_adds = df['k_add'].values
         values = df[col_name].values
         
+        # Collect values for unified y-axis
+        all_values.extend(values)
+        
         # Debug: print the data being plotted
         print(f"\n  Plotting {score_name}:")
         print(f"    k_add values: {k_adds}")
         print(f"    {score_name} values: {values}")
+        print(f"    {score_name} range: [{values.min():.4f}, {values.max():.4f}]")
         
         config = plot_config.get(score_name, {})
         ax.plot(k_adds, values,
@@ -132,6 +139,16 @@ ax.grid(True, alpha=0.3, linestyle='--')
 if len(df) > 0:
     x_min, x_max = df['k_add'].min(), df['k_add'].max()
     ax.set_xlim(left=x_min - 5, right=x_max + 5)
+
+# Set unified y-axis range for all aggregate scores
+if all_values:
+    y_min = min(all_values)
+    y_max = max(all_values)
+    # Add padding (5% on each side)
+    y_range = y_max - y_min
+    y_padding = y_range * 0.05
+    ax.set_ylim(bottom=y_min - y_padding, top=y_max + y_padding)
+    print(f"\n  Unified y-axis range: [{y_min - y_padding:.4f}, {y_max + y_padding:.4f}]")
 
 plt.tight_layout()
 
