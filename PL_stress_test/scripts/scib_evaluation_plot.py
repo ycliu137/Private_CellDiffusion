@@ -29,6 +29,11 @@ if METRIC_TYPE_ROW in df.index:
     print(f"\nRemoving '{METRIC_TYPE_ROW}' row from data")
     df = df.drop(METRIC_TYPE_ROW)
 
+# Convert numeric columns to float (in case they were read as strings)
+for col in df.columns:
+    if col != 'k_add':  # k_add will be added later
+        df[col] = pd.to_numeric(df[col], errors='coerce')
+
 print(f"\nData after processing:")
 print(df.head())
 
@@ -110,17 +115,26 @@ for score_name, col_name in found_scores.items():
         k_adds = df['k_add'].values
         values = df[col_name].values
         
-        # Collect values for unified y-axis
-        all_values.extend(values)
+        # Ensure values are numeric (convert to float if needed)
+        values = pd.to_numeric(values, errors='coerce')
+        
+        # Remove any NaN values for plotting
+        valid_mask = ~np.isnan(values)
+        k_adds_plot = k_adds[valid_mask]
+        values_plot = values[valid_mask]
+        
+        # Collect valid values for unified y-axis
+        all_values.extend(values_plot.tolist())
         
         # Debug: print the data being plotted
         print(f"\n  Plotting {score_name}:")
-        print(f"    k_add values: {k_adds}")
-        print(f"    {score_name} values: {values}")
-        print(f"    {score_name} range: [{values.min():.4f}, {values.max():.4f}]")
+        print(f"    k_add values: {k_adds_plot}")
+        print(f"    {score_name} values: {values_plot}")
+        if len(values_plot) > 0:
+            print(f"    {score_name} range: [{np.min(values_plot):.4f}, {np.max(values_plot):.4f}]")
         
         config = plot_config.get(score_name, {})
-        ax.plot(k_adds, values,
+        ax.plot(k_adds_plot, values_plot,
                 marker=config.get('marker', 'o'),
                 linestyle=config.get('linestyle', '-'),
                 color=config.get('color', '#1f77b4'),
@@ -142,13 +156,20 @@ if len(df) > 0:
 
 # Set unified y-axis range for all aggregate scores
 if all_values:
-    y_min = min(all_values)
-    y_max = max(all_values)
-    # Add padding (5% on each side)
-    y_range = y_max - y_min
-    y_padding = y_range * 0.05
-    ax.set_ylim(bottom=y_min - y_padding, top=y_max + y_padding)
-    print(f"\n  Unified y-axis range: [{y_min - y_padding:.4f}, {y_max + y_padding:.4f}]")
+    # Convert to numpy array and filter out NaN/inf values
+    all_values_array = np.array(all_values)
+    all_values_array = all_values_array[np.isfinite(all_values_array)]
+    
+    if len(all_values_array) > 0:
+        y_min = float(np.min(all_values_array))
+        y_max = float(np.max(all_values_array))
+        # Add padding (5% on each side)
+        y_range = y_max - y_min
+        y_padding = y_range * 0.05
+        ax.set_ylim(bottom=y_min - y_padding, top=y_max + y_padding)
+        print(f"\n  Unified y-axis range: [{y_min - y_padding:.4f}, {y_max + y_padding:.4f}]")
+    else:
+        print(f"\n  Warning: No valid values found for y-axis range")
 
 plt.tight_layout()
 
