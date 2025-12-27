@@ -56,6 +56,8 @@ df = df[df['k_add'].notna()].copy()
 df = df.sort_values('k_add')
 
 print(f"\nFiltered data with {len(df)} rows")
+print(f"\nData sorted by k_add:")
+print(df[['k_add'] + [col for col in df.columns if col != 'k_add']].head(10))
 
 # Extract the three aggregate score columns
 # Expected columns: "Batch correction", "Bio conservation", "Total"
@@ -101,16 +103,17 @@ plot_config = {
 # Plot each aggregate score
 for score_name, col_name in found_scores.items():
     if col_name in df.columns:
-        values = df[col_name].values
+        # DataFrame is already sorted by k_add, so we can use values directly
         k_adds = df['k_add'].values
+        values = df[col_name].values
         
-        # Sort by k_add for proper line connection
-        sort_idx = np.argsort(k_adds)
-        k_adds_sorted = k_adds[sort_idx]
-        values_sorted = values[sort_idx]
+        # Debug: print the data being plotted
+        print(f"\n  Plotting {score_name}:")
+        print(f"    k_add values: {k_adds}")
+        print(f"    {score_name} values: {values}")
         
         config = plot_config.get(score_name, {})
-        ax.plot(k_adds_sorted, values_sorted,
+        ax.plot(k_adds, values,
                 marker=config.get('marker', 'o'),
                 linestyle=config.get('linestyle', '-'),
                 color=config.get('color', '#1f77b4'),
