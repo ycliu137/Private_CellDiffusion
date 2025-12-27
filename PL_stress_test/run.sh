@@ -15,10 +15,10 @@ fi
 
 # Activate conda environment
 if command -v conda &> /dev/null; then
-    echo "Activating conda environment: dif_snake_env"
+    echo "Activating conda environment: dif_snake_scib_env"
     source "$(conda info --base)/etc/profile.d/conda.sh"
-    conda activate dif_snake_env 2>/dev/null || {
-        echo "Warning: Could not activate dif_snake_env. Continuing anyway..."
+    conda activate dif_snake_scib_env 2>/dev/null || {
+        echo "Warning: Could not activate dif_snake_scib_env. Continuing anyway..."
     }
 fi
 

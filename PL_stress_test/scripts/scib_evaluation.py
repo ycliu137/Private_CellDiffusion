@@ -56,7 +56,7 @@ else:
         print("\nWarning: No suitable pre-integrated embedding found, will skip PCR comparison")
 
 # Set up batch correction metrics
-batch_corr = BatchCorrection(pcr_comparison=(pre_integrated_key is not None))
+batch_corr = BatchCorrection(pcr_comparison=False)
 
 print(f"\n=== Running SCIB benchmark ===")
 print(f"  Batch key: {params.batch_key}")

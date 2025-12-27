@@ -71,7 +71,7 @@ mamba run -n ${ENV_NAME} pip install \
     scanpy==1.11.3 \
     umap-learn==0.5.7 \
     scvi-tools \
-    scib \
+    scib-metrics \
     ipykernel \
     snakemake
     
