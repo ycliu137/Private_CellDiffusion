@@ -25,6 +25,30 @@ adata = sc.read_h5ad(input_h5ad)
 
 print(f"Data shape: {adata.shape}")
 print(f"Using graph building method: {params.graph_method}")
+print(f"Graph method type: {type(params.graph_method)}")
+print(f"Graph method repr: {repr(params.graph_method)}")
+
+# Normalize method name to handle any potential parsing issues
+method_name = str(params.graph_method).strip()
+
+# Check if adata.X exists (required by SCVI-based methods)
+print(f"\n=== Checking data availability ===")
+print(f"adata.X exists: {adata.X is not None}")
+if adata.X is not None:
+    print(f"adata.X shape: {adata.X.shape}")
+    print(f"adata.X type: {type(adata.X)}")
+    if hasattr(adata.X, 'toarray'):
+        print(f"adata.X is sparse matrix")
+    print(f"adata.X dtype: {adata.X.dtype if hasattr(adata.X, 'dtype') else 'N/A'}")
+else:
+    print("WARNING: adata.X is None!")
+
+# Check if adata.raw exists (backup for SCVI if needed)
+if hasattr(adata, 'raw') and adata.raw is not None:
+    print(f"adata.raw exists: True")
+    print(f"adata.raw.X shape: {adata.raw.X.shape}")
+else:
+    print(f"adata.raw exists: False")
 
 # CUDA synchronization: Wait for GPU to be available
 if params.device == "cuda":
@@ -67,9 +91,9 @@ cd.inte.build_integration_loss_adj(
 )
 
 # Build graph using the specified method
-print(f"\n=== Building integration graph using {params.graph_method} ===")
+print(f"\n=== Building integration graph using {method_name} ===")
 
-if params.graph_method == 'OMNN-Harmony':
+if method_name == 'OMNN-Harmony':
     cd.inte.build_integration_graph(
         adata,
         batch_key=params.batch_key,
@@ -78,7 +102,7 @@ if params.graph_method == 'OMNN-Harmony':
         k_mnn=params.k_mnn,
         device=params.device
     )
-elif params.graph_method == 'pure-MNN':
+elif method_name == 'pure-MNN':
     cd.inte.build_mnn_graph(
         adata,
         batch_key=params.batch_key,
@@ -87,7 +111,7 @@ elif params.graph_method == 'pure-MNN':
         k_mnn=params.k_mnn,
         device=params.device
     )
-elif params.graph_method == 'Harmony-MNN':
+elif method_name == 'Harmony-MNN':
     cd.inte.build_harmony_mnn_graph(
         adata,
         batch_key=params.batch_key,
@@ -96,7 +120,14 @@ elif params.graph_method == 'Harmony-MNN':
         k_mnn=params.k_mnn,
         device=params.device
     )
-elif params.graph_method == 'scVI_MNN':
+elif method_name == 'scVI-MNN' or method_name == 'scVI_MNN':
+    # SCVI needs adata.X to exist (it will use it for training)
+    # Note: SCVI prefers raw count data, but can work with normalized/log-transformed data
+    if adata.X is None:
+        raise ValueError("adata.X is None! SCVI requires adata.X to train the model. "
+                        "Please ensure the preprocessing step preserves adata.X.")
+    print(f"adata.X is available for SCVI training (shape: {adata.X.shape})")
+    print("Note: SCVI may warn if data is not raw counts, but it should still work.")
     cd.inte.build_scvi_mnn_graph(
         adata,
         batch_key=params.batch_key,
@@ -105,7 +136,13 @@ elif params.graph_method == 'scVI_MNN':
         k_mnn=params.k_mnn,
         device=params.device
     )
-elif params.graph_method == 'OMNN-scVI':
+elif method_name == 'OMNN-scVI':
+    # SCVI needs adata.X to exist (it will use it for training)
+    if adata.X is None:
+        raise ValueError("adata.X is None! SCVI requires adata.X to train the model. "
+                        "Please ensure the preprocessing step preserves adata.X.")
+    print(f"adata.X is available for SCVI training (shape: {adata.X.shape})")
+    print("Note: SCVI may warn if data is not raw counts, but it should still work.")
     cd.inte.build_omnn_scvi_graph(
         adata,
         batch_key=params.batch_key,
@@ -115,7 +152,7 @@ elif params.graph_method == 'OMNN-scVI':
         device=params.device
     )
 else:
-    raise ValueError(f"Unknown graph building method: {params.graph_method}")
+    raise ValueError(f"Unknown graph building method: {method_name} (original: {params.graph_method}, type: {type(params.graph_method)})")
 
 print(f"Integration graph shape: {adata.uns['integration_edge_index'].shape}")
 
@@ -125,5 +162,5 @@ print(f"Saving to: {output_h5ad}")
 Path(output_h5ad).parent.mkdir(parents=True, exist_ok=True)
 adata.write(output_h5ad)
 
-print(f"\n=== Graph building complete using {params.graph_method}! ===")
+print(f"\n=== Graph building complete using {method_name}! ===")
 
