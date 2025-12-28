@@ -1,0 +1,176 @@
+"""
+Snakemake workflow for n_edges_per_node hyperparameter optimization pipeline
+"""
+import os
+from pathlib import Path
+
+# Load configuration
+configfile: "config.yaml"
+
+# Input files
+INPUT_H5AD = config["data"]["input_path"]
+
+# Output directory - handle both absolute and relative paths
+output_dir_str = config["data"]["output_dir"]
+if Path(output_dir_str).is_absolute():
+    OUTPUT_DIR = Path(output_dir_str)
+else:
+    # For relative paths, resolve from current working directory
+    OUTPUT_DIR = Path(output_dir_str).resolve()
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+# Output files
+PREPROCESSED_H5AD = OUTPUT_DIR / "preprocessed.h5ad"
+ENCODED_H5AD = OUTPUT_DIR / "encoded.h5ad"
+
+# Get n_edges_per_node values (list) and k_mnn (fixed)
+N_EDGES_PER_NODE_VALUES = config["integration_graph"]["n_edges_per_node"]
+if not isinstance(N_EDGES_PER_NODE_VALUES, list):
+    N_EDGES_PER_NODE_VALUES = [N_EDGES_PER_NODE_VALUES]
+K_MNN_VALUE = config["integration_graph"]["k_mnn"]  # Fixed value
+
+# Rule all: define final outputs
+rule all:
+    input:
+        expand(str(OUTPUT_DIR / "integrated_nedges{n_edges}.h5ad"), n_edges=N_EDGES_PER_NODE_VALUES),
+        str(OUTPUT_DIR / "aggregated_X_dif.h5ad"),
+        str(OUTPUT_DIR / "data_with_umap.h5ad"),
+        str(OUTPUT_DIR / "umap_plot.pdf"),
+        str(OUTPUT_DIR / "scib_results_table.csv"),
+        str(OUTPUT_DIR / "scib_benchmarker.pkl"),
+        str(OUTPUT_DIR / "scib_results_table_plot.pdf"),
+        str(OUTPUT_DIR / "scib_comparison_barplot.pdf")
+
+# Rule: Preprocess data
+rule preprocess:
+    input:
+        h5ad = INPUT_H5AD
+    output:
+        h5ad = str(PREPROCESSED_H5AD)
+    params:
+        min_cells = config["preprocess"]["min_cells"],
+        target_sum = config["preprocess"]["target_sum"],
+        n_top_genes = config["preprocess"]["n_top_genes"],
+        min_mean = config["preprocess"]["min_mean"],
+        max_mean = config["preprocess"]["max_mean"],
+        min_disp = config["preprocess"]["min_disp"]
+    script:
+        "scripts/preprocess.py"
+
+# Rule: Feature encoding
+rule encode_features:
+    input:
+        h5ad = str(PREPROCESSED_H5AD)
+    output:
+        h5ad = str(ENCODED_H5AD)
+    resources:
+        gpu=1  # Limit GPU usage to one task at a time
+    threads: 1
+    params:
+        D_encode_list = config["feature_encoder"]["D_encode_list"],
+        D_decode_list = config["feature_encoder"]["D_decode_list"],
+        max_epoch = config["feature_encoder"]["max_epoch"],
+        lr = config["feature_encoder"]["lr"],
+        device = config["device"]
+    script:
+        "scripts/encode_features.py"
+
+# Rule: Build integration graph with specific n_edges_per_node
+rule build_graph:
+    input:
+        h5ad = str(ENCODED_H5AD)
+    output:
+        h5ad = str(OUTPUT_DIR / "graph_nedges{n_edges}.h5ad")
+    resources:
+        gpu=1
+    threads: 1
+    params:
+        batch_key = config["evaluation"]["batch_key"],
+        k = config["integration_loss_adj"]["k"],
+        n_edges_per_node = lambda wildcards: int(wildcards.n_edges),
+        k_mnn = K_MNN_VALUE,  # Fixed value
+        device = config["device"]
+    script:
+        "scripts/build_graph.py"
+
+# Rule: Run CellDiffusion integration with specific n_edges_per_node
+rule integrate:
+    input:
+        h5ad = str(OUTPUT_DIR / "graph_nedges{n_edges}.h5ad")
+    output:
+        h5ad = str(OUTPUT_DIR / "integrated_nedges{n_edges}.h5ad")
+    resources:
+        gpu=1
+    threads: 1
+    params:
+        max_epoch = config["integration_diffusion"]["max_epoch"],
+        lr = config["integration_diffusion"]["lr"],
+        num_features_diffusion = config["integration_diffusion"]["num_features_diffusion"],
+        num_heads_diffusion = config["integration_diffusion"]["num_heads_diffusion"],
+        num_steps_diffusion = config["integration_diffusion"]["num_steps_diffusion"],
+        time_increment_diffusion = config["integration_diffusion"]["time_increment_diffusion"],
+        device = config["device"],
+        n_edges_per_node = lambda wildcards: int(wildcards.n_edges)
+    script:
+        "scripts/integrate.py"
+
+# Rule: Aggregate X_dif from all n_edges_per_node results
+rule aggregate_X_dif:
+    input:
+        h5ad_files = expand(str(OUTPUT_DIR / "integrated_nedges{n_edges}.h5ad"), n_edges=N_EDGES_PER_NODE_VALUES)
+    output:
+        h5ad = str(OUTPUT_DIR / "aggregated_X_dif.h5ad")
+    script:
+        "scripts/aggregate_X_dif.py"
+
+# Rule: Compute UMAP for aggregated embeddings
+rule compute_umap:
+    input:
+        h5ad = str(OUTPUT_DIR / "aggregated_X_dif.h5ad")
+    output:
+        h5ad = str(OUTPUT_DIR / "data_with_umap.h5ad")
+    params:
+        use_reps = [f"X_dif_nedges{n_edges}" for n_edges in N_EDGES_PER_NODE_VALUES],
+        umap_keys = [f"X_umap_nedges{n_edges}" for n_edges in N_EDGES_PER_NODE_VALUES],
+        n_neighbors = config["umap"]["n_neighbors"],
+        n_pcs = config["umap"]["n_pcs"]
+    script:
+        "scripts/compute_umap.py"
+
+# Rule: Plot UMAP visualizations
+rule plot_umap:
+    input:
+        h5ad = str(OUTPUT_DIR / "data_with_umap.h5ad")
+    output:
+        pdf = str(OUTPUT_DIR / "umap_plot.pdf")
+    params:
+        umap_keys = [f"X_umap_nedges{n_edges}" for n_edges in N_EDGES_PER_NODE_VALUES],
+        batch_key = config["evaluation"]["batch_key"],
+        label_key = config["evaluation"]["label_key"]
+    script:
+        "scripts/plot_umap.py"
+
+# Rule: SCIB evaluation
+rule scib_evaluation:
+    input:
+        h5ad = str(OUTPUT_DIR / "aggregated_X_dif.h5ad")
+    output:
+        results = str(OUTPUT_DIR / "scib_benchmarker.pkl"),
+        table = str(OUTPUT_DIR / "scib_results_table.csv"),
+        plot = str(OUTPUT_DIR / "scib_results_table_plot.pdf")
+    params:
+        batch_key = config["evaluation"]["batch_key"],
+        label_key = config["evaluation"]["label_key"],
+        n_jobs = config["scib_evaluation"]["n_jobs"]
+    script:
+        "scripts/scib_evaluation.py"
+
+# Rule: Plot SCIB comparison bar plot
+rule scib_evaluation_plot:
+    input:
+        table = str(OUTPUT_DIR / "scib_results_table.csv")
+    output:
+        pdf = str(OUTPUT_DIR / "scib_comparison_barplot.pdf")
+    script:
+        "scripts/scib_evaluation_plot.py"
+
