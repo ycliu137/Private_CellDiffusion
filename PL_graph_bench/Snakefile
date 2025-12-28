@@ -1,0 +1,147 @@
+"""
+Snakemake workflow for graph building method benchmark pipeline
+"""
+import os
+from pathlib import Path
+
+# Load configuration
+configfile: "config.yaml"
+
+# Input files
+INPUT_H5AD = config["data"]["input_path"]
+
+# Output directory - handle both absolute and relative paths
+output_dir_str = config["data"]["output_dir"]
+if Path(output_dir_str).is_absolute():
+    OUTPUT_DIR = Path(output_dir_str)
+else:
+    # For relative paths, resolve from current working directory
+    OUTPUT_DIR = Path(output_dir_str).resolve()
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+# Output files
+PREPROCESSED_H5AD = OUTPUT_DIR / "preprocessed.h5ad"
+ENCODED_H5AD = OUTPUT_DIR / "encoded.h5ad"
+
+# Get graph methods (list)
+GRAPH_METHODS = config["graph_methods"]
+if not isinstance(GRAPH_METHODS, list):
+    GRAPH_METHODS = [GRAPH_METHODS]
+
+# Rule all: define final outputs
+rule all:
+    input:
+        expand(str(OUTPUT_DIR / "integrated_{method}.h5ad"), method=GRAPH_METHODS),
+        str(OUTPUT_DIR / "aggregated_X_dif.h5ad"),
+        str(OUTPUT_DIR / "scib_results_table.csv"),
+        str(OUTPUT_DIR / "scib_benchmarker.pkl"),
+        str(OUTPUT_DIR / "scib_results_table_plot.pdf"),
+        str(OUTPUT_DIR / "scib_comparison_barplot.pdf")
+
+# Rule: Preprocess data
+rule preprocess:
+    input:
+        h5ad = INPUT_H5AD
+    output:
+        h5ad = str(PREPROCESSED_H5AD)
+    params:
+        min_cells = config["preprocess"]["min_cells"],
+        target_sum = config["preprocess"]["target_sum"],
+        n_top_genes = config["preprocess"]["n_top_genes"],
+        min_mean = config["preprocess"]["min_mean"],
+        max_mean = config["preprocess"]["max_mean"],
+        min_disp = config["preprocess"]["min_disp"]
+    script:
+        "scripts/preprocess.py"
+
+# Rule: Feature encoding
+rule encode_features:
+    input:
+        h5ad = str(PREPROCESSED_H5AD)
+    output:
+        h5ad = str(ENCODED_H5AD)
+    resources:
+        gpu=1  # Limit GPU usage to one task at a time
+    threads: 1
+    params:
+        D_encode_list = config["feature_encoder"]["D_encode_list"],
+        D_decode_list = config["feature_encoder"]["D_decode_list"],
+        max_epoch = config["feature_encoder"]["max_epoch"],
+        lr = config["feature_encoder"]["lr"],
+        device = config["device"]
+    script:
+        "scripts/encode_features.py"
+
+# Rule: Build integration graph using specific method
+rule build_graph:
+    input:
+        h5ad = str(ENCODED_H5AD)
+    output:
+        h5ad = str(OUTPUT_DIR / "graph_{method}.h5ad")
+    resources:
+        gpu=1
+    threads: 1
+    params:
+        graph_method = lambda wildcards: wildcards.method,
+        batch_key = config["evaluation"]["batch_key"],
+        k = config["integration_loss_adj"]["k"],
+        n_edges_per_node = config["integration_graph"]["n_edges_per_node"],
+        k_mnn = config["integration_graph"]["k_mnn"],
+        device = config["device"]
+    script:
+        "scripts/build_graph.py"
+
+# Rule: Run CellDiffusion integration
+rule integrate:
+    input:
+        h5ad = str(OUTPUT_DIR / "graph_{method}.h5ad")
+    output:
+        h5ad = str(OUTPUT_DIR / "integrated_{method}.h5ad")
+    resources:
+        gpu=1
+    threads: 1
+    params:
+        max_epoch = config["integration_diffusion"]["max_epoch"],
+        lr = config["integration_diffusion"]["lr"],
+        num_features_diffusion = config["integration_diffusion"]["num_features_diffusion"],
+        num_heads_diffusion = config["integration_diffusion"]["num_heads_diffusion"],
+        num_steps_diffusion = config["integration_diffusion"]["num_steps_diffusion"],
+        time_increment_diffusion = config["integration_diffusion"]["time_increment_diffusion"],
+        device = config["device"],
+        graph_method = lambda wildcards: wildcards.method
+    script:
+        "scripts/integrate.py"
+
+# Rule: Aggregate X_dif from all graph building method results
+rule aggregate_X_dif:
+    input:
+        h5ad_files = expand(str(OUTPUT_DIR / "integrated_{method}.h5ad"), method=GRAPH_METHODS)
+    output:
+        h5ad = str(OUTPUT_DIR / "aggregated_X_dif.h5ad")
+    script:
+        "scripts/aggregate_X_dif.py"
+
+# Rule: SCIB evaluation
+rule scib_evaluation:
+    input:
+        h5ad = str(OUTPUT_DIR / "aggregated_X_dif.h5ad")
+    output:
+        results = str(OUTPUT_DIR / "scib_benchmarker.pkl"),
+        table = str(OUTPUT_DIR / "scib_results_table.csv"),
+        plot = str(OUTPUT_DIR / "scib_results_table_plot.pdf")
+    params:
+        batch_key = config["evaluation"]["batch_key"],
+        label_key = config["evaluation"]["label_key"],
+        n_jobs = config["scib_evaluation"]["n_jobs"]
+    script:
+        "scripts/scib_evaluation.py"
+
+# Rule: Plot SCIB comparison bar plot
+rule scib_evaluation_plot:
+    input:
+        table = str(OUTPUT_DIR / "scib_results_table.csv")
+    output:
+        pdf = str(OUTPUT_DIR / "scib_comparison_barplot.pdf")
+    script:
+        "scripts/scib_evaluation_plot.py"
+
