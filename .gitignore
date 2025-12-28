@@ -64,5 +64,33 @@ dmypy.json
 *.h5ad
 *.h5
 *.hdf5
-data/
+data/outputs/
 
+# Snakemake - exclude all Snakemake artifacts
+.snakemake/
+**/.snakemake/
+
+# Pipeline outputs - exclude output directories
+**/outputs/
+**/data/outputs/
+
+# Output files in pipeline directories (exclude output file types)
+# But keep code files
+PL_*/*.csv
+PL_*/*.pdf
+PL_*/*.pkl
+PL_*/*.log
+PL_*/**/*.csv
+PL_*/**/*.pdf
+PL_*/**/*.pkl
+PL_*/**/*.snakemake.log
+PL_stress_test/**/*.csv
+PL_stress_test/**/*.pdf
+PL_stress_test/**/*.pkl
+PL_GCN/**/*.csv
+PL_GCN/**/*.pdf
+PL_GCN/**/*.pkl
+
+# Temporary files
+*.tmp
+*.temp
