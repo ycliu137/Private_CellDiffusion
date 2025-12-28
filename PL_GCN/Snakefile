@@ -1,0 +1,208 @@
+"""
+Snakemake workflow for comparing CellDiffusion vs GCN integration methods
+"""
+import os
+from pathlib import Path
+
+# Load configuration
+configfile: "config.yaml"
+
+# Input files
+INPUT_H5AD = config["data"]["input_path"]
+
+# Output directory - handle both absolute and relative paths
+output_dir_str = config["data"]["output_dir"]
+if Path(output_dir_str).is_absolute():
+    OUTPUT_DIR = Path(output_dir_str)
+else:
+    # For relative paths, resolve from current working directory
+    OUTPUT_DIR = Path(output_dir_str).resolve()
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+# Output files
+PREPROCESSED_H5AD = OUTPUT_DIR / "preprocessed.h5ad"
+ENCODED_H5AD = OUTPUT_DIR / "encoded.h5ad"
+GRAPH_H5AD = OUTPUT_DIR / "data_with_graph.h5ad"
+CELDIFFUSION_H5AD = OUTPUT_DIR / "celldiffusion_integrated.h5ad"
+GCN_H5AD = OUTPUT_DIR / "gcn_integrated.h5ad"
+FINAL_H5AD = OUTPUT_DIR / "final_integrated.h5ad"
+
+# Rule all: define final outputs
+rule all:
+    input:
+        str(FINAL_H5AD),
+        str(OUTPUT_DIR / "umap_plot.pdf"),
+        str(OUTPUT_DIR / "scib_results_table.csv"),
+        str(OUTPUT_DIR / "scib_benchmarker.pkl"),
+        str(OUTPUT_DIR / "scib_results_table_plot.pdf"),
+        str(OUTPUT_DIR / "scib_comparison_barplot.pdf")
+
+# Rule: Preprocess data
+rule preprocess:
+    input:
+        h5ad = INPUT_H5AD
+    output:
+        h5ad = str(PREPROCESSED_H5AD)
+    params:
+        min_cells = config["preprocess"]["min_cells"],
+        target_sum = config["preprocess"]["target_sum"],
+        n_top_genes = config["preprocess"]["n_top_genes"],
+        min_mean = config["preprocess"]["min_mean"],
+        max_mean = config["preprocess"]["max_mean"],
+        min_disp = config["preprocess"]["min_disp"]
+    script:
+        "scripts/preprocess.py"
+
+# Rule: Feature encoding
+rule encode_features:
+    input:
+        h5ad = str(PREPROCESSED_H5AD)
+    output:
+        h5ad = str(ENCODED_H5AD)
+    resources:
+        gpu=1  # Limit GPU usage to one task at a time
+    threads: 1
+    params:
+        D_encode_list = config["feature_encoder"]["D_encode_list"],
+        D_decode_list = config["feature_encoder"]["D_decode_list"],
+        max_epoch = config["feature_encoder"]["max_epoch"],
+        lr = config["feature_encoder"]["lr"],
+        device = config["device"]
+    script:
+        "scripts/encode_features.py"
+
+# Rule: Build integration graph
+rule build_graph:
+    input:
+        h5ad = str(ENCODED_H5AD)
+    output:
+        h5ad = str(GRAPH_H5AD)
+    resources:
+        gpu=1
+    threads: 1
+    params:
+        batch_key = config["evaluation"]["batch_key"],
+        k = config["integration_loss_adj"]["k"],
+        n_edges_per_node = config["integration_graph"]["n_edges_per_node"],
+        k_mnn = config["integration_graph"]["k_mnn"],
+        device = config["device"]
+    script:
+        "scripts/build_graph.py"
+
+# Rule: CellDiffusion integration
+rule integrate_celldiffusion:
+    input:
+        h5ad = str(GRAPH_H5AD)
+    output:
+        h5ad = str(CELDIFFUSION_H5AD)
+    resources:
+        gpu=1
+    threads: 1
+    params:
+        max_epoch = config["integration_diffusion"]["max_epoch"],
+        lr = config["integration_diffusion"]["lr"],
+        num_features_diffusion = config["integration_diffusion"]["num_features_diffusion"],
+        num_heads_diffusion = config["integration_diffusion"]["num_heads_diffusion"],
+        num_steps_diffusion = config["integration_diffusion"]["num_steps_diffusion"],
+        time_increment_diffusion = config["integration_diffusion"]["time_increment_diffusion"],
+        device = config["device"]
+    script:
+        "scripts/integrate_celldiffusion.py"
+
+# Rule: GCN integration
+rule integrate_gcn:
+    input:
+        h5ad = str(GRAPH_H5AD)
+    output:
+        h5ad = str(GCN_H5AD)
+    resources:
+        gpu=1
+    threads: 1
+    params:
+        max_epoch = config["integration_gcn"]["max_epoch"],
+        lr = config["integration_gcn"]["lr"],
+        num_features_gcn = config["integration_gcn"]["num_features_gcn"],
+        num_layers_gcn = config["integration_gcn"]["num_layers_gcn"],
+        dropout = config["integration_gcn"]["dropout"],
+        device = config["device"]
+    script:
+        "scripts/integrate_gcn.py"
+
+# Rule: Aggregate results (merge X_dif and X_gcn into one file)
+rule aggregate_results:
+    input:
+        celldiffusion = str(CELDIFFUSION_H5AD),
+        gcn = str(GCN_H5AD)
+    output:
+        h5ad = str(FINAL_H5AD)
+    run:
+        import scanpy as sc
+        from pathlib import Path
+        
+        print("Loading CellDiffusion results...")
+        adata_cd = sc.read_h5ad(input.celldiffusion)
+        
+        print("Loading GCN results...")
+        adata_gcn = sc.read_h5ad(input.gcn)
+        
+        # Copy X_dif from CellDiffusion result
+        if 'X_dif' in adata_cd.obsm:
+            adata_gcn.obsm['X_dif'] = adata_cd.obsm['X_dif'].copy()
+            print("Copied X_dif from CellDiffusion results")
+        
+        # Save aggregated result
+        Path(output.h5ad).parent.mkdir(parents=True, exist_ok=True)
+        adata_gcn.write(output.h5ad)
+        print(f"Aggregated results saved to: {output.h5ad}")
+
+# Rule: Compute UMAP
+rule compute_umap:
+    input:
+        h5ad = str(FINAL_H5AD)
+    output:
+        h5ad = str(OUTPUT_DIR / "data_with_umap.h5ad")
+    params:
+        use_reps = ["X_dif", "X_gcn"],
+        umap_keys = ["X_umap_dif", "X_umap_gcn"],
+        n_neighbors = config["umap"]["n_neighbors"],
+        n_pcs = config["umap"]["n_pcs"]
+    script:
+        "scripts/compute_umap.py"
+
+# Rule: Plot UMAP
+rule plot_umap:
+    input:
+        h5ad = str(OUTPUT_DIR / "data_with_umap.h5ad")
+    output:
+        pdf = str(OUTPUT_DIR / "umap_plot.pdf")
+    params:
+        umap_keys = ["X_umap_dif", "X_umap_gcn"],
+        batch_key = config["evaluation"]["batch_key"],
+        label_key = config["evaluation"]["label_key"]
+    script:
+        "scripts/plot_umap.py"
+
+# Rule: SCIB evaluation
+rule scib_evaluation:
+    input:
+        h5ad = str(FINAL_H5AD)
+    output:
+        results = str(OUTPUT_DIR / "scib_benchmarker.pkl"),
+        table = str(OUTPUT_DIR / "scib_results_table.csv"),
+        plot = str(OUTPUT_DIR / "scib_results_table_plot.pdf")
+    params:
+        batch_key = config["evaluation"]["batch_key"],
+        label_key = config["evaluation"]["label_key"],
+        n_jobs = config.get("scib_evaluation", {}).get("n_jobs", 1)
+    script:
+        "scripts/scib_evaluation.py"
+
+# Rule: SCIB comparison bar plot
+rule scib_evaluation_plot:
+    input:
+        table = str(OUTPUT_DIR / "scib_results_table.csv")
+    output:
+        pdf = str(OUTPUT_DIR / "scib_comparison_barplot.pdf")
+    script:
+        "scripts/scib_evaluation_plot.py"
+
