@@ -2,9 +2,9 @@
 
 # Data paths
 data:
-  input_path: "/projectnb/czlab/A00/ycliu/scRNA_integration_benchmark_datasets/PBMC10K/pbmc10k.h5ad"
+  input_path: "/projectnb/czlab/A00/ycliu/scRNA_integration_benchmark_datasets/PBMC10K_rm100pct/pbmc10k_rm100pct.h5ad"
   # Output directory (relative to project root, or use absolute path)
-  output_dir: "../data/outputs/celldiffusion_vs_gcn/pbmc10k"
+  output_dir: "../data/outputs/celldiffusion_vs_gcn_4/pbmc10k_rm100pct"
 
 # Preprocessing parameters
 preprocess:
@@ -45,7 +45,7 @@ integration_gcn:
   max_epoch: 2000
   lr: 0.001
   num_features_gcn: 50
-  num_layers_gcn: 2
+  num_layers_gcn: 4
   dropout: 0.0
 
 # Evaluation parameters

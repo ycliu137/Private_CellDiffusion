@@ -1,0 +1,43 @@
+Assuming unrestricted shared filesystem usage.
+host: scc-507
+Building DAG of jobs...
+Using shell: /bin/bash
+Provided cores: 1 (use --cores to define parallelism)
+Rules claiming more threads will be scaled down.
+Provided resources: gpu=1
+Job stats:
+job                     count
+--------------------  -------
+all                         1
+scib_evaluation_plot        1
+total                       2
+
+Select jobs to execute...
+Execute 1 jobs...
+[Fri Dec 26 21:19:56 2025]
+localrule scib_evaluation_plot:
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc10k_rm100pct/scib_results_table.csv
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc10k_rm100pct/scib_evaluation_plot.pdf
+    jobid: 18
+    reason: Code has changed since last execution
+    resources: tmpdir=/scratch/2460558.1.czcb-buyin
+RuleException:
+CalledProcessError in file "/projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/Snakefile", line 189:
+Command 'set -euo pipefail;  /projectnb/czproj/packages/ycliu/envs/dif_snake_scib_env/bin/python3.12 /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/.snakemake/scripts/tmpfp3zr6n6.scib_evaluation_plot.py' returned non-zero exit status 1.
+[Fri Dec 26 21:19:57 2025]
+Error in rule scib_evaluation_plot:
+    message: None
+    jobid: 18
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc10k_rm100pct/scib_results_table.csv
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc10k_rm100pct/scib_evaluation_plot.pdf
+Shutting down, this might take some time.
+Exiting because a job execution failed. Look below for error messages
+[Fri Dec 26 21:19:57 2025]
+Error in rule scib_evaluation_plot:
+    message: None
+    jobid: 18
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc10k_rm100pct/scib_results_table.csv
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc10k_rm100pct/scib_evaluation_plot.pdf
+Complete log(s): /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/.snakemake/log/2025-12-26T211956.310496.snakemake.log
+WorkflowError:
+At least one job did not complete successfully.

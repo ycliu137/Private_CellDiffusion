@@ -1,0 +1,64 @@
+Assuming unrestricted shared filesystem usage.
+host: scc-507
+Building DAG of jobs...
+Using shell: /bin/bash
+Provided cores: 1 (use --cores to define parallelism)
+Rules claiming more threads will be scaled down.
+Provided resources: gpu=1
+Job stats:
+job                     count
+--------------------  -------
+aggregate_X_dif             1
+all                         1
+scib_evaluation             1
+scib_evaluation_plot        1
+total                       4
+
+Select jobs to execute...
+Execute 1 jobs...
+[Fri Dec 26 23:31:29 2025]
+localrule aggregate_X_dif:
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc23k_rm100pct/scDiffusion_integration_kadd0.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc23k_rm100pct/scDiffusion_integration_kadd10.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc23k_rm100pct/scDiffusion_integration_kadd20.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc23k_rm100pct/scDiffusion_integration_kadd30.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc23k_rm100pct/scDiffusion_integration_kadd40.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc23k_rm100pct/scDiffusion_integration_kadd50.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc23k_rm100pct/scDiffusion_integration_kadd60.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc23k_rm100pct/scDiffusion_integration_kadd70.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc23k_rm100pct/scDiffusion_integration_kadd80.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc23k_rm100pct/scDiffusion_integration_kadd90.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc23k_rm100pct/scDiffusion_integration_kadd100.h5ad
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc23k_rm100pct/aggregated_X_dif.h5ad
+    jobid: 16
+    reason: Missing output files: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc23k_rm100pct/aggregated_X_dif.h5ad
+    resources: tmpdir=/scratch/2460558.1.czcb-buyin
+[Fri Dec 26 23:31:44 2025]
+Finished jobid: 16 (Rule: aggregate_X_dif)
+1 of 4 steps (25%) done
+Select jobs to execute...
+Execute 1 jobs...
+[Fri Dec 26 23:31:44 2025]
+localrule scib_evaluation:
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc23k_rm100pct/aggregated_X_dif.h5ad
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc23k_rm100pct/scib_benchmarker.pkl, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc23k_rm100pct/scib_results_table.csv, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc23k_rm100pct/scib_results_table_plot.pdf
+    jobid: 17
+    reason: Missing output files: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc23k_rm100pct/scib_results_table.csv, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc23k_rm100pct/scib_results_table_plot.pdf; Input files updated by another job: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc23k_rm100pct/aggregated_X_dif.h5ad
+    resources: tmpdir=/scratch/2460558.1.czcb-buyin
+[Fri Dec 26 23:40:31 2025]
+Finished jobid: 17 (Rule: scib_evaluation)
+2 of 4 steps (50%) done
+Select jobs to execute...
+Execute 1 jobs...
+[Fri Dec 26 23:40:31 2025]
+localrule scib_evaluation_plot:
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc23k_rm100pct/scib_results_table.csv
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc23k_rm100pct/scib_evaluation_plot.pdf
+    jobid: 18
+    reason: Missing output files: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc23k_rm100pct/scib_evaluation_plot.pdf; Input files updated by another job: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc23k_rm100pct/scib_results_table.csv
+    resources: tmpdir=/scratch/2460558.1.czcb-buyin
+[Fri Dec 26 23:40:32 2025]
+Finished jobid: 18 (Rule: scib_evaluation_plot)
+3 of 4 steps (75%) done
+Select jobs to execute...
+Execute 1 jobs...
+[Fri Dec 26 23:40:32 2025]
+localrule all:
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc23k_rm100pct/scDiffusion_integration_kadd0.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc23k_rm100pct/scDiffusion_integration_kadd10.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc23k_rm100pct/scDiffusion_integration_kadd20.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc23k_rm100pct/scDiffusion_integration_kadd30.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc23k_rm100pct/scDiffusion_integration_kadd40.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc23k_rm100pct/scDiffusion_integration_kadd50.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc23k_rm100pct/scDiffusion_integration_kadd60.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc23k_rm100pct/scDiffusion_integration_kadd70.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc23k_rm100pct/scDiffusion_integration_kadd80.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc23k_rm100pct/scDiffusion_integration_kadd90.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc23k_rm100pct/scDiffusion_integration_kadd100.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc23k_rm100pct/metrics_log.csv, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc23k_rm100pct/metrics_plot.pdf, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc23k_rm100pct/aggregated_X_dif.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc23k_rm100pct/scib_results_table.csv, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc23k_rm100pct/scib_results_table_plot.pdf, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc23k_rm100pct/scib_evaluation_plot.pdf
+    jobid: 0
+    reason: Input files updated by another job: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc23k_rm100pct/scib_results_table_plot.pdf, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc23k_rm100pct/aggregated_X_dif.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc23k_rm100pct/scib_results_table.csv, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/stress_tests_pbmc23k_rm100pct/scib_evaluation_plot.pdf
+    resources: tmpdir=/scratch/2460558.1.czcb-buyin
+[Fri Dec 26 23:40:32 2025]
+Finished jobid: 0 (Rule: all)
+4 of 4 steps (100%) done
+Complete log(s): /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_stress_test/.snakemake/log/2025-12-26T233129.678511.snakemake.log

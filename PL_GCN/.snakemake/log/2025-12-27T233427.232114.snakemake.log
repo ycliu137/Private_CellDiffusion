@@ -1,0 +1,51 @@
+Assuming unrestricted shared filesystem usage.
+host: scc-507
+Building DAG of jobs...
+Using shell: /bin/bash
+Provided cores: 1 (use --cores to define parallelism)
+Rules claiming more threads will be scaled down.
+Provided resources: gpu=1
+Job stats:
+job                     count
+--------------------  -------
+all                         1
+scib_evaluation             1
+scib_evaluation_plot        1
+total                       3
+
+Select jobs to execute...
+Execute 1 jobs...
+[Sat Dec 27 23:34:27 2025]
+localrule scib_evaluation:
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/final_integrated.h5ad
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/scib_benchmarker.pkl, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/scib_results_table.csv, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/scib_results_table_plot.pdf
+    jobid: 9
+    reason: Missing output files: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/scib_benchmarker.pkl, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/scib_results_table.csv, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/scib_results_table_plot.pdf
+    resources: tmpdir=/scratch/2460558.1.czcb-buyin
+[Sat Dec 27 23:36:48 2025]
+Finished jobid: 9 (Rule: scib_evaluation)
+1 of 3 steps (33%) done
+Select jobs to execute...
+Execute 1 jobs...
+[Sat Dec 27 23:36:48 2025]
+localrule scib_evaluation_plot:
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/scib_results_table.csv
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/scib_comparison_barplot.pdf
+    jobid: 10
+    reason: Missing output files: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/scib_comparison_barplot.pdf; Input files updated by another job: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/scib_results_table.csv
+    resources: tmpdir=/scratch/2460558.1.czcb-buyin
+[Sat Dec 27 23:36:49 2025]
+Finished jobid: 10 (Rule: scib_evaluation_plot)
+2 of 3 steps (67%) done
+Select jobs to execute...
+Execute 1 jobs...
+[Sat Dec 27 23:36:49 2025]
+localrule all:
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/final_integrated.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/umap_plot.pdf, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/scib_results_table.csv, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/scib_benchmarker.pkl, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/scib_results_table_plot.pdf, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/scib_comparison_barplot.pdf
+    jobid: 0
+    reason: Input files updated by another job: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/scib_comparison_barplot.pdf, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/scib_results_table.csv, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/scib_results_table_plot.pdf, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/scib_benchmarker.pkl
+    resources: tmpdir=/scratch/2460558.1.czcb-buyin
+[Sat Dec 27 23:36:49 2025]
+Finished jobid: 0 (Rule: all)
+3 of 3 steps (100%) done
+Complete log(s): /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_GCN/.snakemake/log/2025-12-27T233427.232114.snakemake.log

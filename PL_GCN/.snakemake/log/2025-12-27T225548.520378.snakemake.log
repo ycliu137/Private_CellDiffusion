@@ -1,0 +1,142 @@
+Assuming unrestricted shared filesystem usage.
+host: scc-507
+Building DAG of jobs...
+Using shell: /bin/bash
+Provided cores: 1 (use --cores to define parallelism)
+Rules claiming more threads will be scaled down.
+Provided resources: gpu=1
+Job stats:
+job                        count
+-----------------------  -------
+aggregate_results              1
+all                            1
+build_graph                    1
+compute_umap                   1
+encode_features                1
+integrate_celldiffusion        1
+integrate_gcn                  1
+plot_umap                      1
+preprocess                     1
+scib_evaluation                1
+scib_evaluation_plot           1
+total                         11
+
+Select jobs to execute...
+Execute 1 jobs...
+[Sat Dec 27 22:55:48 2025]
+localrule preprocess:
+    input: /projectnb/czlab/A00/ycliu/scRNA_integration_benchmark_datasets/PBMC23K/pbmc23k.h5ad
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/preprocessed.h5ad
+    jobid: 5
+    reason: Missing output files: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/preprocessed.h5ad
+    resources: tmpdir=/scratch/2460558.1.czcb-buyin
+[Sat Dec 27 22:55:59 2025]
+Finished jobid: 5 (Rule: preprocess)
+1 of 11 steps (9%) done
+Select jobs to execute...
+Execute 1 jobs...
+[Sat Dec 27 22:55:59 2025]
+localrule encode_features:
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/preprocessed.h5ad
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/encoded.h5ad
+    jobid: 4
+    reason: Missing output files: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/encoded.h5ad; Input files updated by another job: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/preprocessed.h5ad
+    resources: tmpdir=/scratch/2460558.1.czcb-buyin, gpu=1
+[Sat Dec 27 22:57:50 2025]
+Finished jobid: 4 (Rule: encode_features)
+2 of 11 steps (18%) done
+Select jobs to execute...
+Execute 1 jobs...
+[Sat Dec 27 22:57:50 2025]
+localrule build_graph:
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/encoded.h5ad
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/data_with_graph.h5ad
+    jobid: 3
+    reason: Missing output files: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/data_with_graph.h5ad; Input files updated by another job: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/encoded.h5ad
+    resources: tmpdir=/scratch/2460558.1.czcb-buyin, gpu=1
+[Sat Dec 27 22:58:32 2025]
+Finished jobid: 3 (Rule: build_graph)
+3 of 11 steps (27%) done
+Select jobs to execute...
+Execute 2 jobs...
+[Sat Dec 27 22:58:32 2025]
+localrule integrate_celldiffusion:
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/data_with_graph.h5ad
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/celldiffusion_integrated.h5ad
+    jobid: 2
+    reason: Missing output files: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/celldiffusion_integrated.h5ad; Input files updated by another job: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/data_with_graph.h5ad
+    resources: tmpdir=/scratch/2460558.1.czcb-buyin, gpu=1
+[Sat Dec 27 22:58:32 2025]
+localrule integrate_gcn:
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/data_with_graph.h5ad
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/gcn_integrated.h5ad
+    jobid: 6
+    reason: Missing output files: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/gcn_integrated.h5ad; Input files updated by another job: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/data_with_graph.h5ad
+    resources: tmpdir=/scratch/2460558.1.czcb-buyin, gpu=1
+[Sat Dec 27 23:00:02 2025]
+Finished jobid: 6 (Rule: integrate_gcn)
+4 of 11 steps (36%) done
+[Sat Dec 27 23:08:59 2025]
+Finished jobid: 2 (Rule: integrate_celldiffusion)
+5 of 11 steps (45%) done
+Select jobs to execute...
+Execute 1 jobs...
+[Sat Dec 27 23:08:59 2025]
+localrule aggregate_results:
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/celldiffusion_integrated.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/gcn_integrated.h5ad
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/final_integrated.h5ad
+    jobid: 1
+    reason: Missing output files: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/final_integrated.h5ad; Input files updated by another job: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/celldiffusion_integrated.h5ad, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/gcn_integrated.h5ad
+    resources: tmpdir=/scratch/2460558.1.czcb-buyin
+[Sat Dec 27 23:09:04 2025]
+Finished jobid: 1 (Rule: aggregate_results)
+6 of 11 steps (55%) done
+Select jobs to execute...
+Execute 2 jobs...
+[Sat Dec 27 23:09:04 2025]
+localrule scib_evaluation:
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/final_integrated.h5ad
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/scib_benchmarker.pkl, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/scib_results_table.csv, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/scib_results_table_plot.pdf
+    jobid: 9
+    reason: Missing output files: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/scib_results_table_plot.pdf, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/scib_benchmarker.pkl, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/scib_results_table.csv; Input files updated by another job: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/final_integrated.h5ad
+    resources: tmpdir=/scratch/2460558.1.czcb-buyin
+[Sat Dec 27 23:09:04 2025]
+localrule compute_umap:
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/final_integrated.h5ad
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/data_with_umap.h5ad
+    jobid: 8
+    reason: Missing output files: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/data_with_umap.h5ad; Input files updated by another job: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/final_integrated.h5ad
+    resources: tmpdir=/scratch/2460558.1.czcb-buyin
+[Sat Dec 27 23:10:19 2025]
+Finished jobid: 8 (Rule: compute_umap)
+7 of 11 steps (64%) done
+Select jobs to execute...
+Execute 1 jobs...
+[Sat Dec 27 23:10:19 2025]
+localrule plot_umap:
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/data_with_umap.h5ad
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/umap_plot.pdf
+    jobid: 7
+    reason: Missing output files: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/umap_plot.pdf; Input files updated by another job: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/data_with_umap.h5ad
+    resources: tmpdir=/scratch/2460558.1.czcb-buyin
+[Sat Dec 27 23:10:25 2025]
+Finished jobid: 7 (Rule: plot_umap)
+8 of 11 steps (73%) done
+Waiting at most 5 seconds for missing files:
+/projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/scib_results_table_plot.pdf (missing locally)
+MissingOutputException in rule scib_evaluation in file "/projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_GCN/Snakefile", line 186:
+Job 9  completed successfully, but some output files are missing. Missing files after 5 seconds. This might be due to filesystem latency. If that is the case, consider to increase the wait time with --latency-wait:
+/projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/scib_results_table_plot.pdf (missing locally, parent dir contents: data_with_graph.h5ad, scib_benchmarker.pkl, celldiffusion_integrated.h5ad, umap_plot.pdf, data_with_umap.h5ad, scib_results_table.csv, final_integrated.h5ad, gcn_integrated.h5ad, encoded.h5ad, preprocessed.h5ad)
+Removing output files of failed job scib_evaluation since they might be corrupted:
+/projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/scib_benchmarker.pkl, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/scib_results_table.csv
+Shutting down, this might take some time.
+Exiting because a job execution failed. Look below for error messages
+[Sat Dec 27 23:11:28 2025]
+Error in rule scib_evaluation:
+    message: None
+    jobid: 9
+    input: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/final_integrated.h5ad
+    output: /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/scib_benchmarker.pkl, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/scib_results_table.csv, /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/data/outputs/celldiffusion_vs_gcn/pbmc23k/scib_results_table_plot.pdf
+Complete log(s): /projectnb/czproj/Algorithms/ycliu/Private_CellDiffusion/PL_GCN/.snakemake/log/2025-12-27T225548.520378.snakemake.log
+WorkflowError:
+At least one job did not complete successfully.
