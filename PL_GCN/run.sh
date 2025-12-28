@@ -29,11 +29,14 @@ fi
 # Unlock snakemake in case of previous interruption
 snakemake --unlock 2>/dev/null || true
 
-# Default: use --jobs 1 with GPU resource limit to ensure GPU tasks run strictly sequentially
+# Default: use -F -j 8 -k with GPU resource limit
+# -F: force re-execution of updated rules
+# -j 8: use 8 cores
+# -k: keep going even if some jobs fail
 if [ $# -eq 0 ]; then
-    echo "Running snakemake with default settings: --jobs 1 --resources gpu=1"
-    echo "Note: Using --jobs 1 to ensure GPU tasks run strictly sequentially and avoid CUDA conflicts"
-    snakemake --jobs 1 --resources gpu=1
+    echo "Running snakemake with default settings: -F -j 8 -k --resources gpu=1"
+    echo "Note: Using --resources gpu=1 to limit GPU access and prevent CUDA conflicts"
+    snakemake -F -j 8 -k --resources gpu=1
 else
     snakemake "$@"
 fi
