@@ -7,6 +7,7 @@ import scanpy as sc
 import pandas as pd
 import numpy as np
 import pickle
+import traceback
 import matplotlib
 matplotlib.use('Agg')  # Use non-interactive backend for plotting
 
@@ -102,6 +103,7 @@ print(f"\n=== Generating and saving plots ===")
 print(f"Generating results table plot and saving to: {output_plot}")
 Path(output_plot).parent.mkdir(parents=True, exist_ok=True)
 
+plot_saved = False
 try:
     # Try to use custom plot function if available
     try:
@@ -111,20 +113,64 @@ try:
         if fig is not None:
             import matplotlib.pyplot as plt
             plt.close(fig)
-        print("  Plot generated and saved successfully using custom function")
-    except ImportError:
-        # Fallback to original plot function
-        import matplotlib.pyplot as plt
-        fig = bm.plot_results_table(min_max_scale=False)
-        if fig is not None:
-            plt.savefig(output_plot, dpi=300, bbox_inches='tight')
-            plt.close(fig)
-            print("  Plot generated and saved successfully using original function")
+        
+        # Verify file was created
+        if Path(output_plot).exists():
+            print("  Plot generated and saved successfully using custom function")
+            plot_saved = True
         else:
-            print("  Warning: Plot function did not return a figure")
+            print("  Warning: Custom function executed but file not found, trying alternative...")
+    except ImportError:
+        print("  Custom plot function not available, trying original function...")
+    except Exception as e:
+        print(f"  Warning: Custom plot function failed: {e}")
+        print("  Trying original plot function...")
+    
+    # Fallback to original plot function if custom failed
+    if not plot_saved:
+        import matplotlib.pyplot as plt
+        try:
+            fig = bm.plot_results_table(min_max_scale=False)
+            if fig is not None:
+                plt.savefig(output_plot, dpi=300, bbox_inches='tight')
+                plt.close(fig)
+                # Verify file was created
+                if Path(output_plot).exists():
+                    print("  Plot generated and saved successfully using original function")
+                    plot_saved = True
+                else:
+                    print("  Warning: Original function executed but file not found")
+            else:
+                print("  Warning: Plot function did not return a figure")
+        except Exception as e:
+            print(f"  Error in original plot function: {e}")
+            traceback.print_exc()
+            
 except Exception as e:
-    print(f"  Warning: Could not generate plot: {e}")
-    print("  Continuing without plot...")
+    print(f"  Error: Could not generate plot: {e}")
+    traceback.print_exc()
+
+# Ensure output file exists (create empty file if plotting failed)
+# This prevents Snakemake from failing due to missing output file
+if not Path(output_plot).exists():
+    print(f"  Creating empty plot file as placeholder...")
+    Path(output_plot).parent.mkdir(parents=True, exist_ok=True)
+    # Create a simple placeholder PDF file
+    try:
+        import matplotlib.pyplot as plt
+        fig, ax = plt.subplots(figsize=(8, 6))
+        ax.text(0.5, 0.5, 'Plot generation failed.\nCheck logs for details.', 
+                ha='center', va='center', fontsize=12, 
+                transform=ax.transAxes)
+        ax.set_title('SCIB Results Plot - Generation Failed')
+        plt.savefig(output_plot, dpi=150, bbox_inches='tight')
+        plt.close(fig)
+        print(f"  Created placeholder plot file: {output_plot}")
+    except Exception as e:
+        # If even placeholder fails, create empty file
+        Path(output_plot).touch()
+        print(f"  Warning: Could not create placeholder plot: {e}")
+        print(f"  Created empty file as last resort: {output_plot}")
 
 # Save full benchmarker object (pickle)
 print(f"\nSaving benchmarker object to: {output_results}")
