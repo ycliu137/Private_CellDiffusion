@@ -36,20 +36,20 @@ fi
 # Run snakemake with user-provided arguments or default
 # Usage: ./run.sh [snakemake options]
 # Examples:
-#   ./run.sh                    # Run with default settings (-F -j 8 -k --resources gpu=1)
+#   ./run.sh                    # Run with default settings (-j 8 --resources gpu=1)
 #   ./run.sh --dry-run          # Dry run to see what will be executed
 #   ./run.sh --jobs 4           # Run with up to 4 concurrent jobs
 #   ./run.sh --jobs 1           # Run with 1 concurrent job (sequential)
+#   ./run.sh -F -k              # Add -F (forceall) and -k (keep-going) to default settings
 
-# Default: use -F -j 8 -k with GPU resource limit
-# -F: force re-execution of updated rules
+# Default: use -j 8 with GPU resource limit
 # -j 8: use 8 cores for parallel execution
-# -k: keep going even if some jobs fail
 # --resources gpu=1: limit GPU access to prevent CUDA conflicts
+# Note: -F (forceall) and -k (keep-going) are optional and can be added as arguments
 if [ $# -eq 0 ]; then
-    echo "Running snakemake with default settings: -F -j 8 -k --resources gpu=1"
+    echo "Running snakemake with default settings: -j 8 --resources gpu=1"
     echo "Note: Using --resources gpu=1 to limit GPU access and prevent CUDA conflicts"
-    snakemake -F -j 8 -k --resources gpu=1
+    snakemake -j 8 --resources gpu=1
 else
     snakemake "$@"
 fi
