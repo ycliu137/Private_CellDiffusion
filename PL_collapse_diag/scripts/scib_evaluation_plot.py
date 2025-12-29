@@ -60,16 +60,6 @@ print(f"\n=== Filtered data ===")
 print(f"Valid embeddings: {len(df_filtered)}")
 print(df_filtered[['network_layers', 'method']].head())
 
-# Convert aggregate score columns to numeric (handle any string values)
-print(f"\n=== Converting score columns to numeric ===")
-for score_name, col_name in found_scores.items():
-    print(f"  Converting {col_name} to numeric...")
-    df_filtered[col_name] = pd.to_numeric(df_filtered[col_name], errors='coerce')
-    # Check for any NaN values after conversion
-    nan_count = df_filtered[col_name].isna().sum()
-    if nan_count > 0:
-        print(f"    Warning: {nan_count} NaN values found in {col_name} after conversion")
-
 # Identify aggregate score columns
 # Look for: Total, Batch correction, Bio conservation
 aggregate_scores = {}
@@ -103,6 +93,16 @@ if len(found_scores) == 0:
 print(f"\n=== Found aggregate scores ===")
 for score_name, col_name in found_scores.items():
     print(f"  {score_name}: {col_name}")
+
+# Convert aggregate score columns to numeric (handle any string values)
+print(f"\n=== Converting score columns to numeric ===")
+for score_name, col_name in found_scores.items():
+    print(f"  Converting {col_name} to numeric...")
+    df_filtered[col_name] = pd.to_numeric(df_filtered[col_name], errors='coerce')
+    # Check for any NaN values after conversion
+    nan_count = df_filtered[col_name].isna().sum()
+    if nan_count > 0:
+        print(f"    Warning: {nan_count} NaN values found in {col_name} after conversion")
 
 # Separate data by method
 celldiffusion_df = df_filtered[df_filtered['method'] == 'CellDiffusion'].copy()
