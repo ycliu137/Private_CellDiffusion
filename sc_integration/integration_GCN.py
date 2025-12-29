@@ -25,7 +25,7 @@ def integration_gcn(adata,
                     dropout=0.0, 
                     encoder=None, 
                     decoder=[300],
-                    save_model = True,
+                    save_model = False,
                     load_model_state = False,
                     loss_reduction = "sum"):
     """

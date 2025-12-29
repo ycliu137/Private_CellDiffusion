@@ -4,7 +4,7 @@ Evaluation functions for single-cell data integration quality
 import numpy as np
 import torch
 import pandas as pd
-from utils.utility_fn import build_mnn_edge_index_ckdtree
+from utils.utility_fn import build_mnn_edge_index_ckdtree, build_knn_edge_index_ckdtree
 
 
 def evaluate_neighbor_purity(adata, label_key='labels', graph_key='integration_edge_index'):
@@ -172,3 +172,68 @@ def evaluate_mnn_neighbor_purity(adata, use_rep='X_fae', batch_key='batch', labe
     
     return purity, edge_index
         
+
+def evaluate_knn_neighbor_purity(adata, use_rep='X_fae', label_key='labels', k=50):
+    """
+    Calculate the proportion of edges connecting cells with the same label.
+    
+    This metric measures how well the graph preserves cell type identity:
+    higher values indicate that similar cells (same label) are connected,
+    which is desirable for data integration quality.
+    
+    Parameters:
+    -----------
+    adata : AnnData
+        Annotated data object
+    use_rep : str
+        Key in adata.obsm for feature representation (default: 'X_fae')
+    label_key : str
+        Key in adata.obs for cell labels (default: 'labels')
+    k : int
+        Number of nearest neighbors for KNN graph (default: 50)
+    
+    Returns:
+    --------
+    purity : float
+        Proportion of edges connecting cells with the same label (0.0 to 1.0)
+    edge_index : np.ndarray
+        The KNN edge index that was built [2, N_edges]
+    """
+    data_matrix = adata.obsm[use_rep]
+    labels = adata.obs[label_key]
+
+    # Convert labels to numpy array if it's a pandas Series
+    if hasattr(labels, 'values'):
+        labels = labels.values
+    
+    # Ensure data_matrix is numpy array
+    if isinstance(data_matrix, torch.Tensor):
+        data_matrix = data_matrix.cpu().numpy()
+    data_matrix = np.array(data_matrix)
+
+    # Build KNN graph
+    edge_index = build_knn_edge_index_ckdtree(data_matrix, k=k)
+
+    # Calculate neighbor purity using the built KNN graph
+    if edge_index.shape[1] == 0:
+        purity = 0.0
+    else:
+        # Get source and target node indices
+        source_nodes = edge_index[0, :]  # shape: [N_edges]
+        target_nodes = edge_index[1, :]  # shape: [N_edges]
+
+        # Get labels for source and target nodes
+        source_labels = labels[source_nodes]  # shape: [N_edges]
+        target_labels = labels[target_nodes]  # shape: [N_edges]
+        
+        # Count edges where source and target have the same label
+        same_label_mask = source_labels == target_labels
+        num_same_label_edges = np.sum(same_label_mask)
+        
+        # Total number of edges
+        total_edges = edge_index.shape[1]
+        
+        # Calculate purity
+        purity = num_same_label_edges / total_edges
+    
+    return purity, edge_index

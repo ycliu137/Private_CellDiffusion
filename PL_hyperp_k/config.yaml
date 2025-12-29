@@ -26,7 +26,7 @@ feature_encoder:
 # k_mnn will be varied as a list in the pipeline
 integration_graph:
   n_edges_per_node: 50
-  k_mnn: [10, 20, 30, 40, 50]  # List of k_mnn values to test
+  k_mnn: [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]  # List of k_mnn values to test
 
 # Integration loss adjacency parameters
 integration_loss_adj:
