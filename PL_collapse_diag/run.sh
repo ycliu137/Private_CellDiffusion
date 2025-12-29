@@ -21,10 +21,10 @@ fi
 if [ -n "$CONDA_DEFAULT_ENV" ]; then
     echo "Conda environment already active: $CONDA_DEFAULT_ENV"
 else
-    echo "Activating conda environment: dif_snake_env"
+    echo "Activating conda environment: dif_snake_scib_env"
     source $(conda info --base)/etc/profile.d/conda.sh
-    conda activate dif_snake_env 2>/dev/null || {
-        echo "Error: Could not activate conda environment 'dif_snake_env'"
+    conda activate dif_snake_scib_env 2>/dev/null || {
+        echo "Error: Could not activate conda environment 'dif_snake_scib_env'"
         echo "Please create the environment first or update this script with the correct environment name"
         exit 1
     }
