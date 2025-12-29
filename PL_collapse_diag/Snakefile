@@ -1,0 +1,175 @@
+"""
+Snakemake workflow for collapse diagnostic pipeline
+Tests different network depths for CellDiffusion and GCN integration methods
+"""
+from pathlib import Path
+
+# Load configuration
+configfile: "config.yaml"
+
+# Input files
+INPUT_H5AD = config["data"]["input_path"]
+
+# Output directory - handle both absolute and relative paths
+output_dir_str = config["data"]["output_dir"]
+if Path(output_dir_str).is_absolute():
+    OUTPUT_DIR = Path(output_dir_str)
+else:
+    # For relative paths, resolve from current working directory
+    OUTPUT_DIR = Path(output_dir_str).resolve()
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+# Output files
+PREPROCESSED_H5AD = OUTPUT_DIR / "preprocessed.h5ad"
+ENCODED_H5AD = OUTPUT_DIR / "encoded.h5ad"
+GRAPH_H5AD = OUTPUT_DIR / "data_with_graph.h5ad"
+
+# Network layers to test (read from config)
+INTEGRATION_NETWORK_LAYERS = config["integration_network_layers"]
+NUM_STEPS_DIFFUSION = INTEGRATION_NETWORK_LAYERS
+NUM_LAYERS_GCN = INTEGRATION_NETWORK_LAYERS
+
+# Rule all: define final outputs
+rule all:
+    input:
+        str(OUTPUT_DIR / "aggregated_metrics.csv"),
+        str(OUTPUT_DIR / "collapse_diagnostic_plot.pdf")
+
+# Rule: Preprocess data
+rule preprocess:
+    input:
+        h5ad = INPUT_H5AD
+    output:
+        h5ad = str(PREPROCESSED_H5AD)
+    params:
+        min_cells = config["preprocess"]["min_cells"],
+        target_sum = config["preprocess"]["target_sum"],
+        n_top_genes = config["preprocess"]["n_top_genes"],
+        min_mean = config["preprocess"]["min_mean"],
+        max_mean = config["preprocess"]["max_mean"],
+        min_disp = config["preprocess"]["min_disp"]
+    script:
+        "scripts/preprocess.py"
+
+# Rule: Feature encoding
+rule encode_features:
+    input:
+        h5ad = str(PREPROCESSED_H5AD)
+    output:
+        h5ad = str(ENCODED_H5AD)
+    resources:
+        gpu=1
+    threads: 1
+    params:
+        D_encode_list = config["feature_encoder"]["D_encode_list"],
+        D_decode_list = config["feature_encoder"]["D_decode_list"],
+        max_epoch = config["feature_encoder"]["max_epoch"],
+        lr = config["feature_encoder"]["lr"],
+        device = config["device"]
+    script:
+        "scripts/encode_features.py"
+
+# Rule: Build integration graph
+rule build_graph:
+    input:
+        h5ad = str(ENCODED_H5AD)
+    output:
+        h5ad = str(GRAPH_H5AD)
+    resources:
+        gpu=1
+    threads: 1
+    params:
+        batch_key = config["evaluation"]["batch_key"],
+        k = config["integration_loss_adj"]["k"],
+        n_edges_per_node = config["integration_graph"]["n_edges_per_node"],
+        k_mnn = config["integration_graph"]["k_mnn"],
+        device = config["device"]
+    script:
+        "scripts/build_graph.py"
+
+# Rule: Run CellDiffusion integration with varying num_steps_diffusion
+rule integrate_celldiffusion:
+    input:
+        h5ad = str(GRAPH_H5AD)
+    output:
+        h5ad = str(OUTPUT_DIR / "celldiffusion_nsteps{num_steps}.h5ad")
+    resources:
+        gpu=1
+    threads: 1
+    params:
+        max_epoch = config["integration_diffusion"]["max_epoch"],
+        lr = config["integration_diffusion"]["lr"],
+        num_features_diffusion = config["integration_diffusion"]["num_features_diffusion"],
+        num_heads_diffusion = config["integration_diffusion"]["num_heads_diffusion"],
+        num_steps_diffusion = lambda wildcards: int(wildcards.num_steps),
+        time_increment_diffusion = config["integration_diffusion"]["time_increment_diffusion"],
+        device = config["device"]
+    script:
+        "scripts/integrate_celldiffusion.py"
+
+# Rule: Run GCN integration with varying num_layers_gcn
+rule integrate_gcn:
+    input:
+        h5ad = str(GRAPH_H5AD)
+    output:
+        h5ad = str(OUTPUT_DIR / "gcn_nlayers{num_layers}.h5ad")
+    resources:
+        gpu=1
+    threads: 1
+    params:
+        max_epoch = config["integration_gcn"]["max_epoch"],
+        lr = config["integration_gcn"]["lr"],
+        num_features_gcn = config["integration_gcn"]["num_features_gcn"],
+        num_layers_gcn = lambda wildcards: int(wildcards.num_layers),
+        dropout = config["integration_gcn"]["dropout"],
+        device = config["device"]
+    script:
+        "scripts/integrate_gcn.py"
+
+# Rule: Evaluate neighbor purity for CellDiffusion results
+rule evaluate_purity_celldiffusion:
+    input:
+        h5ad = str(OUTPUT_DIR / "celldiffusion_nsteps{num_steps}.h5ad")
+    output:
+        csv = str(OUTPUT_DIR / "purity_celldiffusion_nsteps{num_steps}.csv")
+    params:
+        method = "CellDiffusion",
+        network_layers = lambda wildcards: int(wildcards.num_steps),
+        label_key = config["evaluation"]["label_key"],
+        k = config["evaluation"]["k"]
+    script:
+        "scripts/evaluate_purity.py"
+
+# Rule: Evaluate neighbor purity for GCN results
+rule evaluate_purity_gcn:
+    input:
+        h5ad = str(OUTPUT_DIR / "gcn_nlayers{num_layers}.h5ad")
+    output:
+        csv = str(OUTPUT_DIR / "purity_gcn_nlayers{num_layers}.csv")
+    params:
+        method = "GCN",
+        network_layers = lambda wildcards: int(wildcards.num_layers),
+        label_key = config["evaluation"]["label_key"],
+        k = config["evaluation"]["k"]
+    script:
+        "scripts/evaluate_purity.py"
+
+# Rule: Aggregate all metrics
+rule aggregate_metrics:
+    input:
+        csv_files = expand(str(OUTPUT_DIR / "purity_celldiffusion_nsteps{num_steps}.csv"), num_steps=NUM_STEPS_DIFFUSION) + \
+                    expand(str(OUTPUT_DIR / "purity_gcn_nlayers{num_layers}.csv"), num_layers=NUM_LAYERS_GCN)
+    output:
+        csv = str(OUTPUT_DIR / "aggregated_metrics.csv")
+    script:
+        "scripts/aggregate_metrics.py"
+
+# Rule: Plot collapse diagnostic
+rule plot_collapse_diag:
+    input:
+        csv = str(OUTPUT_DIR / "aggregated_metrics.csv")
+    output:
+        pdf = str(OUTPUT_DIR / "collapse_diagnostic_plot.pdf")
+    script:
+        "scripts/plot_collapse_diag.py"
+
