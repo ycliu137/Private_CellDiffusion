@@ -86,38 +86,38 @@ with PdfPages(output_pdf) as pdf:
             try:
                 print(f"    Loading CellDiffusion data for layer {layer}...")
                 adata_dif = sc.read_h5ad(layer_data[layer]['celldiffusion'])
-            umap_key_dif = f'X_umap_dif_nsteps{layer}'
-            
-            if umap_key_dif in adata_dif.obsm:
-                # Temporarily set UMAP for plotting
-                adata_dif.obsm['X_umap'] = adata_dif.obsm[umap_key_dif].copy()
+                umap_key_dif = f'X_umap_dif_nsteps{layer}'
                 
-                # Plot CellDiffusion - Batch (top left)
-                sc.pl.umap(
-                    adata_dif,
-                    color=params.batch_key,
-                    ax=axes[0, 0],
-                    show=False,
-                    frameon=False,
-                    title=f"CellDiffusion - Batch"
-                )
-                
-                # Plot CellDiffusion - Labels (top right)
-                sc.pl.umap(
-                    adata_dif,
-                    color=params.label_key,
-                    ax=axes[0, 1],
-                    show=False,
-                    frameon=False,
-                    title=f"CellDiffusion - Labels"
-                )
-                
-                # Clean up
-                del adata_dif.obsm['X_umap']
-            else:
-                print(f"    Warning: {umap_key_dif} not found in CellDiffusion data")
-                axes[0, 0].text(0.5, 0.5, 'Data not available', ha='center', va='center')
-                axes[0, 1].text(0.5, 0.5, 'Data not available', ha='center', va='center')
+                if umap_key_dif in adata_dif.obsm:
+                    # Temporarily set UMAP for plotting
+                    adata_dif.obsm['X_umap'] = adata_dif.obsm[umap_key_dif].copy()
+                    
+                    # Plot CellDiffusion - Batch (top left)
+                    sc.pl.umap(
+                        adata_dif,
+                        color=params.batch_key,
+                        ax=axes[0, 0],
+                        show=False,
+                        frameon=False,
+                        title=f"CellDiffusion - Batch"
+                    )
+                    
+                    # Plot CellDiffusion - Labels (top right)
+                    sc.pl.umap(
+                        adata_dif,
+                        color=params.label_key,
+                        ax=axes[0, 1],
+                        show=False,
+                        frameon=False,
+                        title=f"CellDiffusion - Labels"
+                    )
+                    
+                    # Clean up
+                    del adata_dif.obsm['X_umap']
+                else:
+                    print(f"    Warning: {umap_key_dif} not found in CellDiffusion data")
+                    axes[0, 0].text(0.5, 0.5, 'Data not available', ha='center', va='center')
+                    axes[0, 1].text(0.5, 0.5, 'Data not available', ha='center', va='center')
             except Exception as e:
                 print(f"    Error loading CellDiffusion data: {e}")
                 axes[0, 0].text(0.5, 0.5, 'Error loading data', ha='center', va='center')
@@ -132,38 +132,38 @@ with PdfPages(output_pdf) as pdf:
             try:
                 print(f"    Loading GCN data for layer {layer}...")
                 adata_gcn = sc.read_h5ad(layer_data[layer]['gcn'])
-            umap_key_gcn = f'X_umap_gcn_nlayers{layer}'
-            
-            if umap_key_gcn in adata_gcn.obsm:
-                # Temporarily set UMAP for plotting
-                adata_gcn.obsm['X_umap'] = adata_gcn.obsm[umap_key_gcn].copy()
+                umap_key_gcn = f'X_umap_gcn_nlayers{layer}'
                 
-                # Plot GCN - Batch (bottom left)
-                sc.pl.umap(
-                    adata_gcn,
-                    color=params.batch_key,
-                    ax=axes[1, 0],
-                    show=False,
-                    frameon=False,
-                    title=f"GCN - Batch"
-                )
-                
-                # Plot GCN - Labels (bottom right)
-                sc.pl.umap(
-                    adata_gcn,
-                    color=params.label_key,
-                    ax=axes[1, 1],
-                    show=False,
-                    frameon=False,
-                    title=f"GCN - Labels"
-                )
-                
-                # Clean up
-                del adata_gcn.obsm['X_umap']
-            else:
-                print(f"    Warning: {umap_key_gcn} not found in GCN data")
-                axes[1, 0].text(0.5, 0.5, 'Data not available', ha='center', va='center')
-                axes[1, 1].text(0.5, 0.5, 'Data not available', ha='center', va='center')
+                if umap_key_gcn in adata_gcn.obsm:
+                    # Temporarily set UMAP for plotting
+                    adata_gcn.obsm['X_umap'] = adata_gcn.obsm[umap_key_gcn].copy()
+                    
+                    # Plot GCN - Batch (bottom left)
+                    sc.pl.umap(
+                        adata_gcn,
+                        color=params.batch_key,
+                        ax=axes[1, 0],
+                        show=False,
+                        frameon=False,
+                        title=f"GCN - Batch"
+                    )
+                    
+                    # Plot GCN - Labels (bottom right)
+                    sc.pl.umap(
+                        adata_gcn,
+                        color=params.label_key,
+                        ax=axes[1, 1],
+                        show=False,
+                        frameon=False,
+                        title=f"GCN - Labels"
+                    )
+                    
+                    # Clean up
+                    del adata_gcn.obsm['X_umap']
+                else:
+                    print(f"    Warning: {umap_key_gcn} not found in GCN data")
+                    axes[1, 0].text(0.5, 0.5, 'Data not available', ha='center', va='center')
+                    axes[1, 1].text(0.5, 0.5, 'Data not available', ha='center', va='center')
             except Exception as e:
                 print(f"    Error loading GCN data: {e}")
                 axes[1, 0].text(0.5, 0.5, 'Error loading data', ha='center', va='center')
