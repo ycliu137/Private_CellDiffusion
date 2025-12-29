@@ -56,6 +56,15 @@ evaluation:
   batch_key: "batch"
   k: 50  # k for KNN in evaluate_knn_neighbor_purity
 
+# UMAP visualization parameters
+umap:
+  n_neighbors: 50
+  n_pcs: 50
+
 # Device
 device: "cuda"  # or "cpu"
+
+# SCIB evaluation parameters
+scib_evaluation:
+  n_jobs: 1  # Number of parallel jobs for scib benchmark (1 is recommended for stability)
 

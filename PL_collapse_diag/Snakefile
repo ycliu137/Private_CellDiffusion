@@ -33,7 +33,14 @@ NUM_LAYERS_GCN = INTEGRATION_NETWORK_LAYERS
 rule all:
     input:
         str(OUTPUT_DIR / "aggregated_metrics.csv"),
-        str(OUTPUT_DIR / "collapse_diagnostic_plot.pdf")
+        str(OUTPUT_DIR / "collapse_diagnostic_plot.pdf"),
+        str(OUTPUT_DIR / "aggregated_embeddings.h5ad"),
+        str(OUTPUT_DIR / "scib_results_table.csv"),
+        str(OUTPUT_DIR / "scib_benchmarker.pkl"),
+        str(OUTPUT_DIR / "scib_results_table_plot.pdf"),
+        str(OUTPUT_DIR / "scib_evaluation_lineplot.pdf"),
+        expand(str(OUTPUT_DIR / "umap_celldiffusion_nsteps{num_steps}.pdf"), num_steps=NUM_STEPS_DIFFUSION),
+        expand(str(OUTPUT_DIR / "umap_gcn_nlayers{num_layers}.pdf"), num_layers=NUM_LAYERS_GCN)
 
 # Rule: Preprocess data
 rule preprocess:
@@ -164,7 +171,97 @@ rule aggregate_metrics:
     script:
         "scripts/aggregate_metrics.py"
 
-# Rule: Plot collapse diagnostic
+# Rule: Compute UMAP for CellDiffusion results
+rule compute_umap_celldiffusion:
+    input:
+        h5ad = str(OUTPUT_DIR / "celldiffusion_nsteps{num_steps}.h5ad")
+    output:
+        h5ad = str(OUTPUT_DIR / "celldiffusion_umap_nsteps{num_steps}.h5ad")
+    params:
+        method = "CellDiffusion",
+        network_layers = lambda wildcards: int(wildcards.num_steps),
+        n_neighbors = config["umap"]["n_neighbors"],
+        n_pcs = config["umap"]["n_pcs"]
+    script:
+        "scripts/compute_umap.py"
+
+# Rule: Compute UMAP for GCN results
+rule compute_umap_gcn:
+    input:
+        h5ad = str(OUTPUT_DIR / "gcn_nlayers{num_layers}.h5ad")
+    output:
+        h5ad = str(OUTPUT_DIR / "gcn_umap_nlayers{num_layers}.h5ad")
+    params:
+        method = "GCN",
+        network_layers = lambda wildcards: int(wildcards.num_layers),
+        n_neighbors = config["umap"]["n_neighbors"],
+        n_pcs = config["umap"]["n_pcs"]
+    script:
+        "scripts/compute_umap.py"
+
+# Rule: Plot UMAP for CellDiffusion results
+rule plot_umap_celldiffusion:
+    input:
+        h5ad = str(OUTPUT_DIR / "celldiffusion_umap_nsteps{num_steps}.h5ad")
+    output:
+        pdf = str(OUTPUT_DIR / "umap_celldiffusion_nsteps{num_steps}.pdf")
+    params:
+        method = "CellDiffusion",
+        network_layers = lambda wildcards: int(wildcards.num_steps),
+        batch_key = config["evaluation"]["batch_key"],
+        label_key = config["evaluation"]["label_key"]
+    script:
+        "scripts/plot_umap.py"
+
+# Rule: Plot UMAP for GCN results
+rule plot_umap_gcn:
+    input:
+        h5ad = str(OUTPUT_DIR / "gcn_umap_nlayers{num_layers}.h5ad")
+    output:
+        pdf = str(OUTPUT_DIR / "umap_gcn_nlayers{num_layers}.pdf")
+    params:
+        method = "GCN",
+        network_layers = lambda wildcards: int(wildcards.num_layers),
+        batch_key = config["evaluation"]["batch_key"],
+        label_key = config["evaluation"]["label_key"]
+    script:
+        "scripts/plot_umap.py"
+
+# Rule: Aggregate all embeddings for SCIB evaluation
+rule aggregate_embeddings:
+    input:
+        h5ad_files = expand(str(OUTPUT_DIR / "celldiffusion_nsteps{num_steps}.h5ad"), num_steps=NUM_STEPS_DIFFUSION) + \
+                     expand(str(OUTPUT_DIR / "gcn_nlayers{num_layers}.h5ad"), num_layers=NUM_LAYERS_GCN)
+    output:
+        h5ad = str(OUTPUT_DIR / "aggregated_embeddings.h5ad")
+    script:
+        "scripts/aggregate_embeddings.py"
+
+# Rule: SCIB evaluation
+rule scib_evaluation:
+    input:
+        h5ad = str(OUTPUT_DIR / "aggregated_embeddings.h5ad")
+    output:
+        results = str(OUTPUT_DIR / "scib_benchmarker.pkl"),
+        table = str(OUTPUT_DIR / "scib_results_table.csv"),
+        plot = str(OUTPUT_DIR / "scib_results_table_plot.pdf")
+    params:
+        batch_key = config["evaluation"]["batch_key"],
+        label_key = config["evaluation"]["label_key"],
+        n_jobs = config["scib_evaluation"]["n_jobs"]
+    script:
+        "scripts/scib_evaluation.py"
+
+# Rule: Plot SCIB evaluation line plot (aggregate scores vs network layers)
+rule scib_evaluation_plot:
+    input:
+        csv = str(OUTPUT_DIR / "scib_results_table.csv")
+    output:
+        pdf = str(OUTPUT_DIR / "scib_evaluation_lineplot.pdf")
+    script:
+        "scripts/scib_evaluation_plot.py"
+
+# Rule: Plot collapse diagnostic (neighbor purity)
 rule plot_collapse_diag:
     input:
         csv = str(OUTPUT_DIR / "aggregated_metrics.csv")
