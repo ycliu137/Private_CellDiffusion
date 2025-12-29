@@ -60,6 +60,16 @@ print(f"\n=== Filtered data ===")
 print(f"Valid embeddings: {len(df_filtered)}")
 print(df_filtered[['network_layers', 'method']].head())
 
+# Convert aggregate score columns to numeric (handle any string values)
+print(f"\n=== Converting score columns to numeric ===")
+for score_name, col_name in found_scores.items():
+    print(f"  Converting {col_name} to numeric...")
+    df_filtered[col_name] = pd.to_numeric(df_filtered[col_name], errors='coerce')
+    # Check for any NaN values after conversion
+    nan_count = df_filtered[col_name].isna().sum()
+    if nan_count > 0:
+        print(f"    Warning: {nan_count} NaN values found in {col_name} after conversion")
+
 # Identify aggregate score columns
 # Look for: Total, Batch correction, Bio conservation
 aggregate_scores = {}
@@ -121,15 +131,27 @@ for i, (score_name, col_name) in enumerate(found_scores.items()):
     
     # Plot CellDiffusion line
     if len(celldiffusion_df) > 0:
-        ax.plot(celldiffusion_df['network_layers'], celldiffusion_df[col_name], 
-                marker='o', linewidth=2.5, markersize=10, label='CellDiffusion', 
-                color='#1f77b4', alpha=0.8, markeredgecolor='black', markeredgewidth=1.2)
+        # Ensure values are numeric
+        x_values = celldiffusion_df['network_layers'].values
+        y_values = pd.to_numeric(celldiffusion_df[col_name], errors='coerce').values
+        # Filter out NaN values
+        mask = ~pd.isna(y_values)
+        if mask.sum() > 0:
+            ax.plot(x_values[mask], y_values[mask], 
+                    marker='o', linewidth=2.5, markersize=10, label='CellDiffusion', 
+                    color='#1f77b4', alpha=0.8, markeredgecolor='black', markeredgewidth=1.2)
     
     # Plot GCN line
     if len(gcn_df) > 0:
-        ax.plot(gcn_df['network_layers'], gcn_df[col_name], 
-                marker='s', linewidth=2.5, markersize=10, label='GCN', 
-                color='#ff7f0e', alpha=0.8, markeredgecolor='black', markeredgewidth=1.2)
+        # Ensure values are numeric
+        x_values = gcn_df['network_layers'].values
+        y_values = pd.to_numeric(gcn_df[col_name], errors='coerce').values
+        # Filter out NaN values
+        mask = ~pd.isna(y_values)
+        if mask.sum() > 0:
+            ax.plot(x_values[mask], y_values[mask], 
+                    marker='s', linewidth=2.5, markersize=10, label='GCN', 
+                    color='#ff7f0e', alpha=0.8, markeredgecolor='black', markeredgewidth=1.2)
     
     # Customize subplot
     ax.set_xlabel('Network Layers', fontsize=12, fontweight='bold')
@@ -144,11 +166,17 @@ for i, (score_name, col_name) in enumerate(found_scores.items()):
     
     # Set y-axis limits
     if len(df_filtered) > 0:
-        y_min = df_filtered[col_name].min()
-        y_max = df_filtered[col_name].max()
-        y_range = y_max - y_min
-        ax.set_ylim(bottom=max(0, y_min - 0.05 * y_range), 
-                    top=min(1.0, y_max + 0.05 * y_range))
+        # Ensure column is numeric and drop NaN values
+        values = pd.to_numeric(df_filtered[col_name], errors='coerce').dropna()
+        if len(values) > 0:
+            y_min = float(values.min())
+            y_max = float(values.max())
+            y_range = y_max - y_min
+            ax.set_ylim(bottom=max(0, y_min - 0.05 * y_range), 
+                        top=min(1.0, y_max + 0.05 * y_range))
+        else:
+            print(f"    Warning: No valid numeric values found for {col_name}, using default y-axis limits")
+            ax.set_ylim(bottom=0, top=1)
 
 # Add overall title
 fig.suptitle('SCIB Evaluation: Aggregate Scores vs Network Layers', 
