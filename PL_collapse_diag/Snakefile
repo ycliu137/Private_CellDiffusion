@@ -198,34 +198,6 @@ rule compute_umap_gcn:
     script:
         "scripts/compute_umap.py"
 
-# Rule: Plot UMAP for CellDiffusion results
-rule plot_umap_celldiffusion:
-    input:
-        h5ad = str(OUTPUT_DIR / "celldiffusion_umap_nsteps{num_steps}.h5ad")
-    output:
-        pdf = str(OUTPUT_DIR / "umap_celldiffusion_nsteps{num_steps}.pdf")
-    params:
-        method = "CellDiffusion",
-        network_layers = lambda wildcards: int(wildcards.num_steps),
-        batch_key = config["evaluation"]["batch_key"],
-        label_key = config["evaluation"]["label_key"]
-    script:
-        "scripts/plot_umap.py"
-
-# Rule: Plot UMAP for GCN results
-rule plot_umap_gcn:
-    input:
-        h5ad = str(OUTPUT_DIR / "gcn_umap_nlayers{num_layers}.h5ad")
-    output:
-        pdf = str(OUTPUT_DIR / "umap_gcn_nlayers{num_layers}.pdf")
-    params:
-        method = "GCN",
-        network_layers = lambda wildcards: int(wildcards.num_layers),
-        batch_key = config["evaluation"]["batch_key"],
-        label_key = config["evaluation"]["label_key"]
-    script:
-        "scripts/plot_umap.py"
-
 # Rule: Plot combined UMAP (CellDiffusion and GCN) for all layers in a multi-page PDF
 rule plot_umap_combined:
     input:

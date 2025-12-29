@@ -33,7 +33,6 @@ PL_collapse_diag/
     ├── integrate_celldiffusion.py # CellDiffusion integration (with num_steps wildcard)
     ├── integrate_gcn.py           # GCN integration (with num_layers wildcard)
     ├── compute_umap.py            # Compute UMAP for each integration result
-    ├── plot_umap.py               # Plot individual UMAP visualizations
     ├── plot_umap_combined.py      # Plot combined UMAP (multi-page PDF)
     ├── evaluate_purity.py         # Neighbor purity evaluation
     ├── aggregate_metrics.py       # Aggregate purity metrics
