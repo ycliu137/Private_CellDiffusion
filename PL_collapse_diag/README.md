@@ -33,7 +33,8 @@ PL_collapse_diag/
     ├── integrate_celldiffusion.py # CellDiffusion integration (with num_steps wildcard)
     ├── integrate_gcn.py           # GCN integration (with num_layers wildcard)
     ├── compute_umap.py            # Compute UMAP for each integration result
-    ├── plot_umap.py               # Plot UMAP visualizations
+    ├── plot_umap.py               # Plot individual UMAP visualizations
+    ├── plot_umap_combined.py      # Plot combined UMAP (multi-page PDF)
     ├── evaluate_purity.py         # Neighbor purity evaluation
     ├── aggregate_metrics.py       # Aggregate purity metrics
     ├── aggregate_embeddings.py    # Aggregate all embeddings for SCIB
@@ -79,7 +80,7 @@ The pipeline generates:
 - CellDiffusion results: `celldiffusion_nsteps{N}.h5ad` (for N in [2,4,6,8,10,12,14,16])
 - GCN results: `gcn_nlayers{N}.h5ad` (for N in [2,4,6,8,10,12,14,16])
 - UMAP data: `celldiffusion_umap_nsteps{N}.h5ad` and `gcn_umap_nlayers{N}.h5ad`
-- UMAP plots: `umap_celldiffusion_nsteps{N}.pdf` and `umap_gcn_nlayers{N}.pdf` (colored by batch and labels)
+- **UMAP plots**: `umap_combined_multipage.pdf` - Multi-page PDF with combined CellDiffusion and GCN UMAPs for each network layer
 - Individual purity metrics: `purity_celldiffusion_nsteps{N}.csv` and `purity_gcn_nlayers{N}.csv`
 - Aggregated metrics: `aggregated_metrics.csv`
 - Aggregated embeddings: `aggregated_embeddings.h5ad` (contains all X_dif and X_gcn embeddings)
@@ -108,9 +109,13 @@ The pipeline generates:
   - Two lines: CellDiffusion (blue) and GCN (orange)
 
 ### 3. UMAP Plots
-- Individual UMAP plots for each network layer configuration
-- Each plot shows two panels: colored by batch and colored by labels
-- Files: `umap_celldiffusion_nsteps{N}.pdf` and `umap_gcn_nlayers{N}.pdf`
+- **Combined multi-page PDF**: `umap_combined_multipage.pdf`
+  - Each page corresponds to one network layer
+  - Each page contains 4 subplots:
+    - Top row: CellDiffusion (Batch, Labels)
+    - Bottom row: GCN (Batch, Labels)
+  - Allows easy comparison between methods for the same network depth
+- Individual UMAP plots (optional): `umap_celldiffusion_nsteps{N}.pdf` and `umap_gcn_nlayers{N}.pdf`
 
 These visualizations help identify if and when network collapse occurs as network depth increases.
 

@@ -19,16 +19,29 @@ from scib_metrics.benchmark import Benchmarker
 from scib_metrics.benchmark import BatchCorrection
 
 # Get input and output from snakemake
-input_h5ad = snakemake.input.h5ad
-output_results = snakemake.output.results
-output_table = snakemake.output.table
-output_plot = snakemake.output.plot
-params = snakemake.params
+try:
+    input_h5ad = snakemake.input.h5ad
+    output_results = snakemake.output.results
+    output_table = snakemake.output.table
+    output_plot = snakemake.output.plot
+    params = snakemake.params
+except Exception as e:
+    print(f"Error getting snakemake inputs/outputs: {e}")
+    traceback.print_exc()
+    sys.exit(1)
 
-print(f"\n=== Loading aggregated adata ===")
-print(f"Input file: {input_h5ad}")
-adata = sc.read_h5ad(input_h5ad)
-print(f"Data shape: {adata.shape}")
+try:
+    print(f"\n=== Loading aggregated adata ===")
+    print(f"Input file: {input_h5ad}")
+    if not Path(input_h5ad).exists():
+        raise FileNotFoundError(f"Input file not found: {input_h5ad}")
+    adata = sc.read_h5ad(input_h5ad)
+    print(f"Data shape: {adata.shape}")
+    print(f"Available obsm keys: {list(adata.obsm.keys())}")
+except Exception as e:
+    print(f"Error loading adata: {e}")
+    traceback.print_exc()
+    sys.exit(1)
 
 # Get all X_dif and X_gcn embeddings
 print(f"\n=== Extracting embeddings ===")
@@ -39,24 +52,36 @@ for key in adata.obsm.keys():
         print(f"  Found {key}: shape {adata.obsm[key].shape}")
 
 if len(embedding_keys) == 0:
-    raise ValueError("No embeddings found (X_dif_nsteps* or X_gcn_nlayers*) in adata.obsm")
+    print(f"Error: No embeddings found matching patterns 'X_dif_nsteps*' or 'X_gcn_nlayers*'")
+    print(f"Available obsm keys: {list(adata.obsm.keys())}")
+    print("This may indicate that aggregate_embeddings.py did not correctly extract embeddings.")
+    sys.exit(1)
 
 # Sort embedding keys for consistent ordering
 embedding_keys = sorted(embedding_keys)
 
 # Determine pre-integrated embedding key (use X_fae if available)
 pre_integrated_key = None
-if 'X_fae' in adata.obsm:
-    pre_integrated_key = 'X_fae'
-    print(f"\nUsing 'X_fae' as pre-integrated embedding")
-elif 'X_pca' in adata.obsm:
-    pre_integrated_key = 'X_pca'
-    print(f"\nUsing 'X_pca' as pre-integrated embedding")
-else:
-    print("\nWarning: No suitable pre-integrated embedding found, will skip PCR comparison")
+try:
+    if 'X_fae' in adata.obsm:
+        pre_integrated_key = 'X_fae'
+        print(f"\nUsing 'X_fae' as pre-integrated embedding")
+    elif 'X_pca' in adata.obsm:
+        pre_integrated_key = 'X_pca'
+        print(f"\nUsing 'X_pca' as pre-integrated embedding")
+    else:
+        print("\nWarning: No suitable pre-integrated embedding found, will skip PCR comparison")
+except Exception as e:
+    print(f"Warning: Error checking for pre-integrated embedding: {e}")
 
 # Set up batch correction metrics
-batch_corr = BatchCorrection(pcr_comparison=(pre_integrated_key is not None))
+try:
+    batch_corr = BatchCorrection(pcr_comparison=(pre_integrated_key is not None))
+    print("BatchCorrection metrics configured successfully")
+except Exception as e:
+    print(f"Error creating BatchCorrection: {e}")
+    traceback.print_exc()
+    sys.exit(1)
 
 print(f"\n=== Running SCIB benchmark ===")
 print(f"  Batch key: {params.batch_key}")
@@ -66,33 +91,55 @@ if pre_integrated_key:
     print(f"  Pre-integrated key: {pre_integrated_key}")
 
 # Create Benchmarker
-bm = Benchmarker(
-    adata,
-    batch_key=params.batch_key,
-    label_key=params.label_key,
-    embedding_obsm_keys=embedding_keys,
-    pre_integrated_embedding_obsm_key=pre_integrated_key,
-    batch_correction_metrics=batch_corr,
-    n_jobs=params.n_jobs if hasattr(params, 'n_jobs') else 1,
-)
+try:
+    print(f"\n=== Creating Benchmarker ===")
+    bm = Benchmarker(
+        adata,
+        batch_key=params.batch_key,
+        label_key=params.label_key,
+        embedding_obsm_keys=embedding_keys,
+        pre_integrated_embedding_obsm_key=pre_integrated_key,
+        batch_correction_metrics=batch_corr,
+        n_jobs=params.n_jobs if hasattr(params, 'n_jobs') else 1,
+    )
+    print("Benchmarker created successfully")
+except Exception as e:
+    print(f"Error creating Benchmarker: {e}")
+    print(f"  batch_key: {params.batch_key}")
+    print(f"  label_key: {params.label_key}")
+    print(f"  embedding_keys: {embedding_keys}")
+    print(f"  pre_integrated_key: {pre_integrated_key}")
+    traceback.print_exc()
+    sys.exit(1)
 
 # Run benchmark
-print("\nStarting benchmark...")
-bm.benchmark()
+try:
+    print("\nStarting benchmark...")
+    bm.benchmark()
+    print("Benchmark completed successfully")
+except Exception as e:
+    print(f"Error running benchmark: {e}")
+    traceback.print_exc()
+    sys.exit(1)
 
 print("\n=== Benchmark complete ===")
 
 # Save results
-print(f"\n=== Saving results ===")
+try:
+    print(f"\n=== Saving results ===")
 
-# Save results table as CSV
-results_df = bm.get_results(min_max_scale=False)
-print(f"Saving results table to: {output_table}")
-Path(output_table).parent.mkdir(parents=True, exist_ok=True)
-results_df.to_csv(output_table, index=True)
-print(f"Results table shape: {results_df.shape}")
-print("\nResults summary:")
-print(results_df)
+    # Save results table as CSV
+    results_df = bm.get_results(min_max_scale=False)
+    print(f"Saving results table to: {output_table}")
+    Path(output_table).parent.mkdir(parents=True, exist_ok=True)
+    results_df.to_csv(output_table, index=True)
+    print(f"Results table shape: {results_df.shape}")
+    print("\nResults summary:")
+    print(results_df)
+except Exception as e:
+    print(f"Error saving results table: {e}")
+    traceback.print_exc()
+    sys.exit(1)
 
 # Generate and save plots
 print(f"\n=== Generating and saving plots ===")
@@ -163,10 +210,16 @@ if not Path(output_plot).exists():
         print(f"  Warning: Could not create placeholder plot: {e}")
 
 # Save full benchmarker object (pickle)
-print(f"\nSaving benchmarker object to: {output_results}")
-Path(output_results).parent.mkdir(parents=True, exist_ok=True)
-with open(output_results, 'wb') as f:
-    pickle.dump(bm, f)
+try:
+    print(f"\nSaving benchmarker object to: {output_results}")
+    Path(output_results).parent.mkdir(parents=True, exist_ok=True)
+    with open(output_results, 'wb') as f:
+        pickle.dump(bm, f)
+    print("Benchmarker object saved successfully")
+except Exception as e:
+    print(f"Error saving benchmarker object: {e}")
+    traceback.print_exc()
+    sys.exit(1)
 
 print("\n=== SCIB evaluation complete! ===")
 

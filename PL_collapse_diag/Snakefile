@@ -39,8 +39,7 @@ rule all:
         str(OUTPUT_DIR / "scib_benchmarker.pkl"),
         str(OUTPUT_DIR / "scib_results_table_plot.pdf"),
         str(OUTPUT_DIR / "scib_evaluation_lineplot.pdf"),
-        expand(str(OUTPUT_DIR / "umap_celldiffusion_nsteps{num_steps}.pdf"), num_steps=NUM_STEPS_DIFFUSION),
-        expand(str(OUTPUT_DIR / "umap_gcn_nlayers{num_layers}.pdf"), num_layers=NUM_LAYERS_GCN)
+        str(OUTPUT_DIR / "umap_combined_multipage.pdf")
 
 # Rule: Preprocess data
 rule preprocess:
@@ -226,6 +225,19 @@ rule plot_umap_gcn:
         label_key = config["evaluation"]["label_key"]
     script:
         "scripts/plot_umap.py"
+
+# Rule: Plot combined UMAP (CellDiffusion and GCN) for all layers in a multi-page PDF
+rule plot_umap_combined:
+    input:
+        h5ad_files = expand(str(OUTPUT_DIR / "celldiffusion_umap_nsteps{num_steps}.h5ad"), num_steps=NUM_STEPS_DIFFUSION) + \
+                     expand(str(OUTPUT_DIR / "gcn_umap_nlayers{num_layers}.h5ad"), num_layers=NUM_LAYERS_GCN)
+    output:
+        pdf = str(OUTPUT_DIR / "umap_combined_multipage.pdf")
+    params:
+        batch_key = config["evaluation"]["batch_key"],
+        label_key = config["evaluation"]["label_key"]
+    script:
+        "scripts/plot_umap_combined.py"
 
 # Rule: Aggregate all embeddings for SCIB evaluation
 rule aggregate_embeddings:
