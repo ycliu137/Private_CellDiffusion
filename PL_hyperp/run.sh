@@ -34,11 +34,17 @@ snakemake --unlock 2>/dev/null || true
 # -j 8: use 8 cores for parallel execution
 # --resources gpu=1: limit GPU access to prevent CUDA conflicts
 # Note: -F (forceall) and -k (keep-going) are optional and can be added as arguments
+# Usage examples:
+#   ./run.sh                    # Run with default settings
+#   ./run.sh -F -k              # Add -F (forceall) and -k (keep-going) to default settings
+#   ./run.sh -j 4 -k            # Use 4 jobs with keep-going option
 if [ $# -eq 0 ]; then
     echo "Running snakemake with default settings: -j 8 --resources gpu=1"
     echo "Note: Using --resources gpu=1 to limit GPU access and prevent CUDA conflicts"
+    echo "Note: -F (forceall) and -k (keep-going) are optional. Use: ./run.sh -F -k"
     snakemake -j 8 --resources gpu=1
 else
+    echo "Running snakemake with custom arguments: $@"
     snakemake "$@"
 fi
 
