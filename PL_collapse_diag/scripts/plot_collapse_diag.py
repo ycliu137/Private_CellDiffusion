@@ -7,7 +7,6 @@ import pandas as pd
 import matplotlib
 matplotlib.use('Agg')  # Use non-interactive backend
 import matplotlib.pyplot as plt
-import numpy as np
 
 # Get input/output from snakemake
 input_csv = snakemake.input.csv
@@ -65,19 +64,6 @@ if len(df) > 0:
     y_range = y_max - y_min
     ax.set_ylim(bottom=max(0, y_min - 0.05 * y_range), 
                 top=min(1.0, y_max + 0.05 * y_range))
-
-# Add value labels on points (optional, can be commented out if too crowded)
-if len(celldiffusion_df) <= 10:  # Only show labels if not too many points
-    for _, row in celldiffusion_df.iterrows():
-        ax.text(row['network_layers'], row['neighbor_purity'] + 0.01, 
-                f"{row['neighbor_purity']:.3f}", 
-                ha='center', va='bottom', fontsize=8, color='#1f77b4')
-
-if len(gcn_df) <= 10:
-    for _, row in gcn_df.iterrows():
-        ax.text(row['network_layers'], row['neighbor_purity'] + 0.01, 
-                f"{row['neighbor_purity']:.3f}", 
-                ha='center', va='bottom', fontsize=8, color='#ff7f0e')
 
 plt.tight_layout()
 
