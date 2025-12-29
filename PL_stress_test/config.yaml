@@ -4,7 +4,7 @@
 data:
   input_path: "/projectnb/czlab/A00/ycliu/scRNA_integration_benchmark_datasets/PBMC23K_rm100pct/pbmc23k_rm100pct.h5ad"
   # Output directory (relative to project root, or use absolute path)
-  output_dir: "../data/outputs/stress_tests_pbmc23k_rm100pct"
+  output_dir: "../data/outputs/stress_tests/pbmc23k_rm100pct"
 
 # Preprocessing parameters
 preprocess:
