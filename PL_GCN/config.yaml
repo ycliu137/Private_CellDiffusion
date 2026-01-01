@@ -1,11 +1,12 @@
 # Configuration file for CellDiffusion vs GCN comparison pipeline
 
+datasets: ["BMMC_s2d5_s3d7"]
 # Data paths
 data:
   #input_path: "/projectnb/czlab/A00/ycliu/scRNA_integration_benchmark_datasets/PBMC10K_rm100pct/pbmc10k_rm100pct.h5ad"
-  input_path: "../data/inputs/integration/BMMC_s2d5_s3d7.h5ad"
+  input_path: "../data/inputs/integration/"
   # Output directory (relative to project root, or use absolute path)
-  output_dir: "../data/outputs/celldiffusion_vs_gcn/BMMC_s2d5_s3d7"
+  output_dir: "../data/outputs/celldiffusion_vs_gcn/"
 
 # Preprocessing parameters
 preprocess:
