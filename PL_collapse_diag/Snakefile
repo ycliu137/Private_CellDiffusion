@@ -7,47 +7,73 @@ from pathlib import Path
 # Load configuration
 configfile: "config.yaml"
 
-# Input files
-INPUT_H5AD = config["data"]["input_path"]
+# Get datasets list from config
+DATASETS = config.get("datasets", [])
 
-# Output directory - handle both absolute and relative paths
-output_dir_str = config["data"]["output_dir"]
-if Path(output_dir_str).is_absolute():
-    OUTPUT_DIR = Path(output_dir_str)
-else:
-    # For relative paths, resolve from current working directory
-    OUTPUT_DIR = Path(output_dir_str).resolve()
-OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+# Define functions for input/output paths based on dataset wildcard
+def get_input_path(wildcards):
+    """Get input path for a dataset"""
+    # Use input_path from config as base directory, append dataset name and .h5ad
+    if "data" in config and "input_path" in config["data"]:
+        input_base = config["data"]["input_path"]
+        # Ensure path ends with / if it's a directory
+        if not input_base.endswith(('.h5ad', '.h5')):
+            if not input_base.endswith('/'):
+                input_base = input_base + "/"
+            input_path = input_base + f"{wildcards.dataset}.h5ad"
+        else:
+            # If it's already a full path to a file, use it directly (backward compatibility)
+            input_path = input_base
+        return input_path
+    # Fallback: construct path from dataset name
+    return f"../data/inputs/integration/{wildcards.dataset}.h5ad"
 
-# Output files
-PREPROCESSED_H5AD = OUTPUT_DIR / "preprocessed.h5ad"
-ENCODED_H5AD = OUTPUT_DIR / "encoded.h5ad"
-GRAPH_H5AD = OUTPUT_DIR / "data_with_graph.h5ad"
+def get_output_base_dir():
+    """Get base output directory from config"""
+    if "data" in config and "output_dir" in config["data"]:
+        output_base = config["data"]["output_dir"]
+        if Path(output_base).is_absolute():
+            return Path(output_base)
+        else:
+            return Path(output_base).resolve()
+    # Fallback: construct path from default
+    return Path("../data/outputs/collapse_diag").resolve()
+
+def get_output_dir(wildcards):
+    """Get output directory for a dataset"""
+    output_base = get_output_base_dir()
+    output_dir = output_base / wildcards.dataset
+    return output_dir
+
+# Get base output directory
+OUTPUT_BASE_DIR = get_output_base_dir()
+OUTPUT_BASE_DIR.mkdir(parents=True, exist_ok=True)
 
 # Network layers to test (read from config)
 INTEGRATION_NETWORK_LAYERS = config["integration_network_layers"]
 NUM_STEPS_DIFFUSION = INTEGRATION_NETWORK_LAYERS
 NUM_LAYERS_GCN = INTEGRATION_NETWORK_LAYERS
 
-# Rule all: define final outputs
+# Rule all: define final outputs for all datasets
 rule all:
     input:
-        str(OUTPUT_DIR / "aggregated_metrics.csv"),
-        str(OUTPUT_DIR / "collapse_diagnostic_plot.pdf"),
-        str(OUTPUT_DIR / "aggregated_embeddings.h5ad"),
-        str(OUTPUT_DIR / "scib_results_table.csv"),
-        str(OUTPUT_DIR / "scib_benchmarker.pkl"),
-        str(OUTPUT_DIR / "scib_results_table_plot.pdf"),
-        str(OUTPUT_DIR / "scib_evaluation_lineplot.pdf"),
-        str(OUTPUT_DIR / "umap_combined_multipage.pdf")
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/aggregated_metrics.csv"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/collapse_diagnostic_plot.pdf"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/aggregated_embeddings.h5ad"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table.csv"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_benchmarker.pkl"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table_plot.pdf"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_evaluation_lineplot.pdf"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/umap_combined_multipage.pdf"), dataset=DATASETS)
 
 # Rule: Preprocess data
 rule preprocess:
     input:
-        h5ad = INPUT_H5AD
+        h5ad = get_input_path
     output:
-        h5ad = str(PREPROCESSED_H5AD)
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/preprocessed.h5ad")
     params:
+        output_dir = lambda wildcards: get_output_dir(wildcards).as_posix(),
         normalized_data = config["normalized_data"],
         min_cells = config["preprocess"]["min_cells"],
         target_sum = config["preprocess"]["target_sum"],
@@ -61,13 +87,14 @@ rule preprocess:
 # Rule: Feature encoding
 rule encode_features:
     input:
-        h5ad = str(PREPROCESSED_H5AD)
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/preprocessed.h5ad")
     output:
-        h5ad = str(ENCODED_H5AD)
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/encoded.h5ad")
     resources:
         gpu=1
     threads: 1
     params:
+        output_dir = lambda wildcards: get_output_dir(wildcards).as_posix(),
         D_encode_list = config["feature_encoder"]["D_encode_list"],
         D_decode_list = config["feature_encoder"]["D_decode_list"],
         max_epoch = config["feature_encoder"]["max_epoch"],
@@ -79,9 +106,9 @@ rule encode_features:
 # Rule: Build integration graph
 rule build_graph:
     input:
-        h5ad = str(ENCODED_H5AD)
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/encoded.h5ad")
     output:
-        h5ad = str(GRAPH_H5AD)
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/data_with_graph.h5ad")
     resources:
         gpu=1
     threads: 1
@@ -97,9 +124,9 @@ rule build_graph:
 # Rule: Run CellDiffusion integration with varying num_steps_diffusion
 rule integrate_celldiffusion:
     input:
-        h5ad = str(GRAPH_H5AD)
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/data_with_graph.h5ad")
     output:
-        h5ad = str(OUTPUT_DIR / "celldiffusion_nsteps{num_steps}.h5ad")
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/celldiffusion_nsteps{num_steps}.h5ad")
     resources:
         gpu=1
     threads: 1
@@ -117,9 +144,9 @@ rule integrate_celldiffusion:
 # Rule: Run GCN integration with varying num_layers_gcn
 rule integrate_gcn:
     input:
-        h5ad = str(GRAPH_H5AD)
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/data_with_graph.h5ad")
     output:
-        h5ad = str(OUTPUT_DIR / "gcn_nlayers{num_layers}.h5ad")
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/gcn_nlayers{num_layers}.h5ad")
     resources:
         gpu=1
     threads: 1
@@ -136,9 +163,9 @@ rule integrate_gcn:
 # Rule: Evaluate neighbor purity for CellDiffusion results
 rule evaluate_purity_celldiffusion:
     input:
-        h5ad = str(OUTPUT_DIR / "celldiffusion_nsteps{num_steps}.h5ad")
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/celldiffusion_nsteps{num_steps}.h5ad")
     output:
-        csv = str(OUTPUT_DIR / "purity_celldiffusion_nsteps{num_steps}.csv")
+        csv = str(OUTPUT_BASE_DIR / "{dataset}/purity_celldiffusion_nsteps{num_steps}.csv")
     params:
         method = "CellDiffusion",
         network_layers = lambda wildcards: int(wildcards.num_steps),
@@ -150,9 +177,9 @@ rule evaluate_purity_celldiffusion:
 # Rule: Evaluate neighbor purity for GCN results
 rule evaluate_purity_gcn:
     input:
-        h5ad = str(OUTPUT_DIR / "gcn_nlayers{num_layers}.h5ad")
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/gcn_nlayers{num_layers}.h5ad")
     output:
-        csv = str(OUTPUT_DIR / "purity_gcn_nlayers{num_layers}.csv")
+        csv = str(OUTPUT_BASE_DIR / "{dataset}/purity_gcn_nlayers{num_layers}.csv")
     params:
         method = "GCN",
         network_layers = lambda wildcards: int(wildcards.num_layers),
@@ -164,19 +191,19 @@ rule evaluate_purity_gcn:
 # Rule: Aggregate all metrics
 rule aggregate_metrics:
     input:
-        csv_files = expand(str(OUTPUT_DIR / "purity_celldiffusion_nsteps{num_steps}.csv"), num_steps=NUM_STEPS_DIFFUSION) + \
-                    expand(str(OUTPUT_DIR / "purity_gcn_nlayers{num_layers}.csv"), num_layers=NUM_LAYERS_GCN)
+        csv_files = expand(str(OUTPUT_BASE_DIR / "{dataset}/purity_celldiffusion_nsteps{num_steps}.csv"), num_steps=NUM_STEPS_DIFFUSION) + \
+                    expand(str(OUTPUT_BASE_DIR / "{dataset}/purity_gcn_nlayers{num_layers}.csv"), num_layers=NUM_LAYERS_GCN)
     output:
-        csv = str(OUTPUT_DIR / "aggregated_metrics.csv")
+        csv = str(OUTPUT_BASE_DIR / "{dataset}/aggregated_metrics.csv")
     script:
         "scripts/aggregate_metrics.py"
 
 # Rule: Compute UMAP for CellDiffusion results
 rule compute_umap_celldiffusion:
     input:
-        h5ad = str(OUTPUT_DIR / "celldiffusion_nsteps{num_steps}.h5ad")
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/celldiffusion_nsteps{num_steps}.h5ad")
     output:
-        h5ad = str(OUTPUT_DIR / "celldiffusion_umap_nsteps{num_steps}.h5ad")
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/celldiffusion_umap_nsteps{num_steps}.h5ad")
     params:
         method = "CellDiffusion",
         network_layers = lambda wildcards: int(wildcards.num_steps),
@@ -188,9 +215,9 @@ rule compute_umap_celldiffusion:
 # Rule: Compute UMAP for GCN results
 rule compute_umap_gcn:
     input:
-        h5ad = str(OUTPUT_DIR / "gcn_nlayers{num_layers}.h5ad")
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/gcn_nlayers{num_layers}.h5ad")
     output:
-        h5ad = str(OUTPUT_DIR / "gcn_umap_nlayers{num_layers}.h5ad")
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/gcn_umap_nlayers{num_layers}.h5ad")
     params:
         method = "GCN",
         network_layers = lambda wildcards: int(wildcards.num_layers),
@@ -202,10 +229,10 @@ rule compute_umap_gcn:
 # Rule: Plot combined UMAP (CellDiffusion and GCN) for all layers in a multi-page PDF
 rule plot_umap_combined:
     input:
-        h5ad_files = expand(str(OUTPUT_DIR / "celldiffusion_umap_nsteps{num_steps}.h5ad"), num_steps=NUM_STEPS_DIFFUSION) + \
-                     expand(str(OUTPUT_DIR / "gcn_umap_nlayers{num_layers}.h5ad"), num_layers=NUM_LAYERS_GCN)
+        h5ad_files = expand(str(OUTPUT_BASE_DIR / "{dataset}/celldiffusion_umap_nsteps{num_steps}.h5ad"), num_steps=NUM_STEPS_DIFFUSION) + \
+                     expand(str(OUTPUT_BASE_DIR / "{dataset}/gcn_umap_nlayers{num_layers}.h5ad"), num_layers=NUM_LAYERS_GCN)
     output:
-        pdf = str(OUTPUT_DIR / "umap_combined_multipage.pdf")
+        pdf = str(OUTPUT_BASE_DIR / "{dataset}/umap_combined_multipage.pdf")
     params:
         batch_key = config["evaluation"]["batch_key"],
         label_key = config["evaluation"]["label_key"]
@@ -215,21 +242,21 @@ rule plot_umap_combined:
 # Rule: Aggregate all embeddings for SCIB evaluation
 rule aggregate_embeddings:
     input:
-        h5ad_files = expand(str(OUTPUT_DIR / "celldiffusion_nsteps{num_steps}.h5ad"), num_steps=NUM_STEPS_DIFFUSION) + \
-                     expand(str(OUTPUT_DIR / "gcn_nlayers{num_layers}.h5ad"), num_layers=NUM_LAYERS_GCN)
+        h5ad_files = expand(str(OUTPUT_BASE_DIR / "{dataset}/celldiffusion_nsteps{num_steps}.h5ad"), num_steps=NUM_STEPS_DIFFUSION) + \
+                     expand(str(OUTPUT_BASE_DIR / "{dataset}/gcn_nlayers{num_layers}.h5ad"), num_layers=NUM_LAYERS_GCN)
     output:
-        h5ad = str(OUTPUT_DIR / "aggregated_embeddings.h5ad")
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/aggregated_embeddings.h5ad")
     script:
         "scripts/aggregate_embeddings.py"
 
 # Rule: SCIB evaluation
 rule scib_evaluation:
     input:
-        h5ad = str(OUTPUT_DIR / "aggregated_embeddings.h5ad")
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/aggregated_embeddings.h5ad")
     output:
-        results = str(OUTPUT_DIR / "scib_benchmarker.pkl"),
-        table = str(OUTPUT_DIR / "scib_results_table.csv"),
-        plot = str(OUTPUT_DIR / "scib_results_table_plot.pdf")
+        results = str(OUTPUT_BASE_DIR / "{dataset}/scib_benchmarker.pkl"),
+        table = str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table.csv"),
+        plot = str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table_plot.pdf")
     params:
         batch_key = config["evaluation"]["batch_key"],
         label_key = config["evaluation"]["label_key"],
@@ -240,18 +267,18 @@ rule scib_evaluation:
 # Rule: Plot SCIB evaluation line plot (aggregate scores vs network layers)
 rule scib_evaluation_plot:
     input:
-        csv = str(OUTPUT_DIR / "scib_results_table.csv")
+        csv = str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table.csv")
     output:
-        pdf = str(OUTPUT_DIR / "scib_evaluation_lineplot.pdf")
+        pdf = str(OUTPUT_BASE_DIR / "{dataset}/scib_evaluation_lineplot.pdf")
     script:
         "scripts/scib_evaluation_plot.py"
 
 # Rule: Plot collapse diagnostic (neighbor purity)
 rule plot_collapse_diag:
     input:
-        csv = str(OUTPUT_DIR / "aggregated_metrics.csv")
+        csv = str(OUTPUT_BASE_DIR / "{dataset}/aggregated_metrics.csv")
     output:
-        pdf = str(OUTPUT_DIR / "collapse_diagnostic_plot.pdf")
+        pdf = str(OUTPUT_BASE_DIR / "{dataset}/collapse_diagnostic_plot.pdf")
     script:
         "scripts/plot_collapse_diag.py"
 

@@ -7,44 +7,71 @@ from pathlib import Path
 # Load configuration
 configfile: "config.yaml"
 
-# Input files
-INPUT_H5AD = config["data"]["input_path"]
+# Get datasets list from config
+DATASETS = config.get("datasets", [])
 
-# Output directory - handle both absolute and relative paths
-output_dir_str = config["data"]["output_dir"]
-if Path(output_dir_str).is_absolute():
-    OUTPUT_DIR = Path(output_dir_str)
-else:
-    # For relative paths, resolve from current working directory
-    OUTPUT_DIR = Path(output_dir_str).resolve()
-OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+# Define functions for input/output paths based on dataset wildcard
+def get_input_path(wildcards):
+    """Get input path for a dataset"""
+    # Use input_path from config as base directory, append dataset name and .h5ad
+    if "data" in config and "input_path" in config["data"]:
+        input_base = config["data"]["input_path"]
+        # Ensure path ends with / if it's a directory
+        if not input_base.endswith(('.h5ad', '.h5')):
+            if not input_base.endswith('/'):
+                input_base = input_base + "/"
+            input_path = input_base + f"{wildcards.dataset}.h5ad"
+        else:
+            # If it's already a full path to a file, use it directly (backward compatibility)
+            input_path = input_base
+        return input_path
+    # Fallback: construct path from dataset name
+    return f"../data/inputs/integration/{wildcards.dataset}.h5ad"
 
-# Output files
-PREPROCESSED_H5AD = OUTPUT_DIR / "preprocessed.h5ad"
-ENCODED_H5AD = OUTPUT_DIR / "encoded.h5ad"
+def get_output_base_dir():
+    """Get base output directory from config"""
+    if "data" in config and "output_dir" in config["data"]:
+        output_base = config["data"]["output_dir"]
+        if Path(output_base).is_absolute():
+            return Path(output_base)
+        else:
+            return Path(output_base).resolve()
+    # Fallback: construct path from default
+    return Path("../data/outputs/graph_benchmark").resolve()
+
+def get_output_dir(wildcards):
+    """Get output directory for a dataset"""
+    output_base = get_output_base_dir()
+    output_dir = output_base / wildcards.dataset
+    return output_dir
+
+# Get base output directory
+OUTPUT_BASE_DIR = get_output_base_dir()
+OUTPUT_BASE_DIR.mkdir(parents=True, exist_ok=True)
 
 # Get graph methods (list)
 GRAPH_METHODS = config["graph_methods"]
 if not isinstance(GRAPH_METHODS, list):
     GRAPH_METHODS = [GRAPH_METHODS]
 
-# Rule all: define final outputs
+# Rule all: define final outputs for all datasets
 rule all:
     input:
-        expand(str(OUTPUT_DIR / "integrated_{method}.h5ad"), method=GRAPH_METHODS),
-        str(OUTPUT_DIR / "aggregated_X_dif.h5ad"),
-        str(OUTPUT_DIR / "scib_results_table.csv"),
-        str(OUTPUT_DIR / "scib_benchmarker.pkl"),
-        str(OUTPUT_DIR / "scib_results_table_plot.pdf"),
-        str(OUTPUT_DIR / "scib_comparison_barplot.pdf")
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/integrated_{method}.h5ad"), dataset=DATASETS, method=GRAPH_METHODS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/aggregated_X_dif.h5ad"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table.csv"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_benchmarker.pkl"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table_plot.pdf"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_comparison_barplot.pdf"), dataset=DATASETS)
 
 # Rule: Preprocess data
 rule preprocess:
     input:
-        h5ad = INPUT_H5AD
+        h5ad = get_input_path
     output:
-        h5ad = str(PREPROCESSED_H5AD)
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/preprocessed.h5ad")
     params:
+        output_dir = lambda wildcards: get_output_dir(wildcards).as_posix(),
         normalized_data = config["normalized_data"],
         min_cells = config["preprocess"]["min_cells"],
         target_sum = config["preprocess"]["target_sum"],
@@ -58,13 +85,14 @@ rule preprocess:
 # Rule: Feature encoding
 rule encode_features:
     input:
-        h5ad = str(PREPROCESSED_H5AD)
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/preprocessed.h5ad")
     output:
-        h5ad = str(ENCODED_H5AD)
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/encoded.h5ad")
     resources:
         gpu=1  # Limit GPU usage to one task at a time
     threads: 1
     params:
+        output_dir = lambda wildcards: get_output_dir(wildcards).as_posix(),
         D_encode_list = config["feature_encoder"]["D_encode_list"],
         D_decode_list = config["feature_encoder"]["D_decode_list"],
         max_epoch = config["feature_encoder"]["max_epoch"],
@@ -76,9 +104,9 @@ rule encode_features:
 # Rule: Build integration graph using specific method
 rule build_graph:
     input:
-        h5ad = str(ENCODED_H5AD)
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/encoded.h5ad")
     output:
-        h5ad = str(OUTPUT_DIR / "graph_{method}.h5ad")
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/graph_{method}.h5ad")
     resources:
         gpu=1
     threads: 1
@@ -95,9 +123,9 @@ rule build_graph:
 # Rule: Run CellDiffusion integration
 rule integrate:
     input:
-        h5ad = str(OUTPUT_DIR / "graph_{method}.h5ad")
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/graph_{method}.h5ad")
     output:
-        h5ad = str(OUTPUT_DIR / "integrated_{method}.h5ad")
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/integrated_{method}.h5ad")
     resources:
         gpu=1
     threads: 1
@@ -116,20 +144,20 @@ rule integrate:
 # Rule: Aggregate X_dif from all graph building method results
 rule aggregate_X_dif:
     input:
-        h5ad_files = expand(str(OUTPUT_DIR / "integrated_{method}.h5ad"), method=GRAPH_METHODS)
+        h5ad_files = expand(str(OUTPUT_BASE_DIR / "{dataset}/integrated_{method}.h5ad"), method=GRAPH_METHODS)
     output:
-        h5ad = str(OUTPUT_DIR / "aggregated_X_dif.h5ad")
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/aggregated_X_dif.h5ad")
     script:
         "scripts/aggregate_X_dif.py"
 
 # Rule: SCIB evaluation
 rule scib_evaluation:
     input:
-        h5ad = str(OUTPUT_DIR / "aggregated_X_dif.h5ad")
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/aggregated_X_dif.h5ad")
     output:
-        results = str(OUTPUT_DIR / "scib_benchmarker.pkl"),
-        table = str(OUTPUT_DIR / "scib_results_table.csv"),
-        plot = str(OUTPUT_DIR / "scib_results_table_plot.pdf")
+        results = str(OUTPUT_BASE_DIR / "{dataset}/scib_benchmarker.pkl"),
+        table = str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table.csv"),
+        plot = str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table_plot.pdf")
     params:
         batch_key = config["evaluation"]["batch_key"],
         label_key = config["evaluation"]["label_key"],
@@ -140,9 +168,9 @@ rule scib_evaluation:
 # Rule: Plot SCIB comparison bar plot
 rule scib_evaluation_plot:
     input:
-        table = str(OUTPUT_DIR / "scib_results_table.csv")
+        table = str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table.csv")
     output:
-        pdf = str(OUTPUT_DIR / "scib_comparison_barplot.pdf")
+        pdf = str(OUTPUT_BASE_DIR / "{dataset}/scib_comparison_barplot.pdf")
     script:
         "scripts/scib_evaluation_plot.py"
 

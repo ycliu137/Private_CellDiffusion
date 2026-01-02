@@ -1,11 +1,13 @@
 # Configuration file for stress test pipeline
 
+datasets: ["pbmc23k_rm100pct"]
+
 normalized_data: False
 # Data paths
 data:
-  input_path: "/projectnb/czlab/A00/ycliu/scRNA_integration_benchmark_datasets/PBMC23K_rm100pct/pbmc23k_rm100pct.h5ad"
+  input_path: "/projectnb/czlab/A00/ycliu/scRNA_integration_benchmark_datasets/PBMC23K_rm100pct/"
   # Output directory (relative to project root, or use absolute path)
-  output_dir: "../data/outputs/stress_tests/pbmc23k_rm100pct"
+  output_dir: "../data/outputs/stress_tests"
 
 # Preprocessing parameters
 preprocess:

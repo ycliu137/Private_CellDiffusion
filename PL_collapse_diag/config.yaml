@@ -1,12 +1,14 @@
 # Configuration file for collapse diagnostic pipeline
 # Tests different network depths for CellDiffusion and GCN integration methods
 
+datasets: ["pbmc10k_rm100pct"]
+
 normalized_data: False
 # Data paths
 data:
-  input_path: "/projectnb/czlab/A00/ycliu/scRNA_integration_benchmark_datasets/PBMC10K_rm100pct/pbmc10k_rm100pct.h5ad"
+  input_path: "/projectnb/czlab/A00/ycliu/scRNA_integration_benchmark_datasets/PBMC10K_rm100pct/"
   # Output directory (relative to project root, or use absolute path)
-  output_dir: "../data/outputs/collapse_diag/pbmc10k_rm100pct"
+  output_dir: "../data/outputs/collapse_diag"
 
 # Preprocessing parameters
 preprocess:

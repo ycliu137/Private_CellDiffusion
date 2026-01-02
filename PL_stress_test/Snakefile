@@ -8,45 +8,72 @@ from pathlib import Path
 # Load configuration
 configfile: "config.yaml"
 
-# Input files
-INPUT_H5AD = config["data"]["input_path"]
+# Get datasets list from config
+DATASETS = config.get("datasets", [])
 
-# Output directory - handle both absolute and relative paths
-output_dir_str = config["data"]["output_dir"]
-if Path(output_dir_str).is_absolute():
-    OUTPUT_DIR = Path(output_dir_str)
-else:
-    # For relative paths, resolve from current working directory
-    OUTPUT_DIR = Path(output_dir_str).resolve()
-OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+# Define functions for input/output paths based on dataset wildcard
+def get_input_path(wildcards):
+    """Get input path for a dataset"""
+    # Use input_path from config as base directory, append dataset name and .h5ad
+    if "data" in config and "input_path" in config["data"]:
+        input_base = config["data"]["input_path"]
+        # Ensure path ends with / if it's a directory
+        if not input_base.endswith(('.h5ad', '.h5')):
+            if not input_base.endswith('/'):
+                input_base = input_base + "/"
+            input_path = input_base + f"{wildcards.dataset}.h5ad"
+        else:
+            # If it's already a full path to a file, use it directly (backward compatibility)
+            input_path = input_base
+        return input_path
+    # Fallback: construct path from dataset name
+    return f"../data/inputs/integration/{wildcards.dataset}.h5ad"
 
-# Output files
-PREPROCESSED_H5AD = OUTPUT_DIR / "preprocessed.h5ad"
-ENCODED_H5AD = OUTPUT_DIR / "encoded.h5ad"
+def get_output_base_dir():
+    """Get base output directory from config"""
+    if "data" in config and "output_dir" in config["data"]:
+        output_base = config["data"]["output_dir"]
+        if Path(output_base).is_absolute():
+            return Path(output_base)
+        else:
+            return Path(output_base).resolve()
+    # Fallback: construct path from default
+    return Path("../data/outputs/stress_tests").resolve()
+
+def get_output_dir(wildcards):
+    """Get output directory for a dataset"""
+    output_base = get_output_base_dir()
+    output_dir = output_base / wildcards.dataset
+    return output_dir
+
+# Get base output directory
+OUTPUT_BASE_DIR = get_output_base_dir()
+OUTPUT_BASE_DIR.mkdir(parents=True, exist_ok=True)
 
 # Get k value (single value) and k_add values (convert single values to lists)
 K_VALUE = config["integration_loss_adj"]["k"]
 k_add_config = config["random_edges"]["k_add"]
 K_ADD_VALUES = [k_add_config] if not isinstance(k_add_config, list) else k_add_config
 
-# Rule all: define final outputs for all k_add combinations, aggregated metrics, plot, aggregated X_dif, scib evaluation, and scib plot
+# Rule all: define final outputs for all datasets and k_add combinations
 rule all:
     input:
-        expand(str(OUTPUT_DIR / "scDiffusion_integration_kadd{k_add}.h5ad"), k_add=K_ADD_VALUES),
-        str(OUTPUT_DIR / "metrics_log.csv"),
-        str(OUTPUT_DIR / "metrics_plot.pdf"),
-        str(OUTPUT_DIR / "aggregated_X_dif.h5ad"),
-        str(OUTPUT_DIR / "scib_results_table.csv"),
-        str(OUTPUT_DIR / "scib_results_table_plot.pdf"),
-        str(OUTPUT_DIR / "scib_evaluation_plot.pdf")
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/scDiffusion_integration_kadd{k_add}.h5ad"), dataset=DATASETS, k_add=K_ADD_VALUES),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/metrics_log.csv"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/metrics_plot.pdf"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/aggregated_X_dif.h5ad"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table.csv"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table_plot.pdf"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_evaluation_plot.pdf"), dataset=DATASETS)
 
 # Rule: Preprocess data
 rule preprocess:
     input:
-        h5ad = INPUT_H5AD
+        h5ad = get_input_path
     output:
-        h5ad = str(PREPROCESSED_H5AD)
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/preprocessed.h5ad")
     params:
+        output_dir = lambda wildcards: get_output_dir(wildcards).as_posix(),
         normalized_data = config["normalized_data"],
         min_cells = config["preprocess"]["min_cells"],
         target_sum = config["preprocess"]["target_sum"],
@@ -60,13 +87,14 @@ rule preprocess:
 # Rule: Feature encoding
 rule encode_features:
     input:
-        h5ad = str(PREPROCESSED_H5AD)
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/preprocessed.h5ad")
     output:
-        h5ad = str(ENCODED_H5AD)
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/encoded.h5ad")
     resources:
         gpu=1  # Limit GPU usage to one task at a time
     threads: 1  # Limit threads to help ensure sequential execution
     params:
+        output_dir = lambda wildcards: get_output_dir(wildcards).as_posix(),
         D_encode_list = config["feature_encoder"]["D_encode_list"],
         D_decode_list = config["feature_encoder"]["D_decode_list"],
         max_epoch = config["feature_encoder"]["max_epoch"],
@@ -78,10 +106,10 @@ rule encode_features:
 # Rule: Build integration graph and run integration (with k_add as wildcard, k is fixed)
 rule integrate:
     input:
-        h5ad = str(ENCODED_H5AD)
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/encoded.h5ad")
     output:
-        h5ad = str(OUTPUT_DIR / "scDiffusion_integration_kadd{k_add}.h5ad"),
-        metrics = str(OUTPUT_DIR / "metrics_log_kadd{k_add}.csv")
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/scDiffusion_integration_kadd{k_add}.h5ad"),
+        metrics = str(OUTPUT_BASE_DIR / "{dataset}/metrics_log_kadd{k_add}.csv")
     resources:
         gpu=1  # Limit GPU usage to one task at a time
     threads: 1  # Limit threads to help ensure sequential execution
@@ -115,9 +143,9 @@ rule integrate:
 # Rule: Aggregate metrics from all k_add combinations
 rule aggregate_metrics:
     input:
-        metrics_files = expand(str(OUTPUT_DIR / "metrics_log_kadd{k_add}.csv"), k_add=K_ADD_VALUES)
+        metrics_files = expand(str(OUTPUT_BASE_DIR / "{dataset}/metrics_log_kadd{k_add}.csv"), k_add=K_ADD_VALUES)
     output:
-        metrics = str(OUTPUT_DIR / "metrics_log.csv")
+        metrics = str(OUTPUT_BASE_DIR / "{dataset}/metrics_log.csv")
     run:
         import csv
         from pathlib import Path
@@ -148,9 +176,9 @@ rule aggregate_metrics:
 # Rule: Plot metrics
 rule plot_metrics:
     input:
-        metrics = str(OUTPUT_DIR / "metrics_log.csv")
+        metrics = str(OUTPUT_BASE_DIR / "{dataset}/metrics_log.csv")
     output:
-        pdf = str(OUTPUT_DIR / "metrics_plot.pdf")
+        pdf = str(OUTPUT_BASE_DIR / "{dataset}/metrics_plot.pdf")
     script:
         "scripts/plot_metrics.py"
 
@@ -158,9 +186,9 @@ rule plot_metrics:
 # Rule: Aggregate X_dif from all integration outputs
 rule aggregate_X_dif:
     input:
-        h5ad_files = expand(str(OUTPUT_DIR / "scDiffusion_integration_kadd{k_add}.h5ad"), k_add=K_ADD_VALUES)
+        h5ad_files = expand(str(OUTPUT_BASE_DIR / "{dataset}/scDiffusion_integration_kadd{k_add}.h5ad"), k_add=K_ADD_VALUES)
     output:
-        h5ad = str(OUTPUT_DIR / "aggregated_X_dif.h5ad")
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/aggregated_X_dif.h5ad")
     script:
         "scripts/aggregate_X_dif.py"
 
@@ -168,11 +196,11 @@ rule aggregate_X_dif:
 # Rule: SCIB evaluation - benchmark different k_add integration results
 rule scib_evaluation:
     input:
-        h5ad = str(OUTPUT_DIR / "aggregated_X_dif.h5ad")
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/aggregated_X_dif.h5ad")
     output:
-        results = str(OUTPUT_DIR / "scib_benchmarker.pkl"),
-        table = str(OUTPUT_DIR / "scib_results_table.csv"),
-        plot = str(OUTPUT_DIR / "scib_results_table_plot.pdf")
+        results = str(OUTPUT_BASE_DIR / "{dataset}/scib_benchmarker.pkl"),
+        table = str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table.csv"),
+        plot = str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table_plot.pdf")
     params:
         batch_key = config["evaluation"]["batch_key"],
         label_key = config["evaluation"]["label_key"],
@@ -183,8 +211,8 @@ rule scib_evaluation:
 # Rule: Plot SCIB evaluation results - aggregate scores vs k_add
 rule scib_evaluation_plot:
     input:
-        table = str(OUTPUT_DIR / "scib_results_table.csv")
+        table = str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table.csv")
     output:
-        pdf = str(OUTPUT_DIR / "scib_evaluation_plot.pdf")
+        pdf = str(OUTPUT_BASE_DIR / "{dataset}/scib_evaluation_plot.pdf")
     script:
         "scripts/scib_evaluation_plot.py"
