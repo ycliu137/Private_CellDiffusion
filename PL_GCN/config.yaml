@@ -1,6 +1,8 @@
 # Configuration file for CellDiffusion vs GCN comparison pipeline
 
 datasets: ["BMMC_s2d5_s3d7"]
+
+normalized_data: False
 # Data paths
 data:
   #input_path: "/projectnb/czlab/A00/ycliu/scRNA_integration_benchmark_datasets/PBMC10K_rm100pct/pbmc10k_rm100pct.h5ad"

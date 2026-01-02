@@ -1,6 +1,7 @@
 # Configuration file for k_mnn and n_edges_per_node hyperparameter optimization pipeline
 # Note: n_edges_per_node will be set equal to k_mnn for each test
 
+normalized_data: False
 # Data paths
 data:
   input_path: "/projectnb/czlab/A00/ycliu/scRNA_integration_benchmark_datasets/PBMC10K_rm100pct/pbmc10k_rm100pct.h5ad"

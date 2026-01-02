@@ -67,6 +67,7 @@ rule preprocess:
         h5ad = str(OUTPUT_BASE_DIR / "{dataset}/preprocessed.h5ad")
     params:
         output_dir = lambda wildcards: get_output_dir(wildcards).as_posix(),
+        normalized_data = config["normalized_data"],
         min_cells = config["preprocess"]["min_cells"],
         target_sum = config["preprocess"]["target_sum"],
         n_top_genes = config["preprocess"]["n_top_genes"],

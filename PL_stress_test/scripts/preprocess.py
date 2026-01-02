@@ -21,14 +21,20 @@ adata = sc.read_h5ad(input_h5ad)
 
 print(f"Original data shape: {adata.shape}")
 
-# Filter genes
-print(f"Filtering genes with min_cells={params.min_cells}")
-sc.pp.filter_genes(adata, min_cells=params.min_cells)
+# Check if data is already normalized (value comes from config.yaml via Snakefile params)
+normalized_data = params.normalized_data
 
-# Normalize and log transform
-print(f"Normalizing with target_sum={params.target_sum}")
-sc.pp.normalize_total(adata, target_sum=params.target_sum)
-sc.pp.log1p(adata)
+if not normalized_data:
+    # Filter genes
+    print(f"Filtering genes with min_cells={params.min_cells}")
+    sc.pp.filter_genes(adata, min_cells=params.min_cells)
+
+    # Normalize and log transform
+    print(f"Normalizing with target_sum={params.target_sum}")
+    sc.pp.normalize_total(adata, target_sum=params.target_sum)
+    sc.pp.log1p(adata)
+else:
+    print("Data is already normalized, skipping filtering, normalization and log transformation")
 
 # Find highly variable genes
 print(f"Finding highly variable genes: n_top_genes={params.n_top_genes}")

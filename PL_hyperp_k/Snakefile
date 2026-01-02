@@ -47,6 +47,7 @@ rule preprocess:
     output:
         h5ad = str(PREPROCESSED_H5AD)
     params:
+        normalized_data = config["normalized_data"],
         min_cells = config["preprocess"]["min_cells"],
         target_sum = config["preprocess"]["target_sum"],
         n_top_genes = config["preprocess"]["n_top_genes"],
