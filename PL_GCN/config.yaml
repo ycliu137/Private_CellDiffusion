@@ -57,6 +57,7 @@ evaluation:
   label_key: "labels"
   batch_key: "batch"
   k_mnn: 50
+  k_neighbor_purity: 50  # k for KNN in evaluate_knn_neighbor_purity
 
 # UMAP visualization parameters
 umap:

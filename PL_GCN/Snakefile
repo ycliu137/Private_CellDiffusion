@@ -57,7 +57,8 @@ rule all:
         expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table.csv"), dataset=DATASETS),
         expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_benchmarker.pkl"), dataset=DATASETS),
         expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table_plot.pdf"), dataset=DATASETS),
-        expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_comparison_barplot.pdf"), dataset=DATASETS)
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_comparison_barplot.pdf"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/purity_bio_conservation_plot.pdf"), dataset=DATASETS)
 
 # Rule: Preprocess data
 rule preprocess:
@@ -238,3 +239,40 @@ rule scib_evaluation_plot:
         output_dir = lambda wildcards: get_output_dir(wildcards).as_posix()
     script:
         "scripts/scib_evaluation_plot.py"
+
+# Rule: Evaluate neighbor purity for CellDiffusion
+rule evaluate_purity_celldiffusion:
+    input:
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/final_integrated.h5ad")
+    output:
+        csv = str(OUTPUT_BASE_DIR / "{dataset}/purity_celldiffusion.csv")
+    params:
+        method = "CellDiffusion",
+        label_key = config["evaluation"]["label_key"],
+        k = config["evaluation"]["k_neighbor_purity"]
+    script:
+        "scripts/evaluate_purity.py"
+
+# Rule: Evaluate neighbor purity for GCN
+rule evaluate_purity_gcn:
+    input:
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/final_integrated.h5ad")
+    output:
+        csv = str(OUTPUT_BASE_DIR / "{dataset}/purity_gcn.csv")
+    params:
+        method = "GCN",
+        label_key = config["evaluation"]["label_key"],
+        k = config["evaluation"]["k_neighbor_purity"]
+    script:
+        "scripts/evaluate_purity.py"
+
+# Rule: Plot neighbor purity and bio conservation
+rule plot_purity_bio_conservation:
+    input:
+        purity_celldiffusion = str(OUTPUT_BASE_DIR / "{dataset}/purity_celldiffusion.csv"),
+        purity_gcn = str(OUTPUT_BASE_DIR / "{dataset}/purity_gcn.csv"),
+        scib_table = str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table.csv")
+    output:
+        pdf = str(OUTPUT_BASE_DIR / "{dataset}/purity_bio_conservation_plot.pdf")
+    script:
+        "scripts/plot_purity_bio_conservation.py"
