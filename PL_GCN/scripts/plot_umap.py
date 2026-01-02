@@ -60,6 +60,14 @@ else:
 
 # Plot each UMAP
 for i, umap_key in enumerate(umap_keys_available):
+    # Convert umap_key to friendly display name
+    if 'X_umap_dif' in umap_key or 'dif' in umap_key.lower():
+        display_name = "CellDiffusion"
+    elif 'X_umap_gcn' in umap_key or 'gcn' in umap_key.lower():
+        display_name = "GCN"
+    else:
+        display_name = umap_key  # Fallback to original key if no match
+    
     # Temporarily set UMAP for plotting
     adata.obsm['X_umap'] = adata.obsm[umap_key].copy()
     
@@ -70,7 +78,7 @@ for i, umap_key in enumerate(umap_keys_available):
         ax=axes[i][0],
         show=False,
         frameon=False,
-        title=f"{umap_key} - Batch"
+        title=f"{display_name} - Batch"
     )
     
     # Plot by labels
@@ -81,7 +89,7 @@ for i, umap_key in enumerate(umap_keys_available):
             ax=axes[i][1],
             show=False,
             frameon=False,
-            title=f"{umap_key} - Labels"
+            title=f"{display_name} - Labels"
         )
     else:
         axes[i][1].axis('off')
