@@ -12,6 +12,10 @@ import scanpy as sc
 import matplotlib
 matplotlib.use('Agg')  # Use non-interactive backend
 import matplotlib.pyplot as plt
+from matplotlib import rcParams
+
+FIGSIZE = (6, 6)
+rcParams["figure.figsize"] = FIGSIZE
 
 # Load input data
 input_h5ad = snakemake.input.h5ad
@@ -42,7 +46,7 @@ n_umaps = len(umap_keys_available)
 n_cols = 2  # batch and labels
 n_rows = n_umaps
 
-fig, axes = plt.subplots(n_rows, n_cols, figsize=(6 * n_cols, 6 * n_rows))
+fig, axes = plt.subplots(n_rows, n_cols, figsize=(FIGSIZE[0] * n_cols, FIGSIZE[1] * n_rows))
 if n_umaps == 1:
     if n_cols == 1:
         axes = [[axes]]
