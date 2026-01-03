@@ -55,6 +55,15 @@ K_VALUE = config["integration_loss_adj"]["k"]
 k_add_config = config["random_edges"]["k_add"]
 K_ADD_VALUES = [k_add_config] if not isinstance(k_add_config, list) else k_add_config
 
+# Helper functions for aggregate rules
+def get_aggregate_metrics_files(wildcards):
+    """Get list of metrics CSV files to aggregate for a dataset"""
+    return [str(OUTPUT_BASE_DIR / wildcards.dataset / f"metrics_log_kadd{k_add}.csv") for k_add in K_ADD_VALUES]
+
+def get_aggregate_input_files(wildcards):
+    """Get list of integrated h5ad files to aggregate for a dataset"""
+    return [str(OUTPUT_BASE_DIR / wildcards.dataset / f"scDiffusion_integration_kadd{k_add}.h5ad") for k_add in K_ADD_VALUES]
+
 # Rule all: define final outputs for all datasets and k_add combinations
 rule all:
     input:
@@ -143,7 +152,7 @@ rule integrate:
 # Rule: Aggregate metrics from all k_add combinations
 rule aggregate_metrics:
     input:
-        metrics_files = expand(str(OUTPUT_BASE_DIR / "{dataset}/metrics_log_kadd{k_add}.csv"), k_add=K_ADD_VALUES)
+        metrics_files = get_aggregate_metrics_files
     output:
         metrics = str(OUTPUT_BASE_DIR / "{dataset}/metrics_log.csv")
     run:
@@ -186,7 +195,7 @@ rule plot_metrics:
 # Rule: Aggregate X_dif from all integration outputs
 rule aggregate_X_dif:
     input:
-        h5ad_files = expand(str(OUTPUT_BASE_DIR / "{dataset}/scDiffusion_integration_kadd{k_add}.h5ad"), k_add=K_ADD_VALUES)
+        h5ad_files = get_aggregate_input_files
     output:
         h5ad = str(OUTPUT_BASE_DIR / "{dataset}/aggregated_X_dif.h5ad")
     script:

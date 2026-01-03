@@ -55,6 +55,11 @@ K_MNN_VALUES = config["integration_graph"]["k_mnn"]
 if not isinstance(K_MNN_VALUES, list):
     K_MNN_VALUES = [K_MNN_VALUES]
 
+# Helper function to get aggregate input files for a dataset
+def get_aggregate_input_files(wildcards):
+    """Get list of integrated files to aggregate for a dataset"""
+    return [str(OUTPUT_BASE_DIR / wildcards.dataset / f"integrated_kmnn{k_mnn}.h5ad") for k_mnn in K_MNN_VALUES]
+
 # Rule all: define final outputs for all datasets
 rule all:
     input:
@@ -147,7 +152,7 @@ rule integrate:
 # Rule: Aggregate X_dif from all k_mnn results
 rule aggregate_X_dif:
     input:
-        h5ad_files = expand(str(OUTPUT_BASE_DIR / "{dataset}/integrated_kmnn{k_mnn}.h5ad"), k_mnn=K_MNN_VALUES)
+        h5ad_files = get_aggregate_input_files
     output:
         h5ad = str(OUTPUT_BASE_DIR / "{dataset}/aggregated_X_dif.h5ad")
     script:

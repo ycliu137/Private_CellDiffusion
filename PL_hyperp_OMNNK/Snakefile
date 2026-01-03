@@ -55,6 +55,11 @@ if not isinstance(N_EDGES_PER_NODE_VALUES, list):
     N_EDGES_PER_NODE_VALUES = [N_EDGES_PER_NODE_VALUES]
 K_MNN_VALUE = config["integration_graph"]["k_mnn"]  # Fixed value
 
+# Helper function to get aggregate input files for a dataset
+def get_aggregate_input_files(wildcards):
+    """Get list of integrated files to aggregate for a dataset"""
+    return [str(OUTPUT_BASE_DIR / wildcards.dataset / f"integrated_nedges{n_edges}.h5ad") for n_edges in N_EDGES_PER_NODE_VALUES]
+
 # Rule all: define final outputs for all datasets
 rule all:
     input:
@@ -146,7 +151,7 @@ rule integrate:
 # Rule: Aggregate X_dif from all n_edges_per_node results
 rule aggregate_X_dif:
     input:
-        h5ad_files = expand(str(OUTPUT_BASE_DIR / "{dataset}/integrated_nedges{n_edges}.h5ad"), n_edges=N_EDGES_PER_NODE_VALUES)
+        h5ad_files = get_aggregate_input_files
     output:
         h5ad = str(OUTPUT_BASE_DIR / "{dataset}/aggregated_X_dif.h5ad")
     script:

@@ -54,6 +54,25 @@ INTEGRATION_NETWORK_LAYERS = config["integration_network_layers"]
 NUM_STEPS_DIFFUSION = INTEGRATION_NETWORK_LAYERS
 NUM_LAYERS_GCN = INTEGRATION_NETWORK_LAYERS
 
+# Helper functions for aggregate rules
+def get_aggregate_metrics_files(wildcards):
+    """Get list of purity CSV files to aggregate for a dataset"""
+    celldiffusion_files = [str(OUTPUT_BASE_DIR / wildcards.dataset / f"purity_celldiffusion_nsteps{num_steps}.csv") for num_steps in NUM_STEPS_DIFFUSION]
+    gcn_files = [str(OUTPUT_BASE_DIR / wildcards.dataset / f"purity_gcn_nlayers{num_layers}.csv") for num_layers in NUM_LAYERS_GCN]
+    return celldiffusion_files + gcn_files
+
+def get_aggregate_umap_files(wildcards):
+    """Get list of UMAP h5ad files to combine for a dataset"""
+    celldiffusion_files = [str(OUTPUT_BASE_DIR / wildcards.dataset / f"celldiffusion_umap_nsteps{num_steps}.h5ad") for num_steps in NUM_STEPS_DIFFUSION]
+    gcn_files = [str(OUTPUT_BASE_DIR / wildcards.dataset / f"gcn_umap_nlayers{num_layers}.h5ad") for num_layers in NUM_LAYERS_GCN]
+    return celldiffusion_files + gcn_files
+
+def get_aggregate_embeddings_files(wildcards):
+    """Get list of embedding h5ad files to aggregate for a dataset"""
+    celldiffusion_files = [str(OUTPUT_BASE_DIR / wildcards.dataset / f"celldiffusion_nsteps{num_steps}.h5ad") for num_steps in NUM_STEPS_DIFFUSION]
+    gcn_files = [str(OUTPUT_BASE_DIR / wildcards.dataset / f"gcn_nlayers{num_layers}.h5ad") for num_layers in NUM_LAYERS_GCN]
+    return celldiffusion_files + gcn_files
+
 # Rule all: define final outputs for all datasets
 rule all:
     input:
@@ -191,8 +210,7 @@ rule evaluate_purity_gcn:
 # Rule: Aggregate all metrics
 rule aggregate_metrics:
     input:
-        csv_files = expand(str(OUTPUT_BASE_DIR / "{dataset}/purity_celldiffusion_nsteps{num_steps}.csv"), num_steps=NUM_STEPS_DIFFUSION) + \
-                    expand(str(OUTPUT_BASE_DIR / "{dataset}/purity_gcn_nlayers{num_layers}.csv"), num_layers=NUM_LAYERS_GCN)
+        csv_files = get_aggregate_metrics_files
     output:
         csv = str(OUTPUT_BASE_DIR / "{dataset}/aggregated_metrics.csv")
     script:
@@ -229,8 +247,7 @@ rule compute_umap_gcn:
 # Rule: Plot combined UMAP (CellDiffusion and GCN) for all layers in a multi-page PDF
 rule plot_umap_combined:
     input:
-        h5ad_files = expand(str(OUTPUT_BASE_DIR / "{dataset}/celldiffusion_umap_nsteps{num_steps}.h5ad"), num_steps=NUM_STEPS_DIFFUSION) + \
-                     expand(str(OUTPUT_BASE_DIR / "{dataset}/gcn_umap_nlayers{num_layers}.h5ad"), num_layers=NUM_LAYERS_GCN)
+        h5ad_files = get_aggregate_umap_files
     output:
         pdf = str(OUTPUT_BASE_DIR / "{dataset}/umap_combined_multipage.pdf")
     params:
@@ -242,8 +259,7 @@ rule plot_umap_combined:
 # Rule: Aggregate all embeddings for SCIB evaluation
 rule aggregate_embeddings:
     input:
-        h5ad_files = expand(str(OUTPUT_BASE_DIR / "{dataset}/celldiffusion_nsteps{num_steps}.h5ad"), num_steps=NUM_STEPS_DIFFUSION) + \
-                     expand(str(OUTPUT_BASE_DIR / "{dataset}/gcn_nlayers{num_layers}.h5ad"), num_layers=NUM_LAYERS_GCN)
+        h5ad_files = get_aggregate_embeddings_files
     output:
         h5ad = str(OUTPUT_BASE_DIR / "{dataset}/aggregated_embeddings.h5ad")
     script:
