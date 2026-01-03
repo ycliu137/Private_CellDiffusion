@@ -1,8 +1,12 @@
 # Configuration file for stress test pipeline
 
-datasets: ["pbmc23k_rm100pct"]
+datasets: ["Endom314K_GSM4577312_GSM6574543", 
+            "Endom314K_GSM6605435_GSM6605432",
+            "Endom314K_GSM6605435_GSM6605434",
+            "Endom314K_GSM6605436_GSM6605440",
+            "Endom314K_GSM6605437_GSM6605434"]
 
-normalized_data: False
+normalized_data: True
 # Data paths
 data:
   input_path: "/projectnb/czlab/A00/ycliu/scRNA_integration_benchmark_datasets/PBMC23K_rm100pct/"
