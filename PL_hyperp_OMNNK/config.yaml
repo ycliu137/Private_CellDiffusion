@@ -9,7 +9,7 @@ datasets: ["Endom314K_GSM4577312_GSM6574543",
 normalized_data: True
 # Data paths
 data:
-  input_path: "/projectnb/czlab/A00/ycliu/scRNA_integration_benchmark_datasets/PBMC10K_rm100pct/"
+  input_path: "../data/inputs/integration/"
   # Output directory (relative to project root, or use absolute path)
   output_dir: "../data/outputs/hyperp_n_edges_per_node"
 
