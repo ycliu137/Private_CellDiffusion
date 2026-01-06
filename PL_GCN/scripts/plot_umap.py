@@ -42,19 +42,20 @@ if len(umap_keys_available) == 0:
 
 # Create figure with subplots
 # We'll plot each UMAP with batch, labels, and lineage
+# Add an extra row for the shared legend
 n_umaps = len(umap_keys_available)
 n_cols = 3  # batch, labels, and lineage
-n_rows = n_umaps
+n_rows = n_umaps + 1  # +1 for the legend row
 
 fig, axes = plt.subplots(n_rows, n_cols, figsize=(FIGSIZE[0] * n_cols, FIGSIZE[1] * n_rows))
 if n_umaps == 1:
     if n_cols == 1:
-        axes = [[axes]]
+        axes = [[axes[0]], [axes[1]]]
     else:
-        axes = [[axes[0], axes[1], axes[2]]]
+        axes = [[axes[0, 0], axes[0, 1], axes[0, 2]], [axes[1, 0], axes[1, 1], axes[1, 2]]]
 else:
     if n_cols == 1:
-        axes = [[ax] for ax in axes]
+        axes = [[ax] for ax in axes[:-1]] + [[axes[-1]]]
     else:
         axes = axes.reshape(n_rows, n_cols)
 
@@ -82,7 +83,8 @@ for i, umap_key in enumerate(umap_keys_available):
         ax=axes[i][0],
         show=False,
         frameon=False,
-        title=f"{display_name} - Batch"
+        title=f"{display_name} - Batch",
+        legend_loc='none'  # Disable individual legend
     )
     
     # Plot by labels
@@ -93,7 +95,8 @@ for i, umap_key in enumerate(umap_keys_available):
             ax=axes[i][1],
             show=False,
             frameon=False,
-            title=f"{display_name} - Labels"
+            title=f"{display_name} - Labels",
+            legend_loc='none'  # Disable individual legend
         )
     else:
         axes[i][1].axis('off')
@@ -106,7 +109,8 @@ for i, umap_key in enumerate(umap_keys_available):
             ax=axes[i][2],
             show=False,
             frameon=False,
-            title=f"{display_name} - Lineage"
+            title=f"{display_name} - Lineage",
+            legend_loc='none'  # Disable individual legend
         )
     else:
         axes[i][2].axis('off')
@@ -115,7 +119,60 @@ for i, umap_key in enumerate(umap_keys_available):
     # Clear temporary UMAP
     del adata.obsm['X_umap']
 
+# Hide all axes in the bottom row (legend row)
+axes[n_umaps][0].axis('off')
+axes[n_umaps][1].axis('off')
+axes[n_umaps][2].axis('off')
+
+# Get legend handles and labels from one of the labels plots
+# We'll use the first UMAP's labels plot to get the legend
+handles = None
+labels = None
+if hasattr(params, 'label_key') and len(umap_keys_available) > 0:
+    # Temporarily set UMAP for getting legend
+    adata.obsm['X_umap'] = adata.obsm[umap_keys_available[0]].copy()
+    
+    # Create a temporary plot to extract legend handles and labels
+    temp_fig, temp_ax = plt.subplots(figsize=(1, 1))
+    sc.pl.umap(
+        adata,
+        color=params.label_key,
+        ax=temp_ax,
+        show=False,
+        frameon=False
+    )
+    handles, labels = temp_ax.get_legend_handles_labels()
+    plt.close(temp_fig)
+    
+    del adata.obsm['X_umap']
+else:
+    # If no label_key, try to get legend from batch plot
+    if len(umap_keys_available) > 0:
+        adata.obsm['X_umap'] = adata.obsm[umap_keys_available[0]].copy()
+        temp_fig, temp_ax = plt.subplots(figsize=(1, 1))
+        sc.pl.umap(
+            adata,
+            color=params.batch_key,
+            ax=temp_ax,
+            show=False,
+            frameon=False
+        )
+        handles, labels = temp_ax.get_legend_handles_labels()
+        plt.close(temp_fig)
+        
+        del adata.obsm['X_umap']
+
+# Apply tight_layout first to adjust subplot positions  
 plt.tight_layout()
+
+# Create shared legend spanning all three columns in the bottom row
+if handles and labels:
+    # Use fig.legend() to place legend in the bottom row, spanning all columns
+    # Calculate the y position for the bottom row (approximately at 1/(2*n_rows) from bottom)
+    # Using a small offset to place it nicely in the bottom row area
+    bottom_y = max(0.01, 0.5 / n_rows)
+    fig.legend(handles, labels, loc='lower center', ncol=min(len(labels), 8),
+               frameon=False, fontsize=8, bbox_to_anchor=(0.5, bottom_y))
 
 # Save figure
 print(f"\n=== Saving UMAP plot ===")
