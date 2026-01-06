@@ -98,9 +98,10 @@ for i, umap_key in enumerate(umap_keys_available):
         show=False,
         frameon=False,
         title=f"{display_name} - Batch",
-        legend_loc='none',  # Disable individual legend
-        title_fontsize=14  # Increase title font size
+        legend_loc='none'  # Disable individual legend
     )
+    # Set title font size after plotting
+    axes[i][0].title.set_fontsize(14)
     
     # Plot by labels
     if hasattr(params, 'label_key'):
@@ -111,9 +112,10 @@ for i, umap_key in enumerate(umap_keys_available):
             show=False,
             frameon=False,
             title=f"{display_name} - Labels",
-            legend_loc='none',  # Disable individual legend
-            title_fontsize=14  # Increase title font size
+            legend_loc='none'  # Disable individual legend
         )
+        # Set title font size after plotting
+        axes[i][1].title.set_fontsize(14)
     else:
         axes[i][1].axis('off')
     
@@ -126,9 +128,10 @@ for i, umap_key in enumerate(umap_keys_available):
             show=False,
             frameon=False,
             title=f"{display_name} - Lineage",
-            legend_loc='none',  # Disable individual legend
-            title_fontsize=14  # Increase title font size
+            legend_loc='none'  # Disable individual legend
         )
+        # Set title font size after plotting
+        axes[i][2].title.set_fontsize(14)
     else:
         axes[i][2].axis('off')
         print(f"  Warning: '{lineage_key}' column not found in adata.obs, skipping lineage plot")
