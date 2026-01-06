@@ -58,7 +58,12 @@ rule all:
         expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_benchmarker.pkl"), dataset=DATASETS),
         expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table_plot.pdf"), dataset=DATASETS),
         expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_comparison_barplot.pdf"), dataset=DATASETS),
-        expand(str(OUTPUT_BASE_DIR / "{dataset}/purity_bio_conservation_plot.pdf"), dataset=DATASETS)
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/purity_bio_conservation_plot.pdf"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table_mesenchymal.csv"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_benchmarker_mesenchymal.pkl"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table_plot_mesenchymal.pdf"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_comparison_barplot_mesenchymal.pdf"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/purity_bio_conservation_plot_mesenchymal.pdf"), dataset=DATASETS)
 
 # Rule: Preprocess data
 rule preprocess:
@@ -276,3 +281,67 @@ rule plot_purity_bio_conservation:
         pdf = str(OUTPUT_BASE_DIR / "{dataset}/purity_bio_conservation_plot.pdf")
     script:
         "scripts/plot_purity_bio_conservation.py"
+
+# Rule: SCIB evaluation (Mesenchymal lineage only)
+rule scib_evaluation_mesenchymal:
+    input:
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/final_integrated.h5ad")
+    output:
+        results = str(OUTPUT_BASE_DIR / "{dataset}/scib_benchmarker_mesenchymal.pkl"),
+        table = str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table_mesenchymal.csv"),
+        plot = str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table_plot_mesenchymal.pdf")
+    params:
+        output_dir = lambda wildcards: get_output_dir(wildcards).as_posix(),
+        batch_key = config["evaluation"]["batch_key"],
+        label_key = config["evaluation"]["label_key"],
+        n_jobs = config.get("scib_evaluation", {}).get("n_jobs", 1)
+    script:
+        "scripts/scib_evaluation_mesenchymal.py"
+
+# Rule: SCIB comparison bar plot (Mesenchymal lineage only)
+rule scib_evaluation_plot_mesenchymal:
+    input:
+        table = str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table_mesenchymal.csv")
+    output:
+        pdf = str(OUTPUT_BASE_DIR / "{dataset}/scib_comparison_barplot_mesenchymal.pdf")
+    params:
+        output_dir = lambda wildcards: get_output_dir(wildcards).as_posix()
+    script:
+        "scripts/scib_evaluation_plot_mesenchymal.py"
+
+# Rule: Evaluate neighbor purity for CellDiffusion (Mesenchymal lineage only)
+rule evaluate_purity_celldiffusion_mesenchymal:
+    input:
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/final_integrated.h5ad")
+    output:
+        csv = str(OUTPUT_BASE_DIR / "{dataset}/purity_celldiffusion_mesenchymal.csv")
+    params:
+        method = "CellDiffusion",
+        label_key = config["evaluation"]["label_key"],
+        k = config["evaluation"]["k_neighbor_purity"]
+    script:
+        "scripts/evaluate_purity_mesenchymal.py"
+
+# Rule: Evaluate neighbor purity for GCN (Mesenchymal lineage only)
+rule evaluate_purity_gcn_mesenchymal:
+    input:
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/final_integrated.h5ad")
+    output:
+        csv = str(OUTPUT_BASE_DIR / "{dataset}/purity_gcn_mesenchymal.csv")
+    params:
+        method = "GCN",
+        label_key = config["evaluation"]["label_key"],
+        k = config["evaluation"]["k_neighbor_purity"]
+    script:
+        "scripts/evaluate_purity_mesenchymal.py"
+
+# Rule: Plot neighbor purity and bio conservation (Mesenchymal lineage only)
+rule plot_purity_bio_conservation_mesenchymal:
+    input:
+        purity_celldiffusion = str(OUTPUT_BASE_DIR / "{dataset}/purity_celldiffusion_mesenchymal.csv"),
+        purity_gcn = str(OUTPUT_BASE_DIR / "{dataset}/purity_gcn_mesenchymal.csv"),
+        scib_table = str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table_mesenchymal.csv")
+    output:
+        pdf = str(OUTPUT_BASE_DIR / "{dataset}/purity_bio_conservation_plot_mesenchymal.pdf")
+    script:
+        "scripts/plot_purity_bio_conservation_mesenchymal.py"
