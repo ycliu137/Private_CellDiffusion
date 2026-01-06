@@ -131,15 +131,15 @@ x = np.arange(n_loss_k)  # x positions for loss_k values
 bar_width = 0.28  # Slightly wider bars for better visibility
 bar_spacing = 0.02  # Small gap between groups
 
-# Professional color palette - colorblind-friendly and print-friendly
-# Using a palette that works well for both color and grayscale printing
+# Professional color palette - alternative scheme for publication
+# Elegant and colorblind-friendly palette with good contrast
 colors_palette = {
-    'Total': '#2E86AB',           # Professional blue
-    'Batch correction': '#A23B72', # Professional purple/magenta
-    'Bio conservation': '#F18F01'  # Professional orange
+    'Total': '#4472C4',           # Rich blue
+    'Batch correction': '#70AD47', # Forest green
+    'Bio conservation': '#C55A11'  # Warm orange-red
 }
 # Fallback colors if score names don't match
-fallback_colors = ['#2E86AB', '#A23B72', '#F18F01', '#C73E1D', '#6A994E']
+fallback_colors = ['#4472C4', '#70AD47', '#C55A11', '#7030A0', '#FFC000']
 score_names = list(found_scores.keys())
 
 # Plot bars for each aggregate score with improved styling
@@ -183,7 +183,7 @@ ax.set_xticks(x)
 ax.set_xticklabels(sorted_loss_k, fontsize=10, fontweight='normal')
 
 # Improve legend styling and placement
-legend = ax.legend(loc='upper left', 
+legend = ax.legend(loc='lower left', 
                    frameon=True, 
                    fancybox=False, 
                    shadow=False,
