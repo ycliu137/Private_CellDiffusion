@@ -119,60 +119,95 @@ for i, umap_key in enumerate(umap_keys_available):
     # Clear temporary UMAP
     del adata.obsm['X_umap']
 
-# Hide all axes in the bottom row (legend row)
-axes[n_umaps][0].axis('off')
-axes[n_umaps][1].axis('off')
-axes[n_umaps][2].axis('off')
+# Extract legend handles and labels for batch, labels, and lineage
+# We'll use the first UMAP to extract legends
+batch_handles, batch_labels = None, None
+label_handles, label_labels = None, None
+lineage_handles, lineage_labels = None, None
 
-# Get legend handles and labels from one of the labels plots
-# We'll use the first UMAP's labels plot to get the legend
-handles = None
-labels = None
-if hasattr(params, 'label_key') and len(umap_keys_available) > 0:
-    # Temporarily set UMAP for getting legend
+if len(umap_keys_available) > 0:
+    # Temporarily set UMAP for getting legends
     adata.obsm['X_umap'] = adata.obsm[umap_keys_available[0]].copy()
     
-    # Create a temporary plot to extract legend handles and labels
+    # Extract batch legend
     temp_fig, temp_ax = plt.subplots(figsize=(1, 1))
     sc.pl.umap(
         adata,
-        color=params.label_key,
+        color=params.batch_key,
         ax=temp_ax,
         show=False,
         frameon=False
     )
-    handles, labels = temp_ax.get_legend_handles_labels()
+    batch_handles, batch_labels = temp_ax.get_legend_handles_labels()
     plt.close(temp_fig)
     
-    del adata.obsm['X_umap']
-else:
-    # If no label_key, try to get legend from batch plot
-    if len(umap_keys_available) > 0:
-        adata.obsm['X_umap'] = adata.obsm[umap_keys_available[0]].copy()
+    # Extract labels legend
+    if hasattr(params, 'label_key'):
         temp_fig, temp_ax = plt.subplots(figsize=(1, 1))
         sc.pl.umap(
             adata,
-            color=params.batch_key,
+            color=params.label_key,
             ax=temp_ax,
             show=False,
             frameon=False
         )
-        handles, labels = temp_ax.get_legend_handles_labels()
+        label_handles, label_labels = temp_ax.get_legend_handles_labels()
         plt.close(temp_fig)
-        
-        del adata.obsm['X_umap']
+    
+    # Extract lineage legend
+    if has_lineage:
+        temp_fig, temp_ax = plt.subplots(figsize=(1, 1))
+        sc.pl.umap(
+            adata,
+            color=lineage_key,
+            ax=temp_ax,
+            show=False,
+            frameon=False
+        )
+        lineage_handles, lineage_labels = temp_ax.get_legend_handles_labels()
+        plt.close(temp_fig)
+    
+    del adata.obsm['X_umap']
 
-# Apply tight_layout first to adjust subplot positions  
+# Create three legends in the bottom row, each in its own column
+# Column 0: Batch legend
+if batch_handles and batch_labels:
+    axes[n_umaps][0].axis('off')
+    batch_legend = axes[n_umaps][0].legend(batch_handles, batch_labels, loc='center',
+                                           frameon=False, fontsize=8, 
+                                           ncol=min(len(batch_labels), 6))
+    # Add title for batch legend
+    axes[n_umaps][0].text(0.5, 0.95, 'Batch', transform=axes[n_umaps][0].transAxes,
+                          ha='center', va='top', fontsize=10, fontweight='bold')
+else:
+    axes[n_umaps][0].axis('off')
+
+# Column 1: Labels legend
+if label_handles and label_labels:
+    axes[n_umaps][1].axis('off')
+    label_legend = axes[n_umaps][1].legend(label_handles, label_labels, loc='center',
+                                           frameon=False, fontsize=8,
+                                           ncol=min(len(label_labels), 6))
+    # Add title for labels legend
+    axes[n_umaps][1].text(0.5, 0.95, 'Labels', transform=axes[n_umaps][1].transAxes,
+                          ha='center', va='top', fontsize=10, fontweight='bold')
+else:
+    axes[n_umaps][1].axis('off')
+
+# Column 2: Lineage legend
+if lineage_handles and lineage_labels:
+    axes[n_umaps][2].axis('off')
+    lineage_legend = axes[n_umaps][2].legend(lineage_handles, lineage_labels, loc='center',
+                                             frameon=False, fontsize=8,
+                                             ncol=min(len(lineage_labels), 6))
+    # Add title for lineage legend
+    axes[n_umaps][2].text(0.5, 0.95, 'Lineage', transform=axes[n_umaps][2].transAxes,
+                          ha='center', va='top', fontsize=10, fontweight='bold')
+else:
+    axes[n_umaps][2].axis('off')
+
+# Apply tight_layout to adjust subplot positions after adding legends
 plt.tight_layout()
-
-# Create shared legend spanning all three columns in the bottom row
-if handles and labels:
-    # Use fig.legend() to place legend in the bottom row, spanning all columns
-    # Calculate the y position for the bottom row (approximately at 1/(2*n_rows) from bottom)
-    # Using a small offset to place it nicely in the bottom row area
-    bottom_y = max(0.01, 0.5 / n_rows)
-    fig.legend(handles, labels, loc='lower center', ncol=min(len(labels), 8),
-               frameon=False, fontsize=8, bbox_to_anchor=(0.5, bottom_y))
 
 # Save figure
 print(f"\n=== Saving UMAP plot ===")
