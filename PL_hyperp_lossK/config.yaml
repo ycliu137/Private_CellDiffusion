@@ -66,3 +66,12 @@ device: "cuda"  # or "cpu"
 scib_evaluation:
   n_jobs: 1  # Number of parallel jobs for scib benchmark (1 is recommended for stability)
 
+# Multi-dataset line plot configuration
+# Dictionary mapping dataset keys to display names for comparison line plot
+line_plot_datasets:
+  "Endom314K_GSM4577312_GSM6574543": "Dataset 1"
+  "Endom314K_GSM6605435_GSM6605432": "Dataset 2"
+  "Endom314K_GSM6605435_GSM6605434": "Dataset 3"
+  "Endom314K_GSM6605436_GSM6605440": "Dataset 4"
+  "Endom314K_GSM6605437_GSM6605434": "Dataset 5"
+
