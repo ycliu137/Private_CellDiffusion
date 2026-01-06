@@ -57,10 +57,10 @@ elif 'X_pca' in adata.obsm:
     pre_integrated_key = 'X_pca'
     print(f"\nUsing 'X_pca' as pre-integrated embedding")
 else:
-    print("\nWarning: No suitable pre-integrated embedding found, will skip PCR comparison")
+    print("\nWarning: No suitable pre-integrated embedding found")
 
-# Set up batch correction metrics
-batch_corr = BatchCorrection(pcr_comparison=(pre_integrated_key is not None))
+# Set up batch correction metrics (PCR comparison disabled)
+batch_corr = BatchCorrection(pcr_comparison=False)
 
 print(f"\n=== Running SCIB benchmark ===")
 print(f"  Batch key: {params.batch_key}")

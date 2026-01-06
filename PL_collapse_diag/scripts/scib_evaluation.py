@@ -74,10 +74,10 @@ try:
 except Exception as e:
     print(f"Warning: Error checking for pre-integrated embedding: {e}")
 
-# Set up batch correction metrics
+# Set up batch correction metrics (PCR comparison disabled)
 try:
-    batch_corr = BatchCorrection(pcr_comparison=(pre_integrated_key is not None))
-    print("BatchCorrection metrics configured successfully")
+    batch_corr = BatchCorrection(pcr_comparison=False)
+    print("BatchCorrection metrics configured successfully (PCR comparison disabled)")
 except Exception as e:
     print(f"Error creating BatchCorrection: {e}")
     traceback.print_exc()

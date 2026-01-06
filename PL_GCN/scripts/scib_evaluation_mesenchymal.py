@@ -17,6 +17,7 @@ sys.path.insert(0, str(project_root))
 
 from scib_metrics.benchmark import Benchmarker
 from scib_metrics.benchmark import BatchCorrection
+from scib_metrics.benchmark import BioConservation
 
 # Get input and output from snakemake
 input_h5ad = snakemake.input.h5ad
@@ -71,10 +72,11 @@ elif 'X_pca' in adata.obsm:
     pre_integrated_key = 'X_pca'
     print(f"\nUsing 'X_pca' as pre-integrated embedding")
 else:
-    print("\nWarning: No suitable pre-integrated embedding found, will skip PCR comparison")
+    print("\nWarning: No suitable pre-integrated embedding found")
 
-# Set up batch correction metrics
-batch_corr = BatchCorrection(pcr_comparison=(pre_integrated_key is not None))
+# Set up batch correction metrics (PCR comparison disabled)
+batch_corr = BatchCorrection(pcr_comparison=False)
+bio_cons = BioConservation(isolated_labels=False, clisi_knn=False)
 
 print(f"\n=== Running SCIB benchmark (Mesenchymal lineage only) ===")
 print(f"  Batch key: {params.batch_key}")
@@ -91,6 +93,7 @@ bm = Benchmarker(
     embedding_obsm_keys=embedding_keys,
     pre_integrated_embedding_obsm_key=pre_integrated_key,
     batch_correction_metrics=batch_corr,
+    bio_conservation_metrics=bio_cons,
     n_jobs=params.n_jobs if hasattr(params, 'n_jobs') else 1,
 )
 
