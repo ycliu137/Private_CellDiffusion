@@ -171,8 +171,10 @@ if score_names is None:
 print(f"Score types: {score_names}")
 
 # Create figure with subplots for each score type
+# Increase height slightly to accommodate legend at bottom
 n_scores = len(score_names)
-fig, axes = plt.subplots(1, n_scores, figsize=(6 * n_scores, 6))
+fig_height = 6.5  # Slightly taller to fit legend
+fig, axes = plt.subplots(1, n_scores, figsize=(6 * n_scores, fig_height))
 
 if n_scores == 1:
     axes = [axes]
@@ -263,26 +265,49 @@ for idx, dataset_name in enumerate(sorted(all_datasets_data.keys())):
         ax.tick_params(axis='both', which='minor', length=3, width=0.5)
         ax.tick_params(axis='x', pad=5)
         ax.tick_params(axis='y', pad=5)
-        
-        # Add legend to first subplot only
-        if score_idx == 0:
-            legend = ax.legend(loc='best',
-                             frameon=True,
-                             fancybox=False,
-                             shadow=False,
-                             edgecolor='black',
-                             facecolor='white',
-                             framealpha=1.0,
-                             borderpad=0.8,
-                             handlelength=2.0,
-                             handletextpad=0.5,
-                             columnspacing=1.0,
-                             fontsize=10,
-                             ncol=1)
-            legend.get_frame().set_linewidth(0.8)
 
-# Tight layout
-plt.tight_layout(pad=2.0)
+# Collect handles and labels from the first subplot (all subplots have same legend)
+# Use handles from the last plotted dataset set to ensure we get all datasets
+handles, labels = axes[0].get_legend_handles_labels()
+
+# Remove duplicate labels while preserving order
+seen = set()
+unique_handles = []
+unique_labels = []
+for handle, label in zip(handles, labels):
+    if label not in seen:
+        seen.add(label)
+        unique_handles.append(handle)
+        unique_labels.append(label)
+
+# Add figure-level legend at the bottom center, outside the plot area
+# Calculate number of columns based on number of datasets
+n_datasets = len(unique_labels)
+n_cols = min(n_datasets, 5)  # Max 5 columns, or fewer if fewer datasets
+
+fig.legend(unique_handles, unique_labels,
+          loc='lower center',
+          bbox_to_anchor=(0.5, -0.02),  # Position below the plots
+          frameon=True,
+          fancybox=False,
+          shadow=False,
+          edgecolor='black',
+          facecolor='white',
+          framealpha=1.0,
+          borderpad=0.8,
+          handlelength=2.0,
+          handletextpad=0.5,
+          columnspacing=1.5,
+          fontsize=10,
+          ncol=n_cols)
+
+# Adjust layout to make room for legend at bottom
+# Calculate bottom margin based on number of dataset rows in legend
+n_legend_rows = int(np.ceil(n_datasets / n_cols))
+bottom_margin = 0.08 + (n_legend_rows - 1) * 0.03  # Base margin + extra for each row
+bottom_margin = min(bottom_margin, 0.15)  # Cap at 15% of figure height
+
+plt.tight_layout(pad=2.0, rect=[0, bottom_margin, 1, 1])  # [left, bottom, right, top] in figure coordinates
 
 # Save figure
 print(f"\n=== Saving line plot ===")
@@ -292,7 +317,7 @@ Path(output_pdf).parent.mkdir(parents=True, exist_ok=True)
 plt.savefig(output_pdf,
            dpi=300,
            bbox_inches='tight',
-           pad_inches=0.1,
+           pad_inches=0.15,  # Increased padding to accommodate bottom legend
            facecolor='white',
            edgecolor='none',
            format='pdf',
@@ -303,7 +328,7 @@ png_output = str(output_pdf).replace('.pdf', '.png')
 plt.savefig(png_output,
            dpi=300,
            bbox_inches='tight',
-           pad_inches=0.1,
+           pad_inches=0.15,  # Increased padding to accommodate bottom legend
            facecolor='white',
            edgecolor='none',
            format='png',
