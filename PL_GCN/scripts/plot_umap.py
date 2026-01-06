@@ -41,9 +41,9 @@ if len(umap_keys_available) == 0:
     raise ValueError("No UMAP embeddings found in adata.obsm")
 
 # Create figure with subplots
-# We'll plot each UMAP with both batch and labels
+# We'll plot each UMAP with batch, labels, and lineage
 n_umaps = len(umap_keys_available)
-n_cols = 2  # batch and labels
+n_cols = 3  # batch, labels, and lineage
 n_rows = n_umaps
 
 fig, axes = plt.subplots(n_rows, n_cols, figsize=(FIGSIZE[0] * n_cols, FIGSIZE[1] * n_rows))
@@ -51,12 +51,16 @@ if n_umaps == 1:
     if n_cols == 1:
         axes = [[axes]]
     else:
-        axes = [[axes[0], axes[1]]]
+        axes = [[axes[0], axes[1], axes[2]]]
 else:
     if n_cols == 1:
         axes = [[ax] for ax in axes]
     else:
         axes = axes.reshape(n_rows, n_cols)
+
+# Check if lineage column exists
+lineage_key = 'lineage'
+has_lineage = lineage_key in adata.obs.columns
 
 # Plot each UMAP
 for i, umap_key in enumerate(umap_keys_available):
@@ -93,6 +97,20 @@ for i, umap_key in enumerate(umap_keys_available):
         )
     else:
         axes[i][1].axis('off')
+    
+    # Plot by lineage
+    if has_lineage:
+        sc.pl.umap(
+            adata,
+            color=lineage_key,
+            ax=axes[i][2],
+            show=False,
+            frameon=False,
+            title=f"{display_name} - Lineage"
+        )
+    else:
+        axes[i][2].axis('off')
+        print(f"  Warning: '{lineage_key}' column not found in adata.obs, skipping lineage plot")
     
     # Clear temporary UMAP
     del adata.obsm['X_umap']
