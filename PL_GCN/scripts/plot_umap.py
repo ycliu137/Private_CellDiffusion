@@ -13,9 +13,14 @@ import matplotlib
 matplotlib.use('Agg')  # Use non-interactive backend
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
+from matplotlib.gridspec import GridSpec
 
 FIGSIZE = (6, 6)
 rcParams["figure.figsize"] = FIGSIZE
+# Increase default font sizes
+rcParams["font.size"] = 12
+rcParams["axes.titlesize"] = 14
+rcParams["axes.labelsize"] = 12
 
 # Load input data
 input_h5ad = snakemake.input.h5ad
@@ -40,24 +45,33 @@ for key in params.umap_keys:
 if len(umap_keys_available) == 0:
     raise ValueError("No UMAP embeddings found in adata.obsm")
 
-# Create figure with subplots
+# Create figure with subplots using GridSpec for better control
 # We'll plot each UMAP with batch, labels, and lineage
 # Add an extra row for the shared legend
 n_umaps = len(umap_keys_available)
 n_cols = 3  # batch, labels, and lineage
 n_rows = n_umaps + 1  # +1 for the legend row
 
-fig, axes = plt.subplots(n_rows, n_cols, figsize=(FIGSIZE[0] * n_cols, FIGSIZE[1] * n_rows))
-if n_umaps == 1:
-    if n_cols == 1:
-        axes = [[axes[0]], [axes[1]]]
-    else:
-        axes = [[axes[0, 0], axes[0, 1], axes[0, 2]], [axes[1, 0], axes[1, 1], axes[1, 2]]]
-else:
-    if n_cols == 1:
-        axes = [[ax] for ax in axes[:-1]] + [[axes[-1]]]
-    else:
-        axes = axes.reshape(n_rows, n_cols)
+# Calculate figure size with proper aspect ratio for square subplots
+subplot_size = 5  # Size of each square subplot
+fig_width = subplot_size * n_cols + 2  # Add extra width for spacing
+fig_height = subplot_size * n_umaps + 1.5  # Height for UMAP rows + legend row
+
+fig = plt.figure(figsize=(fig_width, fig_height))
+gs = GridSpec(n_rows, n_cols, figure=fig, 
+              hspace=0.3, wspace=0.3,  # Add spacing between subplots
+              left=0.08, right=0.95, top=0.95, bottom=0.1)  # Margins
+
+# Create axes array
+axes = []
+for i in range(n_rows):
+    row_axes = []
+    for j in range(n_cols):
+        ax = fig.add_subplot(gs[i, j])
+        if i < n_umaps:  # For UMAP plots, set aspect to equal for square shape
+            ax.set_aspect('equal', adjustable='box')
+        row_axes.append(ax)
+    axes.append(row_axes)
 
 # Check if lineage column exists
 lineage_key = 'lineage'
@@ -84,7 +98,8 @@ for i, umap_key in enumerate(umap_keys_available):
         show=False,
         frameon=False,
         title=f"{display_name} - Batch",
-        legend_loc='none'  # Disable individual legend
+        legend_loc='none',  # Disable individual legend
+        title_fontsize=14  # Increase title font size
     )
     
     # Plot by labels
@@ -96,7 +111,8 @@ for i, umap_key in enumerate(umap_keys_available):
             show=False,
             frameon=False,
             title=f"{display_name} - Labels",
-            legend_loc='none'  # Disable individual legend
+            legend_loc='none',  # Disable individual legend
+            title_fontsize=14  # Increase title font size
         )
     else:
         axes[i][1].axis('off')
@@ -110,7 +126,8 @@ for i, umap_key in enumerate(umap_keys_available):
             show=False,
             frameon=False,
             title=f"{display_name} - Lineage",
-            legend_loc='none'  # Disable individual legend
+            legend_loc='none',  # Disable individual legend
+            title_fontsize=14  # Increase title font size
         )
     else:
         axes[i][2].axis('off')
@@ -170,44 +187,53 @@ if len(umap_keys_available) > 0:
     del adata.obsm['X_umap']
 
 # Create three legends in the bottom row, each in its own column
-# Column 0: Batch legend
+# Align all legends at the top using the same y position
+legend_y_top = 0.92  # Top alignment for all legends (below the title at 0.98)
+
+# Column 0: Batch legend (1 column layout)
 if batch_handles and batch_labels:
     axes[n_umaps][0].axis('off')
-    batch_legend = axes[n_umaps][0].legend(batch_handles, batch_labels, loc='center',
-                                           frameon=False, fontsize=8, 
-                                           ncol=min(len(batch_labels), 6))
-    # Add title for batch legend
-    axes[n_umaps][0].text(0.5, 0.95, 'Batch', transform=axes[n_umaps][0].transAxes,
-                          ha='center', va='top', fontsize=10, fontweight='bold')
+    # Add title for batch legend first
+    axes[n_umaps][0].text(0.5, 0.98, 'Batch', transform=axes[n_umaps][0].transAxes,
+                          ha='center', va='top', fontsize=12, fontweight='bold')
+    # Create legend with 1 column, aligned at top
+    batch_legend = axes[n_umaps][0].legend(batch_handles, batch_labels, 
+                                           loc='upper center',
+                                           frameon=False, fontsize=10, 
+                                           ncol=1,
+                                           bbox_to_anchor=(0.5, legend_y_top))
 else:
     axes[n_umaps][0].axis('off')
 
-# Column 1: Labels legend
+# Column 1: Labels legend (3 columns layout)
 if label_handles and label_labels:
     axes[n_umaps][1].axis('off')
-    label_legend = axes[n_umaps][1].legend(label_handles, label_labels, loc='center',
-                                           frameon=False, fontsize=8,
-                                           ncol=min(len(label_labels), 6))
-    # Add title for labels legend
-    axes[n_umaps][1].text(0.5, 0.95, 'Labels', transform=axes[n_umaps][1].transAxes,
-                          ha='center', va='top', fontsize=10, fontweight='bold')
+    # Add title for labels legend first
+    axes[n_umaps][1].text(0.5, 0.98, 'Labels', transform=axes[n_umaps][1].transAxes,
+                          ha='center', va='top', fontsize=12, fontweight='bold')
+    # Create legend with 3 columns, aligned at top
+    label_legend = axes[n_umaps][1].legend(label_handles, label_labels, 
+                                           loc='upper center',
+                                           frameon=False, fontsize=10,
+                                           ncol=3,
+                                           bbox_to_anchor=(0.5, legend_y_top))
 else:
     axes[n_umaps][1].axis('off')
 
-# Column 2: Lineage legend
+# Column 2: Lineage legend (1 column layout)
 if lineage_handles and lineage_labels:
     axes[n_umaps][2].axis('off')
-    lineage_legend = axes[n_umaps][2].legend(lineage_handles, lineage_labels, loc='center',
-                                             frameon=False, fontsize=8,
-                                             ncol=min(len(lineage_labels), 6))
-    # Add title for lineage legend
-    axes[n_umaps][2].text(0.5, 0.95, 'Lineage', transform=axes[n_umaps][2].transAxes,
-                          ha='center', va='top', fontsize=10, fontweight='bold')
+    # Add title for lineage legend first
+    axes[n_umaps][2].text(0.5, 0.98, 'Lineage', transform=axes[n_umaps][2].transAxes,
+                          ha='center', va='top', fontsize=12, fontweight='bold')
+    # Create legend with 1 column, aligned at top
+    lineage_legend = axes[n_umaps][2].legend(lineage_handles, lineage_labels, 
+                                             loc='upper center',
+                                             frameon=False, fontsize=10,
+                                             ncol=1,
+                                             bbox_to_anchor=(0.5, legend_y_top))
 else:
     axes[n_umaps][2].axis('off')
-
-# Apply tight_layout to adjust subplot positions after adding legends
-plt.tight_layout()
 
 # Save figure
 print(f"\n=== Saving UMAP plot ===")
