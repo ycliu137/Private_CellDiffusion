@@ -1,5 +1,5 @@
 """
-SCIB evaluation: benchmark different k_mnn integration results using scib-metrics
+SCIB evaluation: benchmark different loss_k integration results using scib-metrics
 """
 import sys
 from pathlib import Path
@@ -29,13 +29,20 @@ print(f"Input file: {input_h5ad}")
 adata = sc.read_h5ad(input_h5ad)
 print(f"Data shape: {adata.shape}")
 
-# Get all X_dif_kmnn{k_mnn} keys from obsm
+# Get all X_dif_lossk{loss_k} keys from obsm
 print(f"\n=== Extracting X_dif representations ===")
-x_dif_keys = [key for key in adata.obsm.keys() if key.startswith('X_dif_kmnn')]
-x_dif_keys = sorted(x_dif_keys, key=lambda x: int(x.split('kmnn')[1]))  # Sort by k_mnn value
+x_dif_keys = [key for key in adata.obsm.keys() if key.startswith('X_dif_lossk')]
+x_dif_keys = sorted(x_dif_keys, key=lambda x: int(x.split('lossk')[1]))  # Sort by loss_k value
 print(f"Found {len(x_dif_keys)} X_dif representations:")
 for key in x_dif_keys:
     print(f"  - {key}: shape {adata.obsm[key].shape}")
+
+if len(x_dif_keys) == 0:
+    raise ValueError(
+        f"No X_dif_lossk representations found in adata.obsm. "
+        f"Available keys: {list(adata.obsm.keys())}. "
+        f"Please ensure aggregated_X_dif.h5ad contains X_dif_lossk{{loss_k}} embeddings."
+    )
 
 # Determine pre-integrated embedding key
 # Use X_fae if available, otherwise use the first PCA representation
@@ -48,7 +55,7 @@ elif 'X_pca' in adata.obsm:
     print(f"\nUsing 'X_pca' as pre-integrated embedding")
 else:
     # Use the first available representation as fallback
-    available_keys = [k for k in adata.obsm.keys() if not k.startswith('X_dif_kmnn')]
+    available_keys = [k for k in adata.obsm.keys() if not k.startswith('X_dif_lossk')]
     if available_keys:
         pre_integrated_key = available_keys[0]
         print(f"\nWarning: Using '{pre_integrated_key}' as pre-integrated embedding (fallback)")

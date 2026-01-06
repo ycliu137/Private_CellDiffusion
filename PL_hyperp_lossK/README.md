@@ -1,14 +1,14 @@
-# PL_hyperp_k: k_mnn Hyperparameter Optimization Pipeline
+# PL_hyperp_lossK: integration_loss_adj.k Hyperparameter Optimization Pipeline
 
-This Snakemake pipeline tests different `k_mnn` values for CellDiffusion integration and evaluates the results using scib-metrics.
+This Snakemake pipeline tests different `integration_loss_adj.k` (loss_k) values for CellDiffusion integration and evaluates the results using scib-metrics.
 
 ## Overview
 
 The pipeline:
 1. Preprocesses single-cell data
 2. Encodes features using an autoencoder
-3. Builds integration graphs with different `k_mnn` values (10, 20, 30, 40, 50)
-4. Runs CellDiffusion integration for each `k_mnn` value
+3. Builds integration graphs with a fixed `k_mnn` value (default: 50) but different `loss_k` values for loss adjacency
+4. Runs CellDiffusion integration for each `loss_k` value
 5. Aggregates all integration results
 6. Computes and visualizes UMAP embeddings
 7. Evaluates integration quality using scib-metrics
@@ -22,14 +22,15 @@ Edit `config.yaml` to set:
 - Preprocessing parameters
 - Feature encoder parameters
 - Integration parameters
-- k_mnn values to test: `[10, 20, 30, 40, 50]`
+- `k_mnn`: Fixed value for integration graph building (default: 50)
+- `integration_loss_adj.k`: List of loss_k values to test (e.g., `[10, 20, 30, 40, 50, 60, 70, 80, 90, 100]`)
 - UMAP parameters
 - Evaluation parameters
 
 ## Pipeline Structure
 
 ```
-preprocess → encode_features → build_graph (for each k_mnn) → integrate (for each k_mnn)
+preprocess → encode_features → build_graph (for each loss_k) → integrate (for each loss_k)
                                                                   ↓
                                             aggregate_X_dif → compute_umap → plot_umap
                                                                   ↓
@@ -40,19 +41,19 @@ preprocess → encode_features → build_graph (for each k_mnn) → integrate (f
 
 - `preprocessed.h5ad` - Preprocessed data
 - `encoded.h5ad` - Feature encoded data (contains `X_fae`)
-- `graph_kmnn{k_mnn}.h5ad` - Integration graphs for each k_mnn
-- `integrated_kmnn{k_mnn}.h5ad` - Integrated data for each k_mnn (contains `X_dif`)
-- `aggregated_X_dif.h5ad` - All X_dif embeddings aggregated (contains `X_dif_kmnn{k_mnn}` for each k_mnn)
-- `data_with_umap.h5ad` - Aggregated data with UMAP embeddings (contains `X_umap_kmnn{k_mnn}`)
-- `umap_plot.pdf` - UMAP visualizations for each k_mnn (colored by batch and labels)
+- `graph_lossk{loss_k}.h5ad` - Integration graphs for each loss_k
+- `integrated_lossk{loss_k}.h5ad` - Integrated data for each loss_k (contains `X_dif`)
+- `aggregated_X_dif.h5ad` - All X_dif embeddings aggregated (contains `X_dif_lossk{loss_k}` for each loss_k)
+- `data_with_umap.h5ad` - Aggregated data with UMAP embeddings (contains `X_umap_lossk{loss_k}`)
+- `umap_plot.pdf` - UMAP visualizations for each loss_k (colored by batch and labels)
 - `scib_results_table.csv` - SCIB evaluation results table
 - `scib_results_table_plot.pdf` - SCIB results table plot
-- `scib_comparison_barplot.pdf` - Bar plot comparing three aggregate scores across k_mnn values
+- `scib_comparison_barplot.pdf` - Bar plot comparing three aggregate scores across loss_k values
 
 ## Usage
 
 ```bash
-cd PL_hyperp_k
+cd PL_hyperp_lossK
 
 # Edit config.yaml to set data paths and parameters
 # Then run:
@@ -65,9 +66,10 @@ cd PL_hyperp_k
 
 ## Key Parameters
 
-- **k_mnn**: Number of mutual nearest neighbors for inter-batch connections in integration graph building
+- **k_mnn**: Fixed number of mutual nearest neighbors for inter-batch connections in integration graph building (default: 50)
+- **integration_loss_adj.k (loss_k)**: List of k values for loss adjacency in CellDiffusion integration (varied in this pipeline)
 - **n_edges_per_node**: Maximum number of outgoing edges per node (default: 50)
-- **Aggregate Scores**: Three main metrics compared across k_mnn values:
+- **Aggregate Scores**: Three main metrics compared across loss_k values:
   - Total
   - Batch correction
   - Bio conservation
@@ -75,7 +77,7 @@ cd PL_hyperp_k
 ## Notes
 
 - GPU resources are limited to prevent CUDA conflicts during parallel execution
-- Each k_mnn value is processed independently, allowing parallel execution
+- Each loss_k value is processed independently, allowing parallel execution
 - Results are aggregated for comparison and visualization
 - UMAP is computed for each integrated embedding separately
 

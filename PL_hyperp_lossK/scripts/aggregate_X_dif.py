@@ -49,6 +49,13 @@ for h5ad_file in input_h5ad_files:
     x_dif_dict[key_name] = adata.obsm['X_dif'].copy()
     print(f"  Extracted X_dif shape: {adata.obsm['X_dif'].shape}, stored as '{key_name}'")
 
+# Check if we have any X_dif embeddings to aggregate
+if len(x_dif_dict) == 0:
+    raise ValueError(
+        "No X_dif embeddings found to aggregate. "
+        "Please check that all integration files contain 'X_dif' in adata.obsm."
+    )
+
 # Add all X_dif to base adata
 print(f"\n=== Adding all X_dif to base adata ===")
 for key, x_dif_matrix in x_dif_dict.items():
