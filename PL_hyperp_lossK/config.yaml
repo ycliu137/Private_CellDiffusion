@@ -1,0 +1,68 @@
+# Configuration file for integration_loss_adj.k hyperparameter optimization pipeline
+
+datasets: ["Endom314K_GSM4577312_GSM6574543", 
+            "Endom314K_GSM6605435_GSM6605432",
+            "Endom314K_GSM6605435_GSM6605434",
+            "Endom314K_GSM6605436_GSM6605440",
+            "Endom314K_GSM6605437_GSM6605434"]
+
+normalized_data: True
+# Data paths
+data:
+  input_path: "../data/inputs/integration/"
+  # Output directory (relative to project root, or use absolute path)
+  output_dir: "../data/outputs/hyperp_loss_k"
+
+# Preprocessing parameters
+preprocess:
+  min_cells: 3
+  target_sum: 10000
+  n_top_genes: 2000
+  min_mean: 0.0125
+  max_mean: 9
+  min_disp: 0.5
+
+# Feature encoder parameters
+feature_encoder:
+  D_encode_list: [2000, 300, 50]
+  D_decode_list: [50, 300, 2000]
+  max_epoch: 2000
+  lr: 0.001
+
+# Integration graph parameters
+# k_mnn is fixed at 50
+integration_graph:
+  n_edges_per_node: 50
+  k_mnn: 50  # Fixed value
+
+# Integration loss adjacency parameters
+# k will be varied as a list in the pipeline
+integration_loss_adj:
+  k: [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]  # List of k values to test
+
+# Integration diffusion parameters (CellDiffusion)
+integration_diffusion:
+  max_epoch: 2000
+  lr: 0.001
+  num_features_diffusion: 50
+  num_heads_diffusion: 8
+  num_steps_diffusion: 8
+  time_increment_diffusion: 0.2
+
+# Evaluation parameters
+evaluation:
+  label_key: "labels"
+  batch_key: "batch"
+
+# UMAP visualization parameters
+umap:
+  n_neighbors: 50
+  n_pcs: 50
+
+# Device
+device: "cuda"  # or "cpu"
+
+# SCIB evaluation parameters
+scib_evaluation:
+  n_jobs: 1  # Number of parallel jobs for scib benchmark (1 is recommended for stability)
+
