@@ -11,6 +11,9 @@ configfile: "config.yaml"
 # Get datasets list from config
 DATASETS = config.get("datasets", [])
 
+# Get line plot datasets dictionary from config
+LINE_PLOT_DATASETS = config.get("line_plot_datasets", {})
+
 # Define functions for input/output paths based on dataset wildcard
 def get_input_path(wildcards):
     """Get input path for a dataset"""
@@ -60,6 +63,14 @@ def get_aggregate_input_files(wildcards):
     """Get list of integrated files to aggregate for a dataset"""
     return [str(OUTPUT_BASE_DIR / wildcards.dataset / f"integrated_kmnn{k_mnn}.h5ad") for k_mnn in K_MNN_VALUES]
 
+# Helper function to get line plot input tables
+def get_line_plot_input_tables(wildcards):
+    """Get list of scib_results_table.csv files for datasets in line_plot_datasets"""
+    if not LINE_PLOT_DATASETS:
+        return []
+    return [str(OUTPUT_BASE_DIR / dataset_key / "scib_results_table.csv") 
+            for dataset_key in LINE_PLOT_DATASETS.keys()]
+
 # Rule all: define final outputs for all datasets
 rule all:
     input:
@@ -71,6 +82,7 @@ rule all:
         expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_benchmarker.pkl"), dataset=DATASETS),
         expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table_plot.pdf"), dataset=DATASETS),
         expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_comparison_barplot.pdf"), dataset=DATASETS)
+        + ([str(OUTPUT_BASE_DIR / "scib_multi_dataset_lineplot.pdf")] if LINE_PLOT_DATASETS else [])
 
 # Rule: Preprocess data
 rule preprocess:
@@ -208,4 +220,15 @@ rule scib_evaluation_plot:
         pdf = str(OUTPUT_BASE_DIR / "{dataset}/scib_comparison_barplot.pdf")
     script:
         "scripts/scib_evaluation_plot.py"
+
+# Rule: Plot multi-dataset line plot comparing datasets across k_mnn values
+rule scib_evaluation_lineplot:
+    input:
+        tables = get_line_plot_input_tables
+    output:
+        pdf = str(OUTPUT_BASE_DIR / "scib_multi_dataset_lineplot.pdf")
+    params:
+        dataset_dict = lambda wildcards: LINE_PLOT_DATASETS
+    script:
+        "scripts/scib_evaluation_lineplot.py"
 
