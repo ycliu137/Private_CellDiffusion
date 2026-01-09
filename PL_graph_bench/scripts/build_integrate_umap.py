@@ -1,5 +1,6 @@
 """
-Build integration graph using different graph building methods
+Build graph, integrate, and compute UMAP in one step to reduce file I/O
+Combines build_graph.py, integrate.py, and compute_umap.py
 """
 import sys
 from pathlib import Path
@@ -25,10 +26,8 @@ adata = sc.read_h5ad(input_h5ad)
 
 print(f"Data shape: {adata.shape}")
 print(f"Using graph building method: {params.graph_method}")
-print(f"Graph method type: {type(params.graph_method)}")
-print(f"Graph method repr: {repr(params.graph_method)}")
 
-# Normalize method name to handle any potential parsing issues
+# Normalize method name
 method_name = str(params.graph_method).strip()
 
 # Check if adata.X exists (required by SCVI-based methods)
@@ -36,19 +35,8 @@ print(f"\n=== Checking data availability ===")
 print(f"adata.X exists: {adata.X is not None}")
 if adata.X is not None:
     print(f"adata.X shape: {adata.X.shape}")
-    print(f"adata.X type: {type(adata.X)}")
-    if hasattr(adata.X, 'toarray'):
-        print(f"adata.X is sparse matrix")
-    print(f"adata.X dtype: {adata.X.dtype if hasattr(adata.X, 'dtype') else 'N/A'}")
 else:
     print("WARNING: adata.X is None!")
-
-# Check if adata.raw exists (backup for SCVI if needed)
-if hasattr(adata, 'raw') and adata.raw is not None:
-    print(f"adata.raw exists: True")
-    print(f"adata.raw.X shape: {adata.raw.X.shape}")
-else:
-    print(f"adata.raw exists: False")
 
 # CUDA synchronization: Wait for GPU to be available
 if params.device == "cuda":
@@ -73,8 +61,10 @@ if params.device == "cuda":
                 else:
                     raise
 
+# ===== STEP 1: Build Graph =====
+print("\n=== STEP 1: Building integration graph ===")
+
 # Create node_batch_mt (required by some graph building functions)
-print("\n=== Creating node_batch_mt ===")
 if 'node_batch_mt' not in adata.obsm:
     adata.obsm['node_batch_mt'] = pd.get_dummies(adata.obs[params.batch_key]).to_numpy()
     print("Created node_batch_mt")
@@ -82,7 +72,6 @@ else:
     print("node_batch_mt already exists")
 
 # Build integration loss adjacency (required by build_integration_graph)
-print("\n=== Building integration loss adjacency ===")
 cd.inte.build_integration_loss_adj(
     adata,
     use_rep='X_fae',
@@ -91,8 +80,6 @@ cd.inte.build_integration_loss_adj(
 )
 
 # Build graph using the specified method
-print(f"\n=== Building integration graph using {method_name} ===")
-
 if method_name == 'OMNN-Harmony':
     cd.inte.build_integration_graph(
         adata,
@@ -121,13 +108,9 @@ elif method_name == 'Harmony-MNN':
         device=params.device
     )
 elif method_name == 'scVI-MNN' or method_name == 'scVI_MNN':
-    # SCVI needs adata.X to exist (it will use it for training)
-    # Note: SCVI prefers raw count data, but can work with normalized/log-transformed data
     if adata.X is None:
-        raise ValueError("adata.X is None! SCVI requires adata.X to train the model. "
-                        "Please ensure the preprocessing step preserves adata.X.")
+        raise ValueError("adata.X is None! SCVI requires adata.X to train the model.")
     print(f"adata.X is available for SCVI training (shape: {adata.X.shape})")
-    print("Note: SCVI may warn if data is not raw counts, but it should still work.")
     cd.inte.build_scvi_mnn_graph(
         adata,
         batch_key=params.batch_key,
@@ -137,12 +120,9 @@ elif method_name == 'scVI-MNN' or method_name == 'scVI_MNN':
         device=params.device
     )
 elif method_name == 'OMNN-scVI':
-    # SCVI needs adata.X to exist (it will use it for training)
     if adata.X is None:
-        raise ValueError("adata.X is None! SCVI requires adata.X to train the model. "
-                        "Please ensure the preprocessing step preserves adata.X.")
+        raise ValueError("adata.X is None! SCVI requires adata.X to train the model.")
     print(f"adata.X is available for SCVI training (shape: {adata.X.shape})")
-    print("Note: SCVI may warn if data is not raw counts, but it should still work.")
     cd.inte.build_omnn_scvi_graph(
         adata,
         batch_key=params.batch_key,
@@ -152,15 +132,78 @@ elif method_name == 'OMNN-scVI':
         device=params.device
     )
 else:
-    raise ValueError(f"Unknown graph building method: {method_name} (original: {params.graph_method}, type: {type(params.graph_method)})")
+    raise ValueError(f"Unknown graph building method: {method_name}")
 
 print(f"Integration graph shape: {adata.uns['integration_edge_index'].shape}")
 
-# Save data with graph
-print(f"\n=== Saving data with integration graph ===")
+# ===== STEP 2: Run CellDiffusion Integration =====
+print("\n=== STEP 2: Running CellDiffusion integration ===")
+print(f"  Max epochs: {params.max_epoch}")
+print(f"  Learning rate: {params.lr}")
+print(f"  Num features: {params.num_features_diffusion}")
+print(f"  Num heads: {params.num_heads_diffusion}")
+print(f"  Num steps: {params.num_steps_diffusion}")
+print(f"  Time increment: {params.time_increment_diffusion}")
+print(f"  Device: {params.device}")
+
+cd.inte.integration_diffusion(
+    adata,
+    use_rep='X_fae',
+    save_key='X_dif',  # Save as X_dif
+    max_epoch=params.max_epoch,
+    lr=params.lr,
+    num_features_diffusion=params.num_features_diffusion,
+    num_heads_diffusion=params.num_heads_diffusion,
+    num_steps_diffusion=params.num_steps_diffusion,
+    time_increment_diffusion=params.time_increment_diffusion,
+    device=params.device
+)
+
+print(f"CellDiffusion integration complete! Embeddings saved in adata.obsm['X_dif']")
+
+# ===== STEP 3: Compute UMAP =====
+print("\n=== STEP 3: Computing UMAP ===")
+print(f"  Use rep: {params.use_rep}")
+print(f"  UMAP key: {params.umap_key}")
+print(f"  n_neighbors: {params.n_neighbors}")
+print(f"  n_pcs: {params.n_pcs}")
+
+if params.use_rep not in adata.obsm:
+    print(f"  Warning: {params.use_rep} not found in adata.obsm, skipping UMAP")
+else:
+    # Compute neighbors and UMAP
+    sc.pp.neighbors(
+        adata,
+        use_rep=params.use_rep,
+        n_neighbors=params.n_neighbors,
+        n_pcs=params.n_pcs
+    )
+    sc.tl.umap(adata)
+    
+    # Save UMAP to specified key
+    if 'X_umap' in adata.obsm:
+        adata.obsm[params.umap_key] = adata.obsm['X_umap'].copy()
+        print(f"  Saved UMAP to adata.obsm['{params.umap_key}']")
+        
+        # Clean up temporary neighbor graph and umap
+        if 'neighbors' in adata.uns:
+            del adata.uns['neighbors']
+        if 'umap' in adata.uns:
+            del adata.uns['umap']
+        if 'X_umap' in adata.obsm:
+            del adata.obsm['X_umap']
+    else:
+        print(f"  Warning: UMAP not computed for {params.use_rep}")
+
+# Save final data with graph, X_dif, and UMAP
+print(f"\n=== Saving final data ===")
 print(f"Saving to: {output_h5ad}")
 Path(output_h5ad).parent.mkdir(parents=True, exist_ok=True)
 adata.write(output_h5ad)
 
-print(f"\n=== Graph building complete using {method_name}! ===")
+print(f"\n=== Complete pipeline for {method_name} finished! ===")
+print(f"  - Graph built and stored in adata.uns['integration_edge_index']")
+print(f"  - X_dif stored in adata.obsm['X_dif']")
+if params.umap_key in adata.obsm:
+    print(f"  - UMAP stored in adata.obsm['{params.umap_key}']")
 
