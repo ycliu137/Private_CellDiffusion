@@ -48,7 +48,17 @@ integration_diffusion:
   lr: 0.001
   num_features_diffusion: 50
   num_heads_diffusion: 8
-  time_increment_diffusion: 0.05
+  # time_increment_diffusion must have the same length as integration_network_layers
+  # Values are paired by index (not all combinations):
+  #   num_steps=2  -> time_increment=0.5
+  #   num_steps=4  -> time_increment=0.4
+  #   num_steps=6  -> time_increment=0.3
+  #   num_steps=8  -> time_increment=0.2
+  #   num_steps=10 -> time_increment=0.17
+  #   num_steps=12 -> time_increment=0.15
+  #   num_steps=14 -> time_increment=0.12
+  #   num_steps=16 -> time_increment=0.1
+  time_increment_diffusion: [0.5, 0.4, 0.3, 0.2, 0.17, 0.15, 0.12, 0.1]
 
 # Integration GCN parameters
 integration_gcn:

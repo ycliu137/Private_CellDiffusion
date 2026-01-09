@@ -1,6 +1,7 @@
 """
 Plot combined UMAP visualizations: CellDiffusion and GCN for each network layer
 Each page shows both methods (batch and labels) for the same network layer
+Reads from aggregated_embeddings.h5ad to reduce file I/O
 """
 import sys
 from pathlib import Path
@@ -16,9 +17,9 @@ matplotlib.use('Agg')  # Use non-interactive backend
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 
-# Get input files and output from snakemake
+# Get input file and output from snakemake
 try:
-    input_h5ad_files = snakemake.input.h5ad_files
+    input_h5ad = snakemake.input.h5ad
     output_pdf = snakemake.output.pdf
     params = snakemake.params
 except Exception as e:
@@ -27,31 +28,44 @@ except Exception as e:
     traceback.print_exc()
     sys.exit(1)
 
-print(f"\n=== Loading UMAP data from {len(input_h5ad_files)} files ===")
+print(f"\n=== Loading aggregated UMAP data ===")
+print(f"Input file: {input_h5ad}")
 
-# Organize files by network layer
-layer_data = {}  # {layer_number: {'celldiffusion': adata_path, 'gcn': adata_path}}
+# Load aggregated adata
+adata = sc.read_h5ad(input_h5ad)
+print(f"Data shape: {adata.shape}")
 
-for h5ad_file in input_h5ad_files:
-    filename = Path(h5ad_file).name
-    
-    # Pattern: celldiffusion_umap_nsteps{N}.h5ad or gcn_umap_nlayers{N}.h5ad
-    if 'celldiffusion_umap_nsteps' in filename:
-        match = re.search(r'celldiffusion_umap_nsteps(\d+)\.h5ad', filename)
+# Find all UMAP keys
+print(f"\n=== Finding UMAP embeddings ===")
+umap_keys = [k for k in adata.obsm.keys() if 'umap' in k.lower()]
+print(f"Found {len(umap_keys)} UMAP embeddings:")
+for key in umap_keys:
+    print(f"  - {key}")
+
+if len(umap_keys) == 0:
+    raise ValueError("No UMAP embeddings found in aggregated_embeddings.h5ad")
+
+# Organize UMAP keys by network layer
+layer_data = {}  # {layer_number: {'celldiffusion': umap_key, 'gcn': umap_key}}
+
+for umap_key in umap_keys:
+    # Pattern: X_umap_dif_nsteps{N} or X_umap_gcn_nlayers{N}
+    if 'X_umap_dif_nsteps' in umap_key:
+        match = re.search(r'X_umap_dif_nsteps(\d+)', umap_key)
         if match:
             layer = int(match.group(1))
             if layer not in layer_data:
                 layer_data[layer] = {}
-            layer_data[layer]['celldiffusion'] = h5ad_file
-            print(f"  Found CellDiffusion layer {layer}: {filename}")
-    elif 'gcn_umap_nlayers' in filename:
-        match = re.search(r'gcn_umap_nlayers(\d+)\.h5ad', filename)
+            layer_data[layer]['celldiffusion'] = umap_key
+            print(f"  Found CellDiffusion layer {layer}: {umap_key}")
+    elif 'X_umap_gcn_nlayers' in umap_key:
+        match = re.search(r'X_umap_gcn_nlayers(\d+)', umap_key)
         if match:
             layer = int(match.group(1))
             if layer not in layer_data:
                 layer_data[layer] = {}
-            layer_data[layer]['gcn'] = h5ad_file
-            print(f"  Found GCN layer {layer}: {filename}")
+            layer_data[layer]['gcn'] = umap_key
+            print(f"  Found GCN layer {layer}: {umap_key}")
 
 # Sort layers
 sorted_layers = sorted(layer_data.keys())
@@ -59,18 +73,13 @@ print(f"\n=== Found {len(sorted_layers)} network layers: {sorted_layers} ===")
 
 # Check if we have any data
 if len(sorted_layers) == 0:
-    print("Error: No UMAP data files found!")
-    print(f"Expected files matching patterns:")
-    print(f"  - celldiffusion_umap_nsteps*.h5ad")
-    print(f"  - gcn_umap_nlayers*.h5ad")
-    sys.exit(1)
+    raise ValueError("No UMAP data found matching expected patterns (X_umap_dif_nsteps* or X_umap_gcn_nlayers*)")
 
-# Load data for each layer (we'll load on demand for each page)
+# Create PDF with multiple pages
 print(f"\n=== Creating multi-page PDF ===")
 print(f"Output file: {output_pdf}")
 Path(output_pdf).parent.mkdir(parents=True, exist_ok=True)
 
-# Create PDF with multiple pages
 with PdfPages(output_pdf) as pdf:
     for layer in sorted_layers:
         print(f"\n  Processing layer {layer}...")
@@ -81,20 +90,19 @@ with PdfPages(output_pdf) as pdf:
         fig, axes = plt.subplots(2, 2, figsize=(12, 12))
         fig.suptitle(f'Network Layers: {layer}', fontsize=16, fontweight='bold', y=0.98)
         
-        # Load CellDiffusion data if available
+        # Plot CellDiffusion if available
         if 'celldiffusion' in layer_data[layer]:
             try:
-                print(f"    Loading CellDiffusion data for layer {layer}...")
-                adata_dif = sc.read_h5ad(layer_data[layer]['celldiffusion'])
-                umap_key_dif = f'X_umap_dif_nsteps{layer}'
+                umap_key_dif = layer_data[layer]['celldiffusion']
+                print(f"    Plotting CellDiffusion using {umap_key_dif}...")
                 
-                if umap_key_dif in adata_dif.obsm:
+                if umap_key_dif in adata.obsm:
                     # Temporarily set UMAP for plotting
-                    adata_dif.obsm['X_umap'] = adata_dif.obsm[umap_key_dif].copy()
+                    adata.obsm['X_umap'] = adata.obsm[umap_key_dif].copy()
                     
                     # Plot CellDiffusion - Batch (top left)
                     sc.pl.umap(
-                        adata_dif,
+                        adata,
                         color=params.batch_key,
                         ax=axes[0, 0],
                         show=False,
@@ -104,7 +112,7 @@ with PdfPages(output_pdf) as pdf:
                     
                     # Plot CellDiffusion - Labels (top right)
                     sc.pl.umap(
-                        adata_dif,
+                        adata,
                         color=params.label_key,
                         ax=axes[0, 1],
                         show=False,
@@ -113,13 +121,15 @@ with PdfPages(output_pdf) as pdf:
                     )
                     
                     # Clean up
-                    del adata_dif.obsm['X_umap']
+                    del adata.obsm['X_umap']
                 else:
-                    print(f"    Warning: {umap_key_dif} not found in CellDiffusion data")
+                    print(f"    Warning: {umap_key_dif} not found in adata")
                     axes[0, 0].text(0.5, 0.5, 'Data not available', ha='center', va='center')
                     axes[0, 1].text(0.5, 0.5, 'Data not available', ha='center', va='center')
             except Exception as e:
-                print(f"    Error loading CellDiffusion data: {e}")
+                print(f"    Error plotting CellDiffusion: {e}")
+                import traceback
+                traceback.print_exc()
                 axes[0, 0].text(0.5, 0.5, 'Error loading data', ha='center', va='center')
                 axes[0, 1].text(0.5, 0.5, 'Error loading data', ha='center', va='center')
         else:
@@ -127,20 +137,19 @@ with PdfPages(output_pdf) as pdf:
             axes[0, 0].text(0.5, 0.5, 'Data not available', ha='center', va='center')
             axes[0, 1].text(0.5, 0.5, 'Data not available', ha='center', va='center')
         
-        # Load GCN data if available
+        # Plot GCN if available
         if 'gcn' in layer_data[layer]:
             try:
-                print(f"    Loading GCN data for layer {layer}...")
-                adata_gcn = sc.read_h5ad(layer_data[layer]['gcn'])
-                umap_key_gcn = f'X_umap_gcn_nlayers{layer}'
+                umap_key_gcn = layer_data[layer]['gcn']
+                print(f"    Plotting GCN using {umap_key_gcn}...")
                 
-                if umap_key_gcn in adata_gcn.obsm:
+                if umap_key_gcn in adata.obsm:
                     # Temporarily set UMAP for plotting
-                    adata_gcn.obsm['X_umap'] = adata_gcn.obsm[umap_key_gcn].copy()
+                    adata.obsm['X_umap'] = adata.obsm[umap_key_gcn].copy()
                     
                     # Plot GCN - Batch (bottom left)
                     sc.pl.umap(
-                        adata_gcn,
+                        adata,
                         color=params.batch_key,
                         ax=axes[1, 0],
                         show=False,
@@ -150,7 +159,7 @@ with PdfPages(output_pdf) as pdf:
                     
                     # Plot GCN - Labels (bottom right)
                     sc.pl.umap(
-                        adata_gcn,
+                        adata,
                         color=params.label_key,
                         ax=axes[1, 1],
                         show=False,
@@ -159,13 +168,15 @@ with PdfPages(output_pdf) as pdf:
                     )
                     
                     # Clean up
-                    del adata_gcn.obsm['X_umap']
+                    del adata.obsm['X_umap']
                 else:
-                    print(f"    Warning: {umap_key_gcn} not found in GCN data")
+                    print(f"    Warning: {umap_key_gcn} not found in adata")
                     axes[1, 0].text(0.5, 0.5, 'Data not available', ha='center', va='center')
                     axes[1, 1].text(0.5, 0.5, 'Data not available', ha='center', va='center')
             except Exception as e:
-                print(f"    Error loading GCN data: {e}")
+                print(f"    Error plotting GCN: {e}")
+                import traceback
+                traceback.print_exc()
                 axes[1, 0].text(0.5, 0.5, 'Error loading data', ha='center', va='center')
                 axes[1, 1].text(0.5, 0.5, 'Error loading data', ha='center', va='center')
         else:
@@ -181,4 +192,3 @@ with PdfPages(output_pdf) as pdf:
 print(f"\n=== Multi-page PDF created successfully! ===")
 print(f"  Total pages: {len(sorted_layers)}")
 print(f"  Output file: {output_pdf}")
-

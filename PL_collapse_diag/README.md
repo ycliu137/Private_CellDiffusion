@@ -7,11 +7,11 @@ This pipeline tests the effect of network depth on integration quality for both 
 The pipeline:
 1. Preprocesses single-cell data
 2. Encodes features using an autoencoder
-3. Builds integration graphs
-4. Runs CellDiffusion integration with varying `num_steps_diffusion` = [2, 4, 6, 8, 10, 12, 14, 16]
-5. Runs GCN integration with varying `num_layers_gcn` = [2, 4, 6, 8, 10, 12, 14, 16]
-6. Computes UMAP for each integration result
-7. Plots UMAP visualizations (colored by batch and labels) for each configuration
+3. For each network layer:
+   - Builds integration graph, runs CellDiffusion/GCN integration, and computes UMAP in one step (optimized to reduce file I/O)
+   - CellDiffusion with varying `num_steps_diffusion` = [2, 4, 6, 8, 10, 12, 14, 16]
+   - GCN with varying `num_layers_gcn` = [2, 4, 6, 8, 10, 12, 14, 16]
+4. Plots UMAP visualizations (colored by batch and labels) for each configuration
 8. Evaluates neighbor purity for each configuration using `evaluate_knn_neighbor_purity`
 9. Aggregates all embeddings and runs SCIB evaluation
 10. Generates multiple plots:
@@ -27,19 +27,22 @@ PL_collapse_diag/
 ├── run.sh                # Execution script
 ├── README.md             # This file
 └── scripts/
-    ├── preprocess.py              # Data preprocessing
-    ├── encode_features.py         # Feature encoding
-    ├── build_graph.py             # Graph building
-    ├── integrate_celldiffusion.py # CellDiffusion integration (with num_steps wildcard)
-    ├── integrate_gcn.py           # GCN integration (with num_layers wildcard)
-    ├── compute_umap.py            # Compute UMAP for each integration result
-    ├── plot_umap_combined.py      # Plot combined UMAP (multi-page PDF)
-    ├── evaluate_purity.py         # Neighbor purity evaluation
-    ├── aggregate_metrics.py       # Aggregate purity metrics
-    ├── aggregate_embeddings.py    # Aggregate all embeddings for SCIB
-    ├── scib_evaluation.py         # SCIB benchmark evaluation
-    ├── scib_evaluation_plot.py    # Plot SCIB aggregate scores line chart
-    └── plot_collapse_diag.py      # Plot neighbor purity line chart
+    ├── preprocess.py                      # Data preprocessing
+    ├── encode_features.py                 # Feature encoding
+    ├── build_integrate_umap_celldiffusion.py  # Build graph, integrate with CellDiffusion, and compute UMAP (optimized)
+    ├── build_integrate_umap_gcn.py        # Build graph, integrate with GCN, and compute UMAP (optimized)
+    ├── plot_umap_combined.py              # Plot combined UMAP (multi-page PDF)
+    ├── evaluate_purity.py                 # Neighbor purity evaluation
+    ├── evaluate_purity_mesenchymal.py     # Neighbor purity evaluation (Mesenchymal lineage only)
+    ├── aggregate_metrics.py               # Aggregate purity metrics
+    ├── aggregate_metrics_mesenchymal.py   # Aggregate purity metrics (Mesenchymal lineage only)
+    ├── aggregate_embeddings.py            # Aggregate all embeddings for SCIB
+    ├── scib_evaluation.py                 # SCIB benchmark evaluation
+    ├── scib_evaluation_mesenchymal.py     # SCIB benchmark evaluation (Mesenchymal lineage only)
+    ├── scib_evaluation_plot.py            # Plot SCIB aggregate scores line chart
+    ├── scib_evaluation_plot_mesenchymal.py # Plot SCIB aggregate scores line chart (Mesenchymal lineage only)
+    ├── plot_collapse_diag.py              # Plot neighbor purity line chart
+    └── plot_collapse_diag_mesenchymal.py  # Plot neighbor purity line chart (Mesenchymal lineage only)
 ```
 
 ## Configuration
@@ -75,10 +78,8 @@ cd PL_collapse_diag
 The pipeline generates:
 - Preprocessed data: `preprocessed.h5ad`
 - Encoded features: `encoded.h5ad`
-- Graph data: `data_with_graph.h5ad`
-- CellDiffusion results: `celldiffusion_nsteps{N}.h5ad` (for N in [2,4,6,8,10,12,14,16])
-- GCN results: `gcn_nlayers{N}.h5ad` (for N in [2,4,6,8,10,12,14,16])
-- UMAP data: `celldiffusion_umap_nsteps{N}.h5ad` and `gcn_umap_nlayers{N}.h5ad`
+- CellDiffusion results: `celldiffusion_nsteps{N}.h5ad` (for N in [2,4,6,8,10,12,14,16]) - contains graph, X_dif, and UMAP
+- GCN results: `gcn_nlayers{N}.h5ad` (for N in [2,4,6,8,10,12,14,16]) - contains graph, X_gcn, and UMAP
 - **UMAP plots**: `umap_combined_multipage.pdf` - Multi-page PDF with combined CellDiffusion and GCN UMAPs for each network layer
 - Individual purity metrics: `purity_celldiffusion_nsteps{N}.csv` and `purity_gcn_nlayers{N}.csv`
 - Aggregated metrics: `aggregated_metrics.csv`
@@ -114,7 +115,7 @@ The pipeline generates:
     - Top row: CellDiffusion (Batch, Labels)
     - Bottom row: GCN (Batch, Labels)
   - Allows easy comparison between methods for the same network depth
-- Individual UMAP plots (optional): `umap_celldiffusion_nsteps{N}.pdf` and `umap_gcn_nlayers{N}.pdf`
+  - Reads UMAP data directly from `aggregated_embeddings.h5ad` to reduce file I/O
 
 These visualizations help identify if and when network collapse occurs as network depth increases.
 
