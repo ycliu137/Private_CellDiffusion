@@ -67,7 +67,11 @@ rule all:
         expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table.csv"), dataset=DATASETS),
         expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_benchmarker.pkl"), dataset=DATASETS),
         expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table_plot.pdf"), dataset=DATASETS),
-        expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_comparison_barplot.pdf"), dataset=DATASETS)
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_comparison_barplot.pdf"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table_mesenchymal.csv"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_benchmarker_mesenchymal.pkl"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table_plot_mesenchymal.pdf"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_comparison_barplot_mesenchymal.pdf"), dataset=DATASETS)
 
 # Rule: Preprocess data
 rule preprocess:
@@ -178,4 +182,28 @@ rule scib_evaluation_plot:
         pdf = str(OUTPUT_BASE_DIR / "{dataset}/scib_comparison_barplot.pdf")
     script:
         "scripts/scib_evaluation_plot.py"
+
+# Rule: SCIB evaluation (Mesenchymal lineage only)
+rule scib_evaluation_mesenchymal:
+    input:
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/aggregated_X_dif.h5ad")
+    output:
+        results = str(OUTPUT_BASE_DIR / "{dataset}/scib_benchmarker_mesenchymal.pkl"),
+        table = str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table_mesenchymal.csv"),
+        plot = str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table_plot_mesenchymal.pdf")
+    params:
+        batch_key = config["evaluation"]["batch_key"],
+        label_key = config["evaluation"]["label_key"],
+        n_jobs = config["scib_evaluation"]["n_jobs"]
+    script:
+        "scripts/scib_evaluation_mesenchymal.py"
+
+# Rule: Plot SCIB comparison bar plot (Mesenchymal lineage only)
+rule scib_evaluation_plot_mesenchymal:
+    input:
+        table = str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table_mesenchymal.csv")
+    output:
+        pdf = str(OUTPUT_BASE_DIR / "{dataset}/scib_comparison_barplot_mesenchymal.pdf")
+    script:
+        "scripts/scib_evaluation_plot_mesenchymal.py"
 
