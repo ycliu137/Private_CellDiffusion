@@ -51,6 +51,9 @@ OUTPUT_BASE_DIR.mkdir(parents=True, exist_ok=True)
 
 # Get graph methods (list)
 GRAPH_METHODS = config["graph_methods"]
+
+# Rule order: integrate must run before compute_umap
+ruleorder: integrate > compute_umap
 if not isinstance(GRAPH_METHODS, list):
     GRAPH_METHODS = [GRAPH_METHODS]
 
@@ -137,6 +140,9 @@ rule integrate:
         h5ad = str(OUTPUT_BASE_DIR / "{dataset}/graph_{method}.h5ad")
     output:
         h5ad = str(OUTPUT_BASE_DIR / "{dataset}/integrated_{method}.h5ad")
+    wildcard_constraints:
+        # Exclude methods starting with 'umap_' to avoid conflict with compute_umap rule
+        method = "[^u].*|u[^m].*|um[^a].*|uma[^p].*|umap[^_].*"
     resources:
         gpu=1
     threads: 1
