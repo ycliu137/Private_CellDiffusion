@@ -12,7 +12,7 @@ normalized_data: True
 data:
   input_path: "../data/inputs/integration/"
   # Output directory (relative to project root, or use absolute path)
-  output_dir: "../data/outputs/collapse_diag"
+  output_dir: "../data/outputs/PL_collapse_diag"
 
 # Preprocessing parameters
 preprocess:
