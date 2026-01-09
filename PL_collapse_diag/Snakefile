@@ -73,6 +73,12 @@ def get_aggregate_embeddings_files(wildcards):
     gcn_files = [str(OUTPUT_BASE_DIR / wildcards.dataset / f"gcn_nlayers{num_layers}.h5ad") for num_layers in NUM_LAYERS_GCN]
     return celldiffusion_files + gcn_files
 
+def get_aggregate_metrics_mesenchymal_files(wildcards):
+    """Get list of purity CSV files to aggregate for Mesenchymal lineage for a dataset"""
+    celldiffusion_files = [str(OUTPUT_BASE_DIR / wildcards.dataset / f"purity_celldiffusion_mesenchymal_nsteps{num_steps}.csv") for num_steps in NUM_STEPS_DIFFUSION]
+    gcn_files = [str(OUTPUT_BASE_DIR / wildcards.dataset / f"purity_gcn_mesenchymal_nlayers{num_layers}.csv") for num_layers in NUM_LAYERS_GCN]
+    return celldiffusion_files + gcn_files
+
 # Rule all: define final outputs for all datasets
 rule all:
     input:
@@ -83,7 +89,13 @@ rule all:
         expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_benchmarker.pkl"), dataset=DATASETS),
         expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table_plot.pdf"), dataset=DATASETS),
         expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_evaluation_lineplot.pdf"), dataset=DATASETS),
-        expand(str(OUTPUT_BASE_DIR / "{dataset}/umap_combined_multipage.pdf"), dataset=DATASETS)
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/umap_combined_multipage.pdf"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table_mesenchymal.csv"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_benchmarker_mesenchymal.pkl"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table_plot_mesenchymal.pdf"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_evaluation_lineplot_mesenchymal.pdf"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/aggregated_metrics_mesenchymal.csv"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/collapse_diagnostic_plot_mesenchymal.pdf"), dataset=DATASETS)
 
 # Rule: Preprocess data
 rule preprocess:
@@ -207,6 +219,34 @@ rule evaluate_purity_gcn:
     script:
         "scripts/evaluate_purity.py"
 
+# Rule: Evaluate neighbor purity for CellDiffusion results (Mesenchymal lineage only)
+rule evaluate_purity_celldiffusion_mesenchymal:
+    input:
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/aggregated_embeddings.h5ad")
+    output:
+        csv = str(OUTPUT_BASE_DIR / "{dataset}/purity_celldiffusion_mesenchymal_nsteps{num_steps}.csv")
+    params:
+        method = "CellDiffusion",
+        network_layers = lambda wildcards: int(wildcards.num_steps),
+        label_key = config["evaluation"]["label_key"],
+        k = config["evaluation"]["k"]
+    script:
+        "scripts/evaluate_purity_mesenchymal.py"
+
+# Rule: Evaluate neighbor purity for GCN results (Mesenchymal lineage only)
+rule evaluate_purity_gcn_mesenchymal:
+    input:
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/aggregated_embeddings.h5ad")
+    output:
+        csv = str(OUTPUT_BASE_DIR / "{dataset}/purity_gcn_mesenchymal_nlayers{num_layers}.csv")
+    params:
+        method = "GCN",
+        network_layers = lambda wildcards: int(wildcards.num_layers),
+        label_key = config["evaluation"]["label_key"],
+        k = config["evaluation"]["k"]
+    script:
+        "scripts/evaluate_purity_mesenchymal.py"
+
 # Rule: Aggregate all metrics
 rule aggregate_metrics:
     input:
@@ -215,6 +255,15 @@ rule aggregate_metrics:
         csv = str(OUTPUT_BASE_DIR / "{dataset}/aggregated_metrics.csv")
     script:
         "scripts/aggregate_metrics.py"
+
+# Rule: Aggregate all metrics for Mesenchymal lineage
+rule aggregate_metrics_mesenchymal:
+    input:
+        csv_files = get_aggregate_metrics_mesenchymal_files
+    output:
+        csv = str(OUTPUT_BASE_DIR / "{dataset}/aggregated_metrics_mesenchymal.csv")
+    script:
+        "scripts/aggregate_metrics_mesenchymal.py"
 
 # Rule: Compute UMAP for CellDiffusion results
 rule compute_umap_celldiffusion:
@@ -297,4 +346,37 @@ rule plot_collapse_diag:
         pdf = str(OUTPUT_BASE_DIR / "{dataset}/collapse_diagnostic_plot.pdf")
     script:
         "scripts/plot_collapse_diag.py"
+
+# Rule: Plot collapse diagnostic for Mesenchymal lineage (neighbor purity)
+rule plot_collapse_diag_mesenchymal:
+    input:
+        csv = str(OUTPUT_BASE_DIR / "{dataset}/aggregated_metrics_mesenchymal.csv")
+    output:
+        pdf = str(OUTPUT_BASE_DIR / "{dataset}/collapse_diagnostic_plot_mesenchymal.pdf")
+    script:
+        "scripts/plot_collapse_diag_mesenchymal.py"
+
+# Rule: SCIB evaluation (Mesenchymal lineage only)
+rule scib_evaluation_mesenchymal:
+    input:
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/aggregated_embeddings.h5ad")
+    output:
+        results = str(OUTPUT_BASE_DIR / "{dataset}/scib_benchmarker_mesenchymal.pkl"),
+        table = str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table_mesenchymal.csv"),
+        plot = str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table_plot_mesenchymal.pdf")
+    params:
+        batch_key = config["evaluation"]["batch_key"],
+        label_key = config["evaluation"]["label_key"],
+        n_jobs = config["scib_evaluation"]["n_jobs"]
+    script:
+        "scripts/scib_evaluation_mesenchymal.py"
+
+# Rule: Plot SCIB evaluation line plot (Mesenchymal lineage only)
+rule scib_evaluation_plot_mesenchymal:
+    input:
+        csv = str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table_mesenchymal.csv")
+    output:
+        pdf = str(OUTPUT_BASE_DIR / "{dataset}/scib_evaluation_lineplot_mesenchymal.pdf")
+    script:
+        "scripts/scib_evaluation_plot_mesenchymal.py"
 
