@@ -71,7 +71,9 @@ rule all:
         expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table_mesenchymal.csv"), dataset=DATASETS),
         expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_benchmarker_mesenchymal.pkl"), dataset=DATASETS),
         expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table_plot_mesenchymal.pdf"), dataset=DATASETS),
-        expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_comparison_barplot_mesenchymal.pdf"), dataset=DATASETS)
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_comparison_barplot_mesenchymal.pdf"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/aggregated_umap.h5ad"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/umap_combined_multipage.pdf"), dataset=DATASETS)
 
 # Rule: Preprocess data
 rule preprocess:
@@ -150,6 +152,20 @@ rule integrate:
     script:
         "scripts/integrate.py"
 
+# Rule: Compute UMAP for each integrated method
+rule compute_umap:
+    input:
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/integrated_{method}.h5ad")
+    output:
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/integrated_umap_{method}.h5ad")
+    params:
+        use_reps = ["X_dif"],
+        umap_keys = lambda wildcards: [f"X_umap_dif_{wildcards.method}"],
+        n_neighbors = config["umap"]["n_neighbors"],
+        n_pcs = config["umap"]["n_pcs"]
+    script:
+        "scripts/compute_umap.py"
+
 # Rule: Aggregate X_dif from all graph building method results
 rule aggregate_X_dif:
     input:
@@ -158,6 +174,27 @@ rule aggregate_X_dif:
         h5ad = str(OUTPUT_BASE_DIR / "{dataset}/aggregated_X_dif.h5ad")
     script:
         "scripts/aggregate_X_dif.py"
+
+# Rule: Aggregate UMAP embeddings from all methods
+rule aggregate_umap:
+    input:
+        h5ad_files = lambda wildcards: [str(OUTPUT_BASE_DIR / wildcards.dataset / f"integrated_umap_{method}.h5ad") for method in GRAPH_METHODS]
+    output:
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/aggregated_umap.h5ad")
+    script:
+        "scripts/aggregate_umap.py"
+
+# Rule: Plot combined UMAP for all graph building methods
+rule plot_umap_combined:
+    input:
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/aggregated_umap.h5ad")
+    output:
+        pdf = str(OUTPUT_BASE_DIR / "{dataset}/umap_combined_multipage.pdf")
+    params:
+        batch_key = config["evaluation"]["batch_key"],
+        label_key = config["evaluation"]["label_key"]
+    script:
+        "scripts/plot_umap.py"
 
 # Rule: SCIB evaluation
 rule scib_evaluation:
