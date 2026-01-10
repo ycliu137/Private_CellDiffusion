@@ -12,21 +12,46 @@ project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 # Get input files and output file from snakemake
-input_h5ad_files = snakemake.input.h5ad_files if 'h5ad_files' in snakemake.input else []
-input_gcn_files = snakemake.input.gcn_files if 'gcn_files' in snakemake.input else []
+# Snakemake named inputs are accessed as attributes, not dictionary keys
+input_h5ad_files = getattr(snakemake.input, 'h5ad_files', [])
+input_gcn_files = getattr(snakemake.input, 'gcn_files', [])
+
+# Ensure inputs are lists
+if not isinstance(input_h5ad_files, list):
+    input_h5ad_files = [input_h5ad_files] if input_h5ad_files else []
+if not isinstance(input_gcn_files, list):
+    input_gcn_files = [input_gcn_files] if input_gcn_files else []
+
 all_input_files = list(input_h5ad_files) + list(input_gcn_files)
 
 print(f"\n=== Aggregating X_dif, X_gcn and UMAP from {len(all_input_files)} files ===")
 print(f"  CellDiffusion files: {len(input_h5ad_files)}")
 print(f"  GCN files: {len(input_gcn_files)}")
+print(f"  All input files: {all_input_files}")
 
 # Load the first file as the base adata structure
 if len(all_input_files) == 0:
     raise ValueError("No input files provided!")
+
+# Prefer using first CellDiffusion file as base, otherwise use first file
+base_file = None
+for f in all_input_files:
+    filename = Path(f).name
+    if re.search(r'integrated_(.+)\.h5ad', filename):
+        base_file = f
+        break
+
+if base_file is None:
+    base_file = all_input_files[0]
     
-print(f"Loading base adata from: {all_input_files[0]}")
-base_adata = sc.read_h5ad(all_input_files[0])
-print(f"Base adata shape: {base_adata.shape}")
+print(f"Loading base adata from: {base_file}")
+try:
+    base_adata = sc.read_h5ad(base_file)
+    print(f"Base adata shape: {base_adata.shape}")
+except Exception as e:
+    print(f"ERROR: Failed to load base file {base_file}")
+    print(f"Error: {e}")
+    raise
 
 # Extract X_dif, X_gcn and UMAP embeddings from all files
 x_dif_dict = {}
@@ -35,12 +60,31 @@ umap_dict = {}
 
 for h5ad_file in all_input_files:
     print(f"\nProcessing: {h5ad_file}")
-    adata = sc.read_h5ad(h5ad_file)
     filename = Path(h5ad_file).name
+    
+    # Skip if this is the base file and we already loaded it
+    if h5ad_file == base_file:
+        print(f"  This is the base file, using already loaded adata")
+        adata = base_adata
+    else:
+        try:
+            adata = sc.read_h5ad(h5ad_file)
+        except Exception as e:
+            print(f"ERROR: Failed to load {h5ad_file}")
+            print(f"Error: {e}")
+            raise
+    
+    print(f"  File adata shape: {adata.shape}")
+    print(f"  Available obsm keys: {list(adata.obsm.keys())}")
     
     # Extract graph method name from filename (format: integrated_{method}.h5ad or gcn_{method}_nlayers{N}.h5ad)
     method_match = re.search(r'integrated_(.+)\.h5ad', filename)
     gcn_match = re.search(r'gcn_(.+)_nlayers(\d+)\.h5ad', filename)
+    
+    if method_match:
+        print(f"  Method match: {method_match.group(1)}")
+    if gcn_match:
+        print(f"  GCN match: method={gcn_match.group(1)}, layers={gcn_match.group(2)}")
     
     if method_match:
         # CellDiffusion file
@@ -153,8 +197,13 @@ if len(umap_dict) > 0:
 Path(output_h5ad).parent.mkdir(parents=True, exist_ok=True)
 
 # Save aggregated adata
-base_adata.write(output_h5ad)
-print(f"  Saved successfully!")
+try:
+    base_adata.write(output_h5ad)
+    print(f"  Saved successfully!")
+except Exception as e:
+    print(f"ERROR: Failed to save aggregated file to {output_h5ad}")
+    print(f"Error: {e}")
+    raise
 
 print("\n=== Aggregation complete! ===")
 
