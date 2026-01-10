@@ -81,14 +81,14 @@ try:
         print(f"  File adata shape: {adata.shape}")
         print(f"  Available obsm keys: {list(adata.obsm.keys())}")
         
-        # Extract graph method name from filename (format: integrated_{method}.h5ad or gcn_{method}_nlayers{N}.h5ad)
+        # Extract graph method name from filename (format: integrated_{method}.h5ad or gcn_{method}.h5ad)
         method_match = re.search(r'integrated_(.+)\.h5ad', filename)
-        gcn_match = re.search(r'gcn_(.+)_nlayers(\d+)\.h5ad', filename)
+        gcn_match = re.search(r'gcn_(.+)\.h5ad', filename)
         
         if method_match:
-            print(f"  Method match: {method_match.group(1)}")
+            print(f"  Method match (CellDiffusion): {method_match.group(1)}")
         if gcn_match:
-            print(f"  GCN match: method={gcn_match.group(1)}, layers={gcn_match.group(2)}")
+            print(f"  Method match (GCN): {gcn_match.group(1)}")
         
         if method_match:
             # CellDiffusion file
@@ -96,9 +96,10 @@ try:
             
             # Extract X_dif
             if 'X_dif' in adata.obsm:
+                # Label as CellDiffusion
                 key_name = f"X_dif_{method_name}"
                 x_dif_dict[key_name] = adata.obsm['X_dif'].copy()
-                print(f"  Extracted X_dif shape: {adata.obsm['X_dif'].shape}, stored as '{key_name}'")
+                print(f"  Extracted X_dif shape: {adata.obsm['X_dif'].shape}, stored as '{key_name}' (CellDiffusion)")
             else:
                 print(f"  Warning: X_dif not found in {filename}")
             
@@ -109,32 +110,33 @@ try:
                 new_key = f"X_umap_dif_{method_name}"
                 if new_key not in umap_dict:
                     umap_dict[new_key] = adata.obsm[umap_key].copy()
-                    print(f"  Extracted {umap_key} shape: {adata.obsm[umap_key].shape}, stored as '{new_key}'")
+                    print(f"  Extracted {umap_key} shape: {adata.obsm[umap_key].shape}, stored as '{new_key}' (CellDiffusion)")
                 else:
                     print(f"  Warning: Key '{new_key}' already exists, skipping")
                     
         elif gcn_match:
             # GCN file
             method_name = gcn_match.group(1)
-            num_layers = gcn_match.group(2)
             
             # Extract X_gcn
             if 'X_gcn' in adata.obsm:
-                key_name = f"X_gcn_{method_name}_nlayers{num_layers}"
+                # Label as GCN
+                key_name = f"X_gcn_{method_name}"
                 x_gcn_dict[key_name] = adata.obsm['X_gcn'].copy()
-                print(f"  Extracted X_gcn shape: {adata.obsm['X_gcn'].shape}, stored as '{key_name}'")
+                print(f"  Extracted X_gcn shape: {adata.obsm['X_gcn'].shape}, stored as '{key_name}' (GCN)")
             else:
                 print(f"  Warning: X_gcn not found in {filename}")
             
             # Extract UMAP embeddings for GCN
             umap_keys = [k for k in adata.obsm.keys() if 'umap' in k.lower() and 'gcn' in k.lower()]
             for umap_key in umap_keys:
-                # Use the key directly if it follows the pattern
-                if umap_key not in umap_dict:
-                    umap_dict[umap_key] = adata.obsm[umap_key].copy()
-                    print(f"  Extracted {umap_key} shape: {adata.obsm[umap_key].shape}, stored as '{umap_key}'")
+                # Standardize key name: X_umap_gcn_{method}
+                new_key = f"X_umap_gcn_{method_name}"
+                if new_key not in umap_dict:
+                    umap_dict[new_key] = adata.obsm[umap_key].copy()
+                    print(f"  Extracted {umap_key} shape: {adata.obsm[umap_key].shape}, stored as '{new_key}' (GCN)")
                 else:
-                    print(f"  Warning: Key '{umap_key}' already exists, skipping")
+                    print(f"  Warning: Key '{new_key}' already exists, skipping")
         else:
             print(f"Warning: Could not extract method name from filename {filename}, skipping")
             continue

@@ -205,7 +205,7 @@ print(f"Saving to: {output_h5ad}")
 Path(output_h5ad).parent.mkdir(parents=True, exist_ok=True)
 adata.write(output_h5ad)
 
-print(f"\n=== Complete pipeline for GCN ({method_name}, nlayers={params.num_layers_gcn}) finished! ===")
+print(f"\n=== Complete pipeline for GCN ({method_name}) finished! ===")
 print(f"  - Graph built and stored in adata.uns['integration_edge_index']")
 print(f"  - X_gcn stored in adata.obsm['X_gcn']")
 if params.umap_key in adata.obsm:

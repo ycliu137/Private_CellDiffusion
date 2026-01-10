@@ -46,23 +46,31 @@ if METRIC_TYPE_ROW in df.index:
     print(f"\nRemoving '{METRIC_TYPE_ROW}' row from data")
     df = df.drop(METRIC_TYPE_ROW)
 
-# Find all graph method rows (X_dif_{method})
-print(f"\n=== Finding graph building methods in results ===")
-method_rows = {}
+# Find all graph method rows (X_dif_{method} and X_gcn_{method})
+print(f"\n=== Finding integration methods in results ===")
+method_rows = {}  # {(method, integration_type): row_name}
 for method_name in df.index:
     method_str = str(method_name)
-    # Look for X_dif_{method} pattern
+    # Look for X_dif_{method} pattern (CellDiffusion)
     if method_str.startswith('X_dif_'):
         method_key = method_str.replace('X_dif_', '')
-        method_rows[method_key] = method_name
-        print(f"Found method: {method_key} -> {method_name}")
+        method_rows[(method_key, 'CellDiffusion')] = method_name
+        print(f"Found CellDiffusion method: {method_key} -> {method_name}")
+    # Look for X_gcn_{method} pattern (GCN)
+    elif method_str.startswith('X_gcn_'):
+        method_key = method_str.replace('X_gcn_', '')
+        method_rows[(method_key, 'GCN')] = method_name
+        print(f"Found GCN method: {method_key} -> {method_name}")
 
 if len(method_rows) == 0:
-    raise ValueError("Could not find any X_dif methods in results table. Available methods: " + str(list(df.index)))
+    raise ValueError("Could not find any X_dif or X_gcn methods in results table. Available methods: " + str(list(df.index)))
 
-# Sort methods for consistent ordering
-sorted_methods = sorted(method_rows.keys())
-print(f"\nFound {len(sorted_methods)} graph building methods: {sorted_methods}")
+# Extract unique graph building methods and integration types
+all_method_keys = sorted(set(method for method, _ in method_rows.keys()))
+integration_types = ['CellDiffusion', 'GCN']
+print(f"\nFound {len(method_rows)} integration methods across {len(all_method_keys)} graph building methods")
+print(f"Graph building methods: {all_method_keys}")
+print(f"Integration types: {integration_types}")
 
 # Extract the three aggregate score columns
 aggregate_score_cols = {
@@ -93,57 +101,75 @@ if len(found_scores) == 0:
 for col_name in found_scores.values():
     df[col_name] = pd.to_numeric(df[col_name], errors='coerce')
 
-# Extract scores for each method
-scores_data = {}
-for method_key in sorted_methods:
-    method_name = method_rows[method_key]
-    scores_data[method_key] = {}
+# Extract scores for each method and integration type
+scores_data = {}  # {(method, integration_type): {score_name: value}}
+for (method_key, integration_type), method_name in method_rows.items():
+    key = (method_key, integration_type)
+    scores_data[key] = {}
     for score_name, col_name in found_scores.items():
         if col_name in df.columns:
             value = df.loc[method_name, col_name]
             if pd.isna(value):
-                print(f"  Warning: {score_name} is NaN for {method_key}")
+                print(f"  Warning: {score_name} is NaN for {method_key} ({integration_type})")
                 value = 0.0
-            scores_data[method_key][score_name] = float(value)
-            print(f"  {method_key} - {score_name}: {value:.4f}")
+            scores_data[key][score_name] = float(value)
+            print(f"  {method_key} ({integration_type}) - {score_name}: {value:.4f}")
 
 # Create bar plot
 print(f"\n=== Creating bar plot ===")
 
 # Set up plot with dynamic size based on number of methods
-n_methods = len(sorted_methods)
+n_methods = len(all_method_keys)
 n_scores = len(found_scores)
-fig_width = max(14, n_methods * 2.5)  # At least 2.5 units per method
+n_integration_types = len(integration_types)
+fig_width = max(16, n_methods * 3.0)  # At least 3.0 units per method to fit both integration types
 fig, ax = plt.subplots(figsize=(fig_width, 8))
 
 # Set up bar positions
 x = np.arange(n_methods)  # x positions for methods
-width = 0.28  # Width of bars (reduced for better spacing)
+width = 0.12  # Width of bars (smaller to fit more bars)
 
 # Professional color palette
-colors = {
+score_colors = {
     'Total': '#4472C4',  # Rich blue
     'Batch correction': '#70AD47',  # Green
     'Bio conservation': '#C55A11'  # Warm orange-red
 }
+# Different patterns/shades for integration types
+integration_alpha = {'CellDiffusion': 0.9, 'GCN': 0.7}
+integration_edge = {'CellDiffusion': 'white', 'GCN': 'gray'}
 
 score_names = list(found_scores.keys())
 
-# Plot bars for each aggregate score
-for i, (score_name, col_name) in enumerate(found_scores.items()):
-    values = [scores_data[method][score_name] for method in sorted_methods]
-    offset = (i - 1) * width  # Center the bars
-    color = colors.get(score_name, plt.cm.tab10(i))
-    ax.bar(x + offset, values, width, label=score_name, color=color, 
-           alpha=0.9, edgecolor='white', linewidth=1.2, zorder=3)
+# Plot bars: for each method, show CellDiffusion and GCN side by side for each score
+bar_idx = 0
+for i, score_name in enumerate(score_names):
+    for j, integration_type in enumerate(integration_types):
+        values = []
+        for method_key in all_method_keys:
+            key = (method_key, integration_type)
+            values.append(scores_data.get(key, {}).get(score_name, 0.0))
+        
+        offset = bar_idx * width - (n_scores * n_integration_types * width) / 2 + width / 2
+        color = score_colors.get(score_name, plt.cm.tab10(i))
+        
+        bars = ax.bar(x + offset, values, width,
+                     alpha=integration_alpha[integration_type],
+                     edgecolor=integration_edge[integration_type],
+                     linewidth=1.2,
+                     color=color,
+                     label=f'{score_name} ({integration_type})' if j == 0 else '',
+                     zorder=3)
+        
+        bar_idx += 1
 
 # Customize plot
 ax.set_xlabel('Graph Building Method', fontsize=12, fontweight='bold', labelpad=10)
 ax.set_ylabel('Score', fontsize=12, fontweight='bold', labelpad=10)
-ax.set_title('SCIB Evaluation (Mesenchymal Lineage): Aggregate Scores Comparison - Graph Building Methods', 
+ax.set_title('SCIB Evaluation (Mesenchymal Lineage): Aggregate Scores Comparison (CellDiffusion & GCN)', 
              fontsize=14, fontweight='bold', pad=15)
 ax.set_xticks(x)
-ax.set_xticklabels(sorted_methods, rotation=45, ha='right', fontsize=10)
+ax.set_xticklabels(all_method_keys, rotation=45, ha='right', fontsize=10)
 
 # Improve grid styling
 ax.grid(True, alpha=0.2, linestyle='-', linewidth=0.5, axis='y', zorder=0)
@@ -172,8 +198,8 @@ legend.get_frame().set_linewidth(0.8)
 
 # Set y-axis limits dynamically based on max value
 all_values = []
-for method in sorted_methods:
-    all_values.extend([scores_data[method][score] for score in found_scores.keys()])
+for key in scores_data.keys():
+    all_values.extend(list(scores_data[key].values()))
 min_val = min(all_values) if all_values else 0
 max_val = max(all_values) if all_values else 1
 y_range = max_val - min_val
@@ -188,15 +214,20 @@ ax.tick_params(axis='both', which='major', length=6, width=1.0)
 ax.tick_params(axis='both', which='minor', length=3, width=0.5)
 
 # Add value labels on bars (only if bars are tall enough)
-for i, (score_name, col_name) in enumerate(found_scores.items()):
-    values = [scores_data[method][score_name] for method in sorted_methods]
-    offset = (i - 1) * width
-    for j, (method, v) in enumerate(zip(sorted_methods, values)):
-        # Only add label if bar is tall enough (>5% of max height)
-        if v > (max_val - min_val) * 0.05:
-            ax.text(j + offset, v + y_padding * 0.3, f'{v:.3f}', 
-                    ha='center', va='bottom', fontsize=9, fontweight='bold',
-                    zorder=4)
+for i, score_name in enumerate(score_names):
+    for j, integration_type in enumerate(integration_types):
+        values = []
+        for method_key in all_method_keys:
+            key = (method_key, integration_type)
+            values.append(scores_data.get(key, {}).get(score_name, 0.0))
+        
+        offset = (i * n_integration_types + j) * width - (n_scores * n_integration_types * width) / 2 + width / 2
+        for k, (method_key, v) in enumerate(zip(all_method_keys, values)):
+            # Only add label if bar is tall enough (>5% of max height)
+            if v > (max_val - min_val) * 0.05:
+                ax.text(k + offset, v + y_padding * 0.3, f'{v:.3f}', 
+                        ha='center', va='bottom', fontsize=8, fontweight='bold',
+                        zorder=4)
 
 plt.tight_layout()
 
@@ -229,7 +260,8 @@ print(f"Also saved PNG version: {png_output}")
 plt.close()
 
 print(f"Bar plot saved successfully!")
-print(f"  Compared methods: {sorted_methods}")
+print(f"  Compared graph methods: {all_method_keys}")
+print(f"  Integration types: {integration_types}")
 print(f"  Aggregate scores: {list(found_scores.keys())}")
 
 print("\n=== Plotting complete! ===")

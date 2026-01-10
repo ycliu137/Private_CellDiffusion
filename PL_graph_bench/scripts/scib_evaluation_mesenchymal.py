@@ -45,16 +45,23 @@ print(f"Number of Mesenchymal cells: {adata.shape[0]} (out of {original_n_cells}
 if adata.shape[0] == 0:
     raise ValueError("No Mesenchymal lineage cells found in the data")
 
-# Get all X_dif_{method} keys from obsm
-print(f"\n=== Extracting X_dif representations ===")
+# Get all X_dif_{method} and X_gcn_{method} keys from obsm
+print(f"\n=== Extracting integration representations ===")
 x_dif_keys = [key for key in adata.obsm.keys() if key.startswith('X_dif_')]
-x_dif_keys = sorted(x_dif_keys)  # Sort alphabetically
+x_gcn_keys = [key for key in adata.obsm.keys() if key.startswith('X_gcn_')]
+all_embedding_keys = sorted(x_dif_keys + x_gcn_keys)  # Sort alphabetically
+
 print(f"Found {len(x_dif_keys)} X_dif representations:")
 for key in x_dif_keys:
     print(f"  - {key}: shape {adata.obsm[key].shape}")
 
-if len(x_dif_keys) == 0:
-    raise ValueError("No X_dif representations found in adata.obsm")
+if len(x_gcn_keys) > 0:
+    print(f"Found {len(x_gcn_keys)} X_gcn representations:")
+    for key in x_gcn_keys:
+        print(f"  - {key}: shape {adata.obsm[key].shape}")
+
+if len(all_embedding_keys) == 0:
+    raise ValueError("No X_dif or X_gcn representations found in adata.obsm")
 
 # Determine pre-integrated embedding key (use X_fae if available)
 pre_integrated_key = None
@@ -66,7 +73,7 @@ elif 'X_pca' in adata.obsm:
     print(f"\nUsing 'X_pca' as pre-integrated embedding")
 else:
     # Use the first available representation as fallback
-    available_keys = [k for k in adata.obsm.keys() if not k.startswith('X_dif_')]
+    available_keys = [k for k in adata.obsm.keys() if not (k.startswith('X_dif_') or k.startswith('X_gcn_'))]
     if available_keys:
         pre_integrated_key = available_keys[0]
         print(f"\nWarning: Using '{pre_integrated_key}' as pre-integrated embedding (fallback)")
@@ -80,7 +87,7 @@ bio_cons = BioConservation(isolated_labels=False, clisi_knn=False)
 print(f"\n=== Running SCIB benchmark (Mesenchymal lineage only) ===")
 print(f"  Batch key: {params.batch_key}")
 print(f"  Label key: {params.label_key}")
-print(f"  Embedding keys: {x_dif_keys}")
+print(f"  Embedding keys: {all_embedding_keys}")
 if pre_integrated_key:
     print(f"  Pre-integrated key: {pre_integrated_key}")
 
@@ -89,7 +96,7 @@ bm = Benchmarker(
     adata,
     batch_key=params.batch_key,
     label_key=params.label_key,
-    embedding_obsm_keys=x_dif_keys,
+    embedding_obsm_keys=all_embedding_keys,
     pre_integrated_embedding_obsm_key=pre_integrated_key,
     batch_correction_metrics=batch_corr,
     bio_conservation_metrics=bio_cons,

@@ -90,19 +90,33 @@ has_lineage = lineage_key in adata.obs.columns
 # Plot each UMAP
 for i, umap_key in enumerate(umap_keys_available):
     # Convert umap_key to friendly display name
-    # Extract method name from key (e.g., X_umap_dif_OMNN-Harmony -> OMNN-Harmony)
+    # Extract method name and integration type from key
+    # Patterns: X_umap_dif_{method} (CellDiffusion) or X_umap_gcn_{method} (GCN)
     display_name = umap_key
     if 'X_umap_dif_' in umap_key:
-        # Extract method name after X_umap_dif_
+        # Extract method name after X_umap_dif_ (CellDiffusion)
         method_name = umap_key.replace('X_umap_dif_', '')
-        display_name = method_name if method_name else "CellDiffusion"
+        display_name = f"{method_name} (CellDiffusion)" if method_name else "CellDiffusion"
+    elif 'X_umap_gcn_' in umap_key:
+        # Extract method name after X_umap_gcn_ (GCN)
+        method_name = umap_key.replace('X_umap_gcn_', '')
+        display_name = f"{method_name} (GCN)" if method_name else "GCN"
     elif 'umap_dif_' in umap_key.lower():
-        # Try to extract from other patterns
+        # Try to extract from other patterns (CellDiffusion)
         match = re.search(r'umap[_-]?dif[_-]?(.+)', umap_key, re.IGNORECASE)
         if match:
-            display_name = match.group(1)
+            display_name = f"{match.group(1)} (CellDiffusion)"
         else:
             display_name = "CellDiffusion"
+    elif 'umap_gcn_' in umap_key.lower():
+        # Try to extract from other patterns (GCN)
+        match = re.search(r'umap[_-]?gcn[_-]?(.+)', umap_key, re.IGNORECASE)
+        if match:
+            display_name = f"{match.group(1)} (GCN)"
+        else:
+            display_name = "GCN"
+    elif 'umap' in umap_key.lower() and 'gcn' in umap_key.lower():
+        display_name = "GCN"
     elif 'umap' in umap_key.lower() and 'dif' in umap_key.lower():
         display_name = "CellDiffusion"
     else:
