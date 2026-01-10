@@ -54,15 +54,29 @@ GRAPH_METHODS = config["graph_methods"]
 if not isinstance(GRAPH_METHODS, list):
     GRAPH_METHODS = [GRAPH_METHODS]
 
-# Helper function to get aggregate input files for a dataset
+# Get GCN layers (list)
+NUM_LAYERS_GCN = config["integration_gcn"]["num_layers_gcn"]
+if not isinstance(NUM_LAYERS_GCN, list):
+    NUM_LAYERS_GCN = [NUM_LAYERS_GCN]
+
+# GCN will use the first graph method by default
+GCN_GRAPH_METHOD = GRAPH_METHODS[0] if len(GRAPH_METHODS) > 0 else "OMNN-Harmony"
+
+# Helper function to get aggregate input files for a dataset (CellDiffusion)
 def get_aggregate_input_files(wildcards):
     """Get list of integrated files to aggregate for a dataset"""
     return [str(OUTPUT_BASE_DIR / wildcards.dataset / f"integrated_{method}.h5ad") for method in GRAPH_METHODS]
+
+# Helper function to get GCN aggregate input files for a dataset
+def get_aggregate_gcn_input_files(wildcards):
+    """Get list of GCN integrated files to aggregate for a dataset"""
+    return [str(OUTPUT_BASE_DIR / wildcards.dataset / f"gcn_{GCN_GRAPH_METHOD}_nlayers{num_layers}.h5ad") for num_layers in NUM_LAYERS_GCN]
 
 # Rule all: define final outputs for all datasets
 rule all:
     input:
         expand(str(OUTPUT_BASE_DIR / "{dataset}/integrated_{method}.h5ad"), dataset=DATASETS, method=GRAPH_METHODS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/gcn_{method}_nlayers{num_layers}.h5ad"), dataset=DATASETS, method=[GCN_GRAPH_METHOD], num_layers=NUM_LAYERS_GCN),
         expand(str(OUTPUT_BASE_DIR / "{dataset}/aggregated_all.h5ad"), dataset=DATASETS),
         expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table.csv"), dataset=DATASETS),
         expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_benchmarker.pkl"), dataset=DATASETS),
@@ -136,10 +150,40 @@ rule build_integrate_umap:
     script:
         "scripts/build_integrate_umap.py"
 
+# Rule: Build graph, integrate with GCN, and compute UMAP in one step
+rule build_integrate_umap_gcn:
+    input:
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/encoded.h5ad")
+    output:
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/gcn_{method}_nlayers{num_layers}.h5ad")
+    resources:
+        gpu=1
+    threads: 1
+    params:
+        graph_method = lambda wildcards: wildcards.method,
+        batch_key = config["evaluation"]["batch_key"],
+        k = config["integration_loss_adj"]["k"],
+        n_edges_per_node = config["integration_graph"]["n_edges_per_node"],
+        k_mnn = config["integration_graph"]["k_mnn"],
+        max_epoch = config["integration_gcn"]["max_epoch"],
+        lr = config["integration_gcn"]["lr"],
+        num_features_gcn = config["integration_gcn"]["num_features_gcn"],
+        num_layers_gcn = lambda wildcards: int(wildcards.num_layers),
+        dropout = config["integration_gcn"]["dropout"],
+        device = config["device"],
+        use_rep = "X_gcn",
+        umap_key = lambda wildcards: f"X_umap_gcn_{wildcards.method}_nlayers{wildcards.num_layers}",
+        n_neighbors = config["umap"]["n_neighbors"],
+        n_pcs = config["umap"]["n_pcs"]
+    script:
+        "scripts/build_integrate_umap_gcn.py"
+
 # Rule: Aggregate X_dif and UMAP from all graph building method results (optimized to reduce file I/O)
+# Also includes GCN results
 rule aggregate_all:
     input:
-        h5ad_files = get_aggregate_input_files
+        h5ad_files = get_aggregate_input_files,
+        gcn_files = get_aggregate_gcn_input_files
     output:
         h5ad = str(OUTPUT_BASE_DIR / "{dataset}/aggregated_all.h5ad")
     script:

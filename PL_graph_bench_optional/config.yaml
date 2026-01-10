@@ -11,7 +11,7 @@ normalized_data: True
 data:
   input_path: "../data/inputs/integration/"
   # Output directory (relative to project root, or use absolute path)
-  output_dir: "../data/outputs/PL_graph_bench"
+  output_dir: "../data/outputs/PL_graph_bench_optional"
 
 # Preprocessing parameters
 preprocess:
@@ -55,6 +55,14 @@ integration_diffusion:
   num_heads_diffusion: 8
   num_steps_diffusion: 8
   time_increment_diffusion: 0.2
+
+# Integration GCN parameters
+integration_gcn:
+  max_epoch: 2000
+  lr: 0.001
+  num_features_gcn: 50
+  num_layers_gcn: 2  # Number of GCN layers to test
+  dropout: 0.0
 
 # Evaluation parameters
 evaluation:

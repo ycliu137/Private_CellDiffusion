@@ -56,6 +56,14 @@ integration_diffusion:
   num_steps_diffusion: 8
   time_increment_diffusion: 0.2
 
+# Integration GCN parameters
+integration_gcn:
+  max_epoch: 2000
+  lr: 0.001
+  num_features_gcn: 50
+  num_layers_gcn: 2  # Number of GCN layers to test
+  dropout: 0.0
+
 # Evaluation parameters
 evaluation:
   label_key: "labels"

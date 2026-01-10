@@ -157,4 +157,3 @@ base_adata.write(output_h5ad)
 print(f"  Saved successfully!")
 
 print("\n=== Aggregation complete! ===")
-

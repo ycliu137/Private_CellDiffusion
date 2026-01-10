@@ -30,16 +30,23 @@ print(f"Input file: {input_h5ad}")
 adata = sc.read_h5ad(input_h5ad)
 print(f"Data shape: {adata.shape}")
 
-# Get all X_dif_{method} keys from obsm
-print(f"\n=== Extracting X_dif representations ===")
+# Get all X_dif_{method} and X_gcn_{method} keys from obsm
+print(f"\n=== Extracting integration representations ===")
 x_dif_keys = [key for key in adata.obsm.keys() if key.startswith('X_dif_')]
-x_dif_keys = sorted(x_dif_keys)  # Sort alphabetically
+x_gcn_keys = [key for key in adata.obsm.keys() if key.startswith('X_gcn_')]
+all_embedding_keys = sorted(x_dif_keys + x_gcn_keys)  # Sort alphabetically
+
 print(f"Found {len(x_dif_keys)} X_dif representations:")
 for key in x_dif_keys:
     print(f"  - {key}: shape {adata.obsm[key].shape}")
 
-if len(x_dif_keys) == 0:
-    raise ValueError("No X_dif representations found in adata.obsm")
+if len(x_gcn_keys) > 0:
+    print(f"Found {len(x_gcn_keys)} X_gcn representations:")
+    for key in x_gcn_keys:
+        print(f"  - {key}: shape {adata.obsm[key].shape}")
+
+if len(all_embedding_keys) == 0:
+    raise ValueError("No X_dif or X_gcn representations found in adata.obsm")
 
 # Determine pre-integrated embedding key
 # Use X_fae if available, otherwise use the first PCA representation
@@ -65,7 +72,7 @@ batch_corr = BatchCorrection(pcr_comparison=False)
 print(f"\n=== Running SCIB benchmark ===")
 print(f"  Batch key: {params.batch_key}")
 print(f"  Label key: {params.label_key}")
-print(f"  Embedding keys: {x_dif_keys}")
+print(f"  Embedding keys: {all_embedding_keys}")
 if pre_integrated_key:
     print(f"  Pre-integrated key: {pre_integrated_key}")
 
@@ -74,7 +81,7 @@ bm = Benchmarker(
     adata,
     batch_key=params.batch_key,
     label_key=params.label_key,
-    embedding_obsm_keys=x_dif_keys,
+    embedding_obsm_keys=all_embedding_keys,
     pre_integrated_embedding_obsm_key=pre_integrated_key,
     batch_correction_metrics=batch_corr,
     n_jobs=params.n_jobs if hasattr(params, 'n_jobs') else 1,

@@ -29,8 +29,8 @@ if METRIC_TYPE_ROW in df.index:
     print(f"\nRemoving '{METRIC_TYPE_ROW}' row from data")
     df = df.drop(METRIC_TYPE_ROW)
 
-# Find all graph method rows (X_dif_{method})
-print(f"\n=== Finding graph building methods in results ===")
+# Find all graph method rows (X_dif_{method} and X_gcn_{method})
+print(f"\n=== Finding integration methods in results ===")
 method_rows = {}
 for method_name in df.index:
     method_str = str(method_name)
@@ -38,10 +38,15 @@ for method_name in df.index:
     if method_str.startswith('X_dif_'):
         method_key = method_str.replace('X_dif_', '')
         method_rows[method_key] = method_name
-        print(f"Found method: {method_key} -> {method_name}")
+        print(f"Found CellDiffusion method: {method_key} -> {method_name}")
+    # Look for X_gcn_{method} pattern
+    elif method_str.startswith('X_gcn_'):
+        method_key = method_str.replace('X_gcn_', '')
+        method_rows[method_key] = method_name
+        print(f"Found GCN method: {method_key} -> {method_name}")
 
 if len(method_rows) == 0:
-    raise ValueError("Could not find any X_dif methods in results table. Available methods: " + str(list(df.index)))
+    raise ValueError("Could not find any X_dif or X_gcn methods in results table. Available methods: " + str(list(df.index)))
 
 # Sort methods for consistent ordering
 sorted_methods = sorted(method_rows.keys())
@@ -116,7 +121,7 @@ for i, (score_name, col_name) in enumerate(found_scores.items()):
 # Customize plot
 ax.set_xlabel('Graph Building Method', fontsize=12, fontweight='bold')
 ax.set_ylabel('Score Value', fontsize=12, fontweight='bold')
-ax.set_title('SCIB Evaluation: Aggregate Scores Comparison - Graph Building Methods', fontsize=14, fontweight='bold')
+ax.set_title('SCIB Evaluation: Aggregate Scores Comparison - Integration Methods (CellDiffusion & GCN)', fontsize=14, fontweight='bold')
 ax.set_xticks(x)
 ax.set_xticklabels(sorted_methods, rotation=45, ha='right')  # Rotate labels for readability
 ax.legend(loc='best', fontsize=11, framealpha=0.9)
