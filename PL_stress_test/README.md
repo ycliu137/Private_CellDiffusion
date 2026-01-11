@@ -133,7 +133,7 @@ The pipeline consists of three main steps:
    - Combine individual metrics files into a single CSV
 
 5. **Plot Metrics** (`plot_metrics` rule)
-   - Generate a line plot comparing neighbor purity before and after integration vs k_added
+   - Generate a line plot comparing neighbor purity before integration and after integration (MNN and KNN) vs k_added
    - Saves plot as PDF
 
 ## Output Files
@@ -141,8 +141,8 @@ The pipeline consists of three main steps:
 - `data/outputs/stress_tests_pbmc10k/preprocessed.h5ad` - Preprocessed data
 - `data/outputs/stress_tests_pbmc10k/encoded.h5ad` - Feature encoded data
 - `data/outputs/stress_tests_pbmc10k/scDiffusion_integration_kadd{k_add}.h5ad` - Final integrated data for each k_add combination (k is fixed in config)
-- `data/outputs/stress_tests_pbmc10k/metrics_log.csv` - Metrics log with purity scores for all k_add combinations
-- `data/outputs/stress_tests_pbmc10k/metrics_plot.pdf` - Line plot showing neighbor purity before and after integration vs k_added
+- `data/outputs/stress_tests_pbmc10k/metrics_log.csv` - Metrics log with purity scores for all k_add combinations (includes neighbor_purity_before, mnn_neighbor_purity_after, knn_neighbor_purity_after)
+- `data/outputs/stress_tests_pbmc10k/metrics_plot.pdf` - Line plot showing neighbor purity before integration and after integration (MNN and KNN) vs k_added
 
 ## Configuration
 

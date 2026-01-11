@@ -130,15 +130,25 @@ cd.inte.integration_diffusion(
 
 # Step 6: Evaluate MNN neighbor purity after integration
 print("\n=== Evaluating MNN neighbor purity (after integration) ===")
-neighbor_purity_after, _ = cd.eval.evaluate_mnn_neighbor_purity(
+mnn_neighbor_purity_after, _ = cd.eval.evaluate_mnn_neighbor_purity(
     adata,
     use_rep='X_dif',
     batch_key=params.batch_key,
     label_key=params.label_key,
     k_mnn=params.eval_k_mnn
 )
-print(f"Neighbor purity (after): {neighbor_purity_after}")
 
+print("\n=== Evaluating KNN neighbor purity (after integration) ===")
+knn_neighbor_purity_after, _ = cd.eval.evaluate_knn_neighbor_purity(
+    adata,
+    use_rep='X_dif',
+    label_key=params.label_key,
+    k=params.eval_k_mnn
+)
+
+
+print(f"MNN neighbor purity (after): {mnn_neighbor_purity_after}")
+print(f"KNN neighbor purity (after): {knn_neighbor_purity_after}")
 # Step 7: Compute UMAP for visualization
 print("\n=== Computing UMAP ===")
 sc.pp.neighbors(adata, use_rep='X_dif', n_neighbors=50, n_pcs=50)
@@ -158,8 +168,8 @@ k_add_value = getattr(params, 'k_add_value', params.k_add)
 # Write metrics with header (each combination writes to its own file)
 with open(metrics_csv, mode="w", newline="") as f:
     writer = csv.writer(f)
-    writer.writerow(["k_added", "neighbor_purity_before", "neighbor_purity_after"])
-    writer.writerow([k_add_value, neighbor_purity_before, neighbor_purity_after])
+    writer.writerow(["k_added", "neighbor_purity_before", "mnn_neighbor_purity_after", "knn_neighbor_purity_after"])
+    writer.writerow([k_add_value, neighbor_purity_before, mnn_neighbor_purity_after, knn_neighbor_purity_after])
 
 print("\n=== Integration pipeline complete! ===")
 
