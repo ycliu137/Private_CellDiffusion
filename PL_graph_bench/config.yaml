@@ -11,7 +11,7 @@ normalized_data: True
 data:
   input_path: "../data/inputs/integration/"
   # Output directory (relative to project root, or use absolute path)
-  output_dir: "../data/outputs/PL_graph_bench"
+  output_dir: "../data/outputs/PL_graph_bench_1"
 
 # Preprocessing parameters
 preprocess:
