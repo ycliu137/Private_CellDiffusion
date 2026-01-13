@@ -1,2 +1,3 @@
 from sc_evaluation.neighbor_purity import evaluate_neighbor_purity, evaluate_mnn_neighbor_purity, evaluate_knn_neighbor_purity
 from sc_evaluation.random_edges import add_random_edges
+from sc_evaluation.collapse_diag import intrinsic_dimension_knn, intrinsic_dimension_at_variance_percentage, variance_explained_by_embedding
