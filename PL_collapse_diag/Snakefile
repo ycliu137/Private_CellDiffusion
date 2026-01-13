@@ -100,11 +100,19 @@ def get_aggregate_metrics_mesenchymal_files(wildcards):
     gcn_files = [str(OUTPUT_BASE_DIR / wildcards.dataset / f"purity_gcn_mesenchymal_nlayers{num_layers}.csv") for num_layers in NUM_LAYERS_GCN]
     return celldiffusion_files + gcn_files
 
+def get_aggregate_collapse_metrics_files(wildcards):
+    """Get list of collapse metrics CSV files to aggregate for a dataset"""
+    celldiffusion_files = [str(OUTPUT_BASE_DIR / wildcards.dataset / f"collapse_metrics_celldiffusion_nsteps{num_steps}.csv") for num_steps in NUM_STEPS_DIFFUSION]
+    gcn_files = [str(OUTPUT_BASE_DIR / wildcards.dataset / f"collapse_metrics_gcn_nlayers{num_layers}.csv") for num_layers in NUM_LAYERS_GCN]
+    return celldiffusion_files + gcn_files
+
 # Rule all: define final outputs for all datasets
 rule all:
     input:
         expand(str(OUTPUT_BASE_DIR / "{dataset}/aggregated_metrics.csv"), dataset=DATASETS),
         expand(str(OUTPUT_BASE_DIR / "{dataset}/collapse_diagnostic_plot.pdf"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/aggregated_collapse_metrics.csv"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/collapse_metrics_plot.pdf"), dataset=DATASETS),
         expand(str(OUTPUT_BASE_DIR / "{dataset}/aggregated_embeddings.h5ad"), dataset=DATASETS),
         expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table.csv"), dataset=DATASETS),
         expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_benchmarker.pkl"), dataset=DATASETS),
@@ -266,6 +274,34 @@ rule evaluate_purity_gcn_mesenchymal:
     script:
         "scripts/evaluate_purity_mesenchymal.py"
 
+# Rule: Evaluate collapse metrics for CellDiffusion results
+rule evaluate_collapse_metrics_celldiffusion:
+    input:
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/celldiffusion_nsteps{num_steps}.h5ad")
+    output:
+        csv = str(OUTPUT_BASE_DIR / "{dataset}/collapse_metrics_celldiffusion_nsteps{num_steps}.csv")
+    params:
+        method = "CellDiffusion",
+        network_layers = lambda wildcards: int(wildcards.num_steps),
+        k = config["evaluation"]["collapse_metrics"]["k"],
+        variance_percentage = config["evaluation"]["collapse_metrics"]["variance_percentage"]
+    script:
+        "scripts/evaluate_collapse_metrics.py"
+
+# Rule: Evaluate collapse metrics for GCN results
+rule evaluate_collapse_metrics_gcn:
+    input:
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/gcn_nlayers{num_layers}.h5ad")
+    output:
+        csv = str(OUTPUT_BASE_DIR / "{dataset}/collapse_metrics_gcn_nlayers{num_layers}.csv")
+    params:
+        method = "GCN",
+        network_layers = lambda wildcards: int(wildcards.num_layers),
+        k = config["evaluation"]["collapse_metrics"]["k"],
+        variance_percentage = config["evaluation"]["collapse_metrics"]["variance_percentage"]
+    script:
+        "scripts/evaluate_collapse_metrics.py"
+
 # Rule: Aggregate all metrics
 rule aggregate_metrics:
     input:
@@ -274,6 +310,15 @@ rule aggregate_metrics:
         csv = str(OUTPUT_BASE_DIR / "{dataset}/aggregated_metrics.csv")
     script:
         "scripts/aggregate_metrics.py"
+
+# Rule: Aggregate collapse metrics
+rule aggregate_collapse_metrics:
+    input:
+        csv_files = get_aggregate_collapse_metrics_files
+    output:
+        csv = str(OUTPUT_BASE_DIR / "{dataset}/aggregated_collapse_metrics.csv")
+    script:
+        "scripts/aggregate_collapse_metrics.py"
 
 # Rule: Aggregate all metrics for Mesenchymal lineage
 rule aggregate_metrics_mesenchymal:
@@ -338,6 +383,15 @@ rule plot_collapse_diag:
         pdf = str(OUTPUT_BASE_DIR / "{dataset}/collapse_diagnostic_plot.pdf")
     script:
         "scripts/plot_collapse_diag.py"
+
+# Rule: Plot collapse metrics (intrinsic dimension and variance explained)
+rule plot_collapse_metrics:
+    input:
+        csv = str(OUTPUT_BASE_DIR / "{dataset}/aggregated_collapse_metrics.csv")
+    output:
+        pdf = str(OUTPUT_BASE_DIR / "{dataset}/collapse_metrics_plot.pdf")
+    script:
+        "scripts/plot_collapse_metrics.py"
 
 # Rule: Plot collapse diagnostic for Mesenchymal lineage (neighbor purity)
 rule plot_collapse_diag_mesenchymal:
