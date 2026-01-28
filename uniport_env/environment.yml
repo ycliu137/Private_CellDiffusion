@@ -1,0 +1,34 @@
+# Conda environment for uniPort pipeline (integration + scib evaluation)
+# Create with: conda env create -f uniport_env/environment.yml
+# Activate with: conda activate uniport_env
+
+name: uniport_env
+
+channels:
+  - conda-forge
+  - pytorch
+  - nvidia
+
+dependencies:
+  - python=3.11
+  - numpy>=1.24,<3
+  - pandas>=2.0
+  - scipy>=1.10
+  - scikit-learn>=1.2
+  - matplotlib>=3.7
+  - networkx>=3.0
+  - pytorch
+  - pytorch-cuda  # omit if CPU-only; use pytorch-cuda=12.1 etc. to pin CUDA
+  - pip
+
+  - pip:
+    - uniport
+    - scanpy>=1.9
+    - leidenalg>=0.10
+    - python-igraph>=0.10
+    - umap-learn>=0.5
+    - scvi-tools
+    - scib-metrics
+    - snakemake>=7.0
+    - pyyaml>=6.0
+    - ipykernel

@@ -1,0 +1,20 @@
+# Pip-only dependencies for uniPort pipeline (use with existing conda env)
+# Install: pip install -r uniport_env/requirements.txt
+# Ensure Python 3.10–3.12, and install PyTorch (+ CUDA if needed) separately.
+
+numpy>=1.24,<3
+pandas>=2.0
+scipy>=1.10
+scikit-learn>=1.2
+matplotlib>=3.7
+networkx>=3.0
+uniport
+scanpy>=1.9
+leidenalg>=0.10
+python-igraph>=0.10
+umap-learn>=0.5
+scvi-tools
+scib-metrics
+snakemake>=7.0
+PyYAML>=6.0
+ipykernel

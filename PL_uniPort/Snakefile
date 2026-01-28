@@ -1,0 +1,54 @@
+"""
+Snakemake workflow for uniPort integration + scib evaluation.
+"""
+from pathlib import Path
+
+configfile: "config.yaml"
+
+def get_output_dir():
+    base = config["data"]["output_dir"]
+    p = Path(base)
+    return p if p.is_absolute() else p.resolve()
+
+OUTPUT_DIR = get_output_dir()
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+rule all:
+    input:
+        str(OUTPUT_DIR / "uniport_integrated.h5ad"),
+        str(OUTPUT_DIR / "scib_benchmarker.pkl"),
+        str(OUTPUT_DIR / "scib_results_table.csv"),
+        str(OUTPUT_DIR / "scib_results_table_plot.pdf"),
+        str(OUTPUT_DIR / "scib_comparison_barplot.pdf"),
+
+rule integrate_uniport:
+    input:
+        config = "config.yaml",
+    output:
+        h5ad = str(OUTPUT_DIR / "uniport_integrated.h5ad"),
+    params:
+        output_dir = str(OUTPUT_DIR),
+    script:
+        "scripts/integrate_uniport.py",
+
+rule scib_evaluation:
+    input:
+        h5ad = str(OUTPUT_DIR / "uniport_integrated.h5ad"),
+    output:
+        results = str(OUTPUT_DIR / "scib_benchmarker.pkl"),
+        table = str(OUTPUT_DIR / "scib_results_table.csv"),
+        plot = str(OUTPUT_DIR / "scib_results_table_plot.pdf"),
+    params:
+        batch_key = config["evaluation"]["batch_key"],
+        label_key = config["evaluation"]["label_key"],
+        n_jobs = config["scib_evaluation"]["n_jobs"],
+    script:
+        "scripts/scib_evaluation.py",
+
+rule scib_evaluation_plot:
+    input:
+        table = str(OUTPUT_DIR / "scib_results_table.csv"),
+    output:
+        pdf = str(OUTPUT_DIR / "scib_comparison_barplot.pdf"),
+    script:
+        "scripts/scib_evaluation_plot.py",

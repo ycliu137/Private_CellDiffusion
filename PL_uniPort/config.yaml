@@ -1,0 +1,33 @@
+# PL_uniPort: uniPort integration + scib evaluation
+# Datasets: 10x MTX folders. Each entry: {path: "...", prefix: "..."}
+
+data:
+  # List of {path, prefix}. Path = directory containing matrix.mtx, genes.tsv, barcodes.tsv
+  datasets:
+    - { path: "/home/ziyinghuang/project/survey/dataset/NM/63", prefix: "63" }
+    - { path: "/home/ziyinghuang/project/survey/dataset/NM/19", prefix: "19" }
+    - { path: "/home/ziyinghuang/project/survey/dataset/NM/39", prefix: "39" }
+    - { path: "/home/ziyinghuang/project/survey/dataset/NM/29", prefix: "29" }
+  output_dir: "../data/outputs/PL_uniPort"
+
+uniport:
+  n_hvg_common: 2000
+  n_hvg_specific: 2000
+  mode: "h"
+  lambda_s: 1.0
+  source_name: "source"
+  use_rep: "X"   # per-dataset representation name; used as ["X","X",...]
+
+umap:
+  min_dist: 0.3
+  n_neighbors: 15
+
+leiden:
+  resolution: 0.02
+
+evaluation:
+  batch_key: "source"
+  label_key: "domain_id"
+
+scib_evaluation:
+  n_jobs: 1
