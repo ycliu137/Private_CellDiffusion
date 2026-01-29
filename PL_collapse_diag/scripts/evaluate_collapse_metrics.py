@@ -1,5 +1,5 @@
 """
-Evaluate collapse diagnostic metrics: intrinsic_dimension_knn, intrinsic_dimension_at_variance_percentage, variance_explained_by_embedding
+Evaluate collapse diagnostic metrics: intrinsic_dimension_knn, intrinsic_dimension_at_variance_percentage, variance_explained_by_embedding, neighbor_purity
 """
 import sys
 from pathlib import Path
@@ -10,6 +10,7 @@ sys.path.insert(0, str(project_root))
 
 import scanpy as sc
 import pandas as pd
+import celldiffusion as cd
 from sc_evaluation.collapse_diag import (
     intrinsic_dimension_knn,
     intrinsic_dimension_at_variance_percentage,
@@ -76,6 +77,26 @@ if adata.X is not None:
 else:
     print(f"\n  Warning: adata.X is None, skipping variance_explained_by_embedding")
 
+# 4. Neighbor purity
+neighbor_purity = None
+label_key = params.get("label_key", None)
+k_purity = params.get("k_purity", 50)
+if label_key and label_key in adata.obs:
+    print(f"\n  Computing neighbor_purity...")
+    try:
+        neighbor_purity, _ = cd.eval.evaluate_knn_neighbor_purity(
+            adata,
+            use_rep=use_rep,
+            label_key=label_key,
+            k=k_purity
+        )
+        print(f"    Neighbor purity: {neighbor_purity:.4f}")
+    except Exception as e:
+        print(f"    Warning: Failed to compute neighbor_purity: {e}")
+        neighbor_purity = None
+else:
+    print(f"\n  Warning: label_key not provided or not found in adata.obs, skipping neighbor_purity")
+
 # Save results to CSV
 print(f"\n=== Saving results ===")
 results = pd.DataFrame({
@@ -84,8 +105,10 @@ results = pd.DataFrame({
     'intrinsic_dimension_knn': [intrinsic_dim_knn],
     'intrinsic_dimension_variance': [intrinsic_dim_var],
     'variance_explained': [variance_explained],
+    'neighbor_purity': [neighbor_purity],
     'k': [params.k],
-    'variance_percentage': [params.variance_percentage]
+    'variance_percentage': [params.variance_percentage],
+    'k_purity': [k_purity]
 })
 
 print(f"Saving to: {output_csv}")

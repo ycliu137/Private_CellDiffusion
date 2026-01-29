@@ -39,6 +39,9 @@ integration_graph:
 integration_loss_adj:
   k: 50
 
+# Network layers to test for both CellDiffusion and GCN
+integration_network_layers: [2, 8, 16]
+
 # Integration diffusion parameters (CellDiffusion)
 integration_diffusion:
   max_epoch: 2000

@@ -119,6 +119,7 @@ rule all:
         expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table_plot.pdf"), dataset=DATASETS),
         expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_evaluation_lineplot.pdf"), dataset=DATASETS),
         expand(str(OUTPUT_BASE_DIR / "{dataset}/umap_combined_multipage.pdf"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/umap_network_layers_comparison.pdf"), dataset=DATASETS),
         expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table_mesenchymal.csv"), dataset=DATASETS),
         expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_benchmarker_mesenchymal.pkl"), dataset=DATASETS),
         expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table_plot_mesenchymal.pdf"), dataset=DATASETS),
@@ -284,7 +285,9 @@ rule evaluate_collapse_metrics_celldiffusion:
         method = "CellDiffusion",
         network_layers = lambda wildcards: int(wildcards.num_steps),
         k = config["evaluation"]["collapse_metrics"]["k"],
-        variance_percentage = config["evaluation"]["collapse_metrics"]["variance_percentage"]
+        variance_percentage = config["evaluation"]["collapse_metrics"]["variance_percentage"],
+        label_key = config["evaluation"]["label_key"],
+        k_purity = config["evaluation"]["k"]
     script:
         "scripts/evaluate_collapse_metrics.py"
 
@@ -298,7 +301,9 @@ rule evaluate_collapse_metrics_gcn:
         method = "GCN",
         network_layers = lambda wildcards: int(wildcards.num_layers),
         k = config["evaluation"]["collapse_metrics"]["k"],
-        variance_percentage = config["evaluation"]["collapse_metrics"]["variance_percentage"]
+        variance_percentage = config["evaluation"]["collapse_metrics"]["variance_percentage"],
+        label_key = config["evaluation"]["label_key"],
+        k_purity = config["evaluation"]["k"]
     script:
         "scripts/evaluate_collapse_metrics.py"
 
@@ -392,6 +397,18 @@ rule plot_collapse_metrics:
         pdf = str(OUTPUT_BASE_DIR / "{dataset}/collapse_metrics_plot.pdf")
     script:
         "scripts/plot_collapse_metrics.py"
+
+# Rule: Plot UMAP network layers comparison (2, 8, 16 layers)
+rule plot_umap_network_layers_comparison:
+    input:
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/aggregated_embeddings.h5ad")
+    output:
+        pdf = str(OUTPUT_BASE_DIR / "{dataset}/umap_network_layers_comparison.pdf")
+    params:
+        batch_key = config["evaluation"]["batch_key"],
+        label_key = config["evaluation"]["label_key"]
+    script:
+        "scripts/plot_umap_network_layers.py"
 
 # Rule: Plot collapse diagnostic for Mesenchymal lineage (neighbor purity)
 rule plot_collapse_diag_mesenchymal:
