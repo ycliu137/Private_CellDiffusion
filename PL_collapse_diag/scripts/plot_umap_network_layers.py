@@ -161,10 +161,9 @@ for layer_idx, layer in enumerate(layers_to_plot):
                     color=params.batch_key,
                     ax=axes[layer_idx][0],
                     show=False,
-                    frameon=True,
+                    frameon=False,
                     legend_loc='none',
-                    title=f"L={layer} | CellDiffusion | Batch" if layer_idx == 0 else f"L={layer}",
-                    title_fontsize=14
+                    title=f"L={layer} | CellDiffusion | Batch" if layer_idx == 0 else f"L={layer}"
                 )
                 axes[layer_idx][0].title.set_fontsize(14)
                 axes[layer_idx][0].title.set_fontweight('bold')
@@ -176,10 +175,9 @@ for layer_idx, layer in enumerate(layers_to_plot):
                     color=params.label_key,
                     ax=axes[layer_idx][1],
                     show=False,
-                    frameon=True,
+                    frameon=False,
                     legend_loc='none',
-                    title=f"CellDiffusion | Cell Type" if layer_idx == 0 else "",
-                    title_fontsize=14
+                    title=f"CellDiffusion | Cell Type" if layer_idx == 0 else ""
                 )
                 if layer_idx == 0:
                     axes[layer_idx][1].title.set_fontsize(14)
@@ -218,10 +216,9 @@ for layer_idx, layer in enumerate(layers_to_plot):
                     color=params.batch_key,
                     ax=axes[layer_idx][2],
                     show=False,
-                    frameon=True,
+                    frameon=False,
                     legend_loc='none',
-                    title=f"GCN | Batch" if layer_idx == 0 else "",
-                    title_fontsize=14
+                    title=f"GCN | Batch" if layer_idx == 0 else ""
                 )
                 if layer_idx == 0:
                     axes[layer_idx][2].title.set_fontsize(14)
@@ -234,10 +231,9 @@ for layer_idx, layer in enumerate(layers_to_plot):
                     color=params.label_key,
                     ax=axes[layer_idx][3],
                     show=False,
-                    frameon=True,
+                    frameon=False,
                     legend_loc='none',
-                    title=f"GCN | Cell Type" if layer_idx == 0 else "",
-                    title_fontsize=14
+                    title=f"GCN | Cell Type" if layer_idx == 0 else ""
                 )
                 if layer_idx == 0:
                     axes[layer_idx][3].title.set_fontsize(14)
