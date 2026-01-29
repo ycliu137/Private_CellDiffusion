@@ -136,9 +136,7 @@ for j in range(n_cols):
     ax = fig.add_subplot(gs[n_layers, j])
     legend_axes.append(ax)
 
-# Add main title
-fig.suptitle('Network Architecture Comparison: CellDiffusion vs GCN', 
-             fontsize=20, fontweight='bold', y=0.98)
+# (Main title removed — row labels will indicate layer depth)
 
 # Plot UMAPs for each selected layer
 print(f"\n=== Plotting UMAPs ===")
@@ -162,11 +160,8 @@ for layer_idx, layer in enumerate(layers_to_plot):
                     ax=axes[layer_idx][0],
                     show=False,
                     frameon=False,
-                    legend_loc='none',
-                    title=f"L={layer} | CellDiffusion | Batch" if layer_idx == 0 else f"L={layer}"
+                    legend_loc='none'
                 )
-                axes[layer_idx][0].title.set_fontsize(14)
-                axes[layer_idx][0].title.set_fontweight('bold')
                 
                 # Plot CellDiffusion - Cell Type (Labels)
                 print(f"  Plotting CellDiffusion (cell type)...")
@@ -176,12 +171,8 @@ for layer_idx, layer in enumerate(layers_to_plot):
                     ax=axes[layer_idx][1],
                     show=False,
                     frameon=False,
-                    legend_loc='none',
-                    title=f"CellDiffusion | Cell Type" if layer_idx == 0 else ""
+                    legend_loc='none'
                 )
-                if layer_idx == 0:
-                    axes[layer_idx][1].title.set_fontsize(14)
-                    axes[layer_idx][1].title.set_fontweight('bold')
                 
                 # Clean up
                 del adata.obsm['X_umap']
@@ -217,12 +208,8 @@ for layer_idx, layer in enumerate(layers_to_plot):
                     ax=axes[layer_idx][2],
                     show=False,
                     frameon=False,
-                    legend_loc='none',
-                    title=f"GCN | Batch" if layer_idx == 0 else ""
+                    legend_loc='none'
                 )
-                if layer_idx == 0:
-                    axes[layer_idx][2].title.set_fontsize(14)
-                    axes[layer_idx][2].title.set_fontweight('bold')
                 
                 # Plot GCN - Cell Type (Labels)
                 print(f"  Plotting GCN (cell type)...")
@@ -232,12 +219,8 @@ for layer_idx, layer in enumerate(layers_to_plot):
                     ax=axes[layer_idx][3],
                     show=False,
                     frameon=False,
-                    legend_loc='none',
-                    title=f"GCN | Cell Type" if layer_idx == 0 else ""
+                    legend_loc='none'
                 )
-                if layer_idx == 0:
-                    axes[layer_idx][3].title.set_fontsize(14)
-                    axes[layer_idx][3].title.set_fontweight('bold')
                 
                 # Clean up
                 del adata.obsm['X_umap']
@@ -255,6 +238,28 @@ for layer_idx, layer in enumerate(layers_to_plot):
         print(f"  Warning: GCN data not found for layer {layer}")
         axes[layer_idx][2].text(0.5, 0.5, 'Not available', ha='center', va='center', fontsize=12)
         axes[layer_idx][3].text(0.5, 0.5, 'Not available', ha='center', va='center', fontsize=12)
+
+# Add standardized subplot titles and left-side vertical row labels
+for layer_idx, layer in enumerate(layers_to_plot):
+    # Standard column titles for each subplot column
+    col_titles = ["CellDiffusion | Batch", "CellDiffusion | Cell Type", "GCN | Batch", "GCN | Cell Type"]
+    for j, t in enumerate(col_titles):
+        try:
+            axes[layer_idx][j].set_title(t, fontsize=12, fontweight='bold')
+        except Exception:
+            pass
+
+    # Place a vertical label at the left of the row indicating layer depth (e.g., '2-layers')
+    try:
+        pos = axes[layer_idx][0].get_position()  # Bbox in figure coordinates
+        y_center = pos.y0 + pos.height / 2.0
+        # put the label slightly left of the leftmost axis
+        x_label = pos.x0 - 0.035
+        fig.text(x_label, y_center, f"{layer}-layers", rotation='vertical',
+                 fontsize=16, fontweight='bold', va='center', ha='center')
+    except Exception:
+        # non-fatal; continue if positions not available
+        pass
 
 # Extract legends (batch and labels only) from first available layer
 print(f"\n=== Creating shared legends ===")
