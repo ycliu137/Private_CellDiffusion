@@ -16,6 +16,15 @@ import matplotlib
 matplotlib.use('Agg')  # Use non-interactive backend
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
+from matplotlib import rcParams
+
+# Increase default font sizes for publication-quality larger text
+rcParams['font.size'] = 14
+rcParams['axes.titlesize'] = 16
+rcParams['axes.labelsize'] = 14
+rcParams['xtick.labelsize'] = 12
+rcParams['ytick.labelsize'] = 12
+rcParams['legend.fontsize'] = 14
 
 # Get input file and output from snakemake
 try:
@@ -245,7 +254,9 @@ for layer_idx, layer in enumerate(layers_to_plot):
     col_titles = ["CellDiffusion | Batch", "CellDiffusion | Cell Type", "GCN | Batch", "GCN | Cell Type"]
     for j, t in enumerate(col_titles):
         try:
-            axes[layer_idx][j].set_title(t, fontsize=14, fontweight='bold')
+            axes[layer_idx][j].set_title(t, fontsize=18, fontweight='bold')
+            # increase tick label sizes to match
+            axes[layer_idx][j].tick_params(axis='both', which='major', labelsize=13)
         except Exception:
             pass
 
@@ -254,9 +265,9 @@ for layer_idx, layer in enumerate(layers_to_plot):
         pos = axes[layer_idx][0].get_position()  # Bbox in figure coordinates
         y_center = pos.y0 + pos.height / 2.0
         # put the label slightly left of the leftmost axis, use ha='right' for better alignment
-        x_label = pos.x0 - 0.042
+        x_label = pos.x0 - 0.046
         fig.text(x_label, y_center, f"{layer}-layers", rotation=90,
-                 fontsize=17, fontweight='bold', va='center', ha='right')
+             fontsize=20, fontweight='bold', va='center', ha='right')
     except Exception:
         # non-fatal; continue if positions not available
         pass
@@ -312,10 +323,10 @@ if batch_handles and batch_labels:
     # Create batch legend spanning columns 0-1
     batch_legend = fig.legend(batch_handles, batch_labels,
                               loc='upper left',
-                              frameon=False, fontsize=12,
+                              frameon=False, fontsize=16,
                               ncol=5,  # Multiple columns for batch legend
-                              bbox_to_anchor=(0.08, 0.108),
-                              title='Batch', title_fontsize=13)
+                              bbox_to_anchor=(0.08, 0.25),
+                              title='Batch', title_fontsize=16)
 else:
     legend_axes[0].axis('off')
     legend_axes[1].axis('off')
@@ -326,10 +337,10 @@ if label_handles and label_labels:
     # Create cell type legend spanning columns 2-3
     label_legend = fig.legend(label_handles, label_labels,
                               loc='upper center',
-                              frameon=False, fontsize=12,
+                              frameon=False, fontsize=16,
                               ncol=7,  # Multiple columns for cell type legend
-                              bbox_to_anchor=(0.65, 0.108),
-                              title='Cell Type', title_fontsize=13)
+                              bbox_to_anchor=(0.65, 0.25),
+                              title='Cell Type', title_fontsize=16)
 else:
     legend_axes[2].axis('off')
     legend_axes[3].axis('off')
