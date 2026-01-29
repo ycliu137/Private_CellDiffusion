@@ -17,7 +17,6 @@ output_dir = Path(output_pdf).parent
 output_pdf_stem = Path(output_pdf).stem
 output_combined = output_pdf
 output_intrinsic_knn = output_dir / f"{output_pdf_stem}_intrinsic_dimension_knn.pdf"
-output_intrinsic_var = output_dir / f"{output_pdf_stem}_intrinsic_dimension_variance.pdf"
 output_variance_exp = output_dir / f"{output_pdf_stem}_variance_explained.pdf"
 output_neighbor_pur = output_dir / f"{output_pdf_stem}_neighbor_purity.pdf"
 
@@ -38,8 +37,8 @@ print(f"GCN data points: {len(gcn_df)}")
 celldiffusion_df = celldiffusion_df.sort_values('network_layers')
 gcn_df = gcn_df.sort_values('network_layers')
 
-# Create figure with four subplots in one row
-fig, axes = plt.subplots(1, 4, figsize=(20, 6))
+# Create figure with three subplots in one row (Neighbor Purity first)
+fig, axes = plt.subplots(1, 3, figsize=(15, 6))
 
 # Define colors
 color_celldiffusion = '#1f77b4'
@@ -48,8 +47,39 @@ color_gcn = '#ff7f0e'
 # Get all network layers for x-axis ticks
 all_layers = sorted(df['network_layers'].unique())
 
-# Plot 1: Intrinsic Dimension (KNN)
+# Plot 1: Neighbor Purity (moved to first position)
 ax = axes[0]
+if len(celldiffusion_df) > 0:
+    # Filter out NaN values for neighbor_purity
+    celldiffusion_valid = celldiffusion_df[celldiffusion_df['neighbor_purity'].notna()]
+    if len(celldiffusion_valid) > 0:
+        ax.plot(celldiffusion_valid['network_layers'], celldiffusion_valid['neighbor_purity'], 
+                marker='o', linewidth=3, markersize=10, label='CellDiffusion', 
+                color=color_celldiffusion, alpha=0.8)
+if len(gcn_df) > 0:
+    # Filter out NaN values for neighbor_purity
+    gcn_valid = gcn_df[gcn_df['neighbor_purity'].notna()]
+    if len(gcn_valid) > 0:
+        ax.plot(gcn_valid['network_layers'], gcn_valid['neighbor_purity'], 
+                marker='s', linewidth=3, markersize=10, label='GCN', 
+                color=color_gcn, alpha=0.8)
+ax.set_xlabel('Network layers', fontsize=14, fontweight='bold')
+ax.set_ylabel('Score', fontsize=14, fontweight='bold')
+ax.set_title('Neighbor Purity', fontsize=15, fontweight='bold')
+ax.legend(loc='best', fontsize=12, framealpha=0.9)
+ax.set_xticks(all_layers)
+ax.set_xticklabels([int(x) for x in all_layers], fontsize=11)
+ax.tick_params(axis='y', labelsize=11)
+# Set y-axis limits for neighbor purity (should be between 0 and 1)
+if len(df[df['neighbor_purity'].notna()]) > 0:
+    y_min = df[df['neighbor_purity'].notna()]['neighbor_purity'].min()
+    y_max = df[df['neighbor_purity'].notna()]['neighbor_purity'].max()
+    y_range = y_max - y_min
+    ax.set_ylim(bottom=max(0, y_min - 0.05 * y_range), 
+                top=min(1.0, y_max + 0.05 * y_range))
+
+# Plot 2: Intrinsic Dimension (KNN)
+ax = axes[1]
 if len(celldiffusion_df) > 0:
     ax.plot(celldiffusion_df['network_layers'], celldiffusion_df['intrinsic_dimension_knn'], 
             marker='o', linewidth=3, markersize=10, label='CellDiffusion', 
@@ -58,30 +88,10 @@ if len(gcn_df) > 0:
     ax.plot(gcn_df['network_layers'], gcn_df['intrinsic_dimension_knn'], 
             marker='s', linewidth=3, markersize=10, label='GCN', 
             color=color_gcn, alpha=0.8)
-ax.set_xlabel('Network Layers', fontsize=14, fontweight='bold')
-ax.set_ylabel('Intrinsic Dimension (KNN)', fontsize=14, fontweight='bold')
-ax.set_title('Intrinsic Dimension (KNN)', fontsize=15, fontweight='bold')
+ax.set_xlabel('Network layers', fontsize=14, fontweight='bold')
+ax.set_ylabel('Number of dimensions', fontsize=14, fontweight='bold')
+ax.set_title('Intrinsic Dimension', fontsize=15, fontweight='bold')
 ax.legend(loc='best', fontsize=12, framealpha=0.9)
-ax.grid(True, alpha=0.3, linestyle='--', axis='both')
-ax.set_xticks(all_layers)
-ax.set_xticklabels([int(x) for x in all_layers], fontsize=11)
-ax.tick_params(axis='y', labelsize=11)
-
-# Plot 2: Intrinsic Dimension (Variance Percentage)
-ax = axes[1]
-if len(celldiffusion_df) > 0:
-    ax.plot(celldiffusion_df['network_layers'], celldiffusion_df['intrinsic_dimension_variance'], 
-            marker='o', linewidth=3, markersize=10, label='CellDiffusion', 
-            color=color_celldiffusion, alpha=0.8)
-if len(gcn_df) > 0:
-    ax.plot(gcn_df['network_layers'], gcn_df['intrinsic_dimension_variance'], 
-            marker='s', linewidth=3, markersize=10, label='GCN', 
-            color=color_gcn, alpha=0.8)
-ax.set_xlabel('Network Layers', fontsize=14, fontweight='bold')
-ax.set_ylabel('Intrinsic Dimension (Variance)', fontsize=14, fontweight='bold')
-ax.set_title('Intrinsic Dimension (Variance)', fontsize=15, fontweight='bold')
-ax.legend(loc='best', fontsize=12, framealpha=0.9)
-ax.grid(True, alpha=0.3, linestyle='--', axis='both')
 ax.set_xticks(all_layers)
 ax.set_xticklabels([int(x) for x in all_layers], fontsize=11)
 ax.tick_params(axis='y', labelsize=11)
@@ -102,11 +112,10 @@ if len(gcn_df) > 0:
         ax.plot(gcn_valid['network_layers'], gcn_valid['variance_explained'], 
                 marker='s', linewidth=3, markersize=10, label='GCN', 
                 color=color_gcn, alpha=0.8)
-ax.set_xlabel('Network Layers', fontsize=14, fontweight='bold')
-ax.set_ylabel('Variance Explained', fontsize=14, fontweight='bold')
-ax.set_title('Variance Explained by Embedding', fontsize=15, fontweight='bold')
+ax.set_xlabel('Network layers', fontsize=14, fontweight='bold')
+ax.set_ylabel('Score', fontsize=14, fontweight='bold')
+ax.set_title('Variance Explained by Embeddings', fontsize=15, fontweight='bold')
 ax.legend(loc='best', fontsize=12, framealpha=0.9)
-ax.grid(True, alpha=0.3, linestyle='--', axis='both')
 ax.set_xticks(all_layers)
 ax.set_xticklabels([int(x) for x in all_layers], fontsize=11)
 ax.tick_params(axis='y', labelsize=11)
@@ -118,37 +127,7 @@ if len(df[df['variance_explained'].notna()]) > 0:
     ax.set_ylim(bottom=max(0, y_min - 0.05 * y_range), 
                 top=min(1.0, y_max + 0.05 * y_range))
 
-# Plot 4: Neighbor Purity
-ax = axes[3]
-if len(celldiffusion_df) > 0:
-    # Filter out NaN values for neighbor_purity
-    celldiffusion_valid = celldiffusion_df[celldiffusion_df['neighbor_purity'].notna()]
-    if len(celldiffusion_valid) > 0:
-        ax.plot(celldiffusion_valid['network_layers'], celldiffusion_valid['neighbor_purity'], 
-                marker='o', linewidth=3, markersize=10, label='CellDiffusion', 
-                color=color_celldiffusion, alpha=0.8)
-if len(gcn_df) > 0:
-    # Filter out NaN values for neighbor_purity
-    gcn_valid = gcn_df[gcn_df['neighbor_purity'].notna()]
-    if len(gcn_valid) > 0:
-        ax.plot(gcn_valid['network_layers'], gcn_valid['neighbor_purity'], 
-                marker='s', linewidth=3, markersize=10, label='GCN', 
-                color=color_gcn, alpha=0.8)
-ax.set_xlabel('Network Layers', fontsize=14, fontweight='bold')
-ax.set_ylabel('Neighbor Purity', fontsize=14, fontweight='bold')
-ax.set_title('Neighbor Purity', fontsize=15, fontweight='bold')
-ax.legend(loc='best', fontsize=12, framealpha=0.9)
-ax.grid(True, alpha=0.3, linestyle='--', axis='both')
-ax.set_xticks(all_layers)
-ax.set_xticklabels([int(x) for x in all_layers], fontsize=11)
-ax.tick_params(axis='y', labelsize=11)
-# Set y-axis limits for neighbor purity (should be between 0 and 1)
-if len(df[df['neighbor_purity'].notna()]) > 0:
-    y_min = df[df['neighbor_purity'].notna()]['neighbor_purity'].min()
-    y_max = df[df['neighbor_purity'].notna()]['neighbor_purity'].max()
-    y_range = y_max - y_min
-    ax.set_ylim(bottom=max(0, y_min - 0.05 * y_range), 
-                top=min(1.0, y_max + 0.05 * y_range))
+# (Removed duplicate 4th subplot — plotting now uses 3 subplots: Neighbor Purity, Intrinsic Dimension, Variance Explained)
 
 plt.tight_layout()
 
@@ -182,11 +161,11 @@ def create_individual_plot(metric_name, metric_col, ylabel, output_file):
                    marker='s', linewidth=4, markersize=12, label='GCN', 
                    color=color_gcn, alpha=0.8)
     
-    ax.set_xlabel('Network Layers', fontsize=16, fontweight='bold')
+    ax.set_xlabel('Network layers', fontsize=16, fontweight='bold')
     ax.set_ylabel(ylabel, fontsize=16, fontweight='bold')
     ax.set_title(metric_name, fontsize=18, fontweight='bold')
     ax.legend(loc='best', fontsize=14, framealpha=0.95, edgecolor='black', fancybox=True)
-    ax.grid(True, alpha=0.3, linestyle='--', axis='both')
+    # grid removed per user request
     ax.set_xticks(all_layers)
     ax.set_xticklabels([int(x) for x in all_layers], fontsize=13)
     ax.tick_params(axis='y', labelsize=13)
@@ -209,14 +188,12 @@ def create_individual_plot(metric_name, metric_col, ylabel, output_file):
     print(f"Saved: {output_file}")
 
 # Create individual plots for each metric
-create_individual_plot('Intrinsic Dimension (KNN)', 'intrinsic_dimension_knn', 
-                       'Intrinsic Dimension (KNN)', output_intrinsic_knn)
-create_individual_plot('Intrinsic Dimension (Variance)', 'intrinsic_dimension_variance', 
-                       'Intrinsic Dimension (Variance)', output_intrinsic_var)
-create_individual_plot('Variance Explained by Embedding', 'variance_explained', 
-                       'Variance Explained', output_variance_exp)
+create_individual_plot('Intrinsic Dimension', 'intrinsic_dimension_knn', 
+                       'Number of dimensions', output_intrinsic_knn)
+create_individual_plot('Variance Explained by Embeddings', 'variance_explained', 
+                       'Score', output_variance_exp)
 create_individual_plot('Neighbor Purity', 'neighbor_purity', 
-                       'Neighbor Purity', output_neighbor_pur)
+                       'Score', output_neighbor_pur)
 
 print("\n=== All plots saved successfully ===")
 

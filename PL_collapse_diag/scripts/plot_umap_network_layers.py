@@ -49,23 +49,47 @@ if len(umap_keys) == 0:
 layer_data = {}  # {layer_number: {'celldiffusion': umap_key, 'gcn': umap_key}}
 
 for umap_key in umap_keys:
-    # Pattern: X_umap_dif_nsteps{N} or X_umap_gcn_nlayers{N}
-    if 'X_umap_dif_nsteps' in umap_key:
-        match = re.search(r'X_umap_dif_nsteps(\d+)', umap_key)
+    # Be flexible: detect whether key refers to CellDiffusion (dif) or GCN and extract trailing digits
+    lk = umap_key.lower()
+    # Try to find the method first
+    if 'dif' in lk or 'celldiffusion' in lk:
+        match = re.search(r'(\d+)', lk[::-1])  # reverse string to find last number
         if match:
-            layer = int(match.group(1))
-            if layer not in layer_data:
-                layer_data[layer] = {}
-            layer_data[layer]['celldiffusion'] = umap_key
-            print(f"  Found CellDiffusion layer {layer}: {umap_key}")
-    elif 'X_umap_gcn_nlayers' in umap_key:
-        match = re.search(r'X_umap_gcn_nlayers(\d+)', umap_key)
-        if match:
-            layer = int(match.group(1))
+            # match on reversed string; compute correct number
+            # find all numbers and take the last one in the original string
+            all_nums = re.findall(r'(\d+)', lk)
+            if len(all_nums) > 0:
+                layer = int(all_nums[-1])
+                if layer not in layer_data:
+                    layer_data[layer] = {}
+                layer_data[layer]['celldiffusion'] = umap_key
+                print(f"  Found CellDiffusion layer {layer}: {umap_key}")
+    elif 'gcn' in lk:
+        all_nums = re.findall(r'(\d+)', lk)
+        if len(all_nums) > 0:
+            layer = int(all_nums[-1])
             if layer not in layer_data:
                 layer_data[layer] = {}
             layer_data[layer]['gcn'] = umap_key
             print(f"  Found GCN layer {layer}: {umap_key}")
+    else:
+        # fallback: if key contains 'dif' or 'gcn' in mixed form, also try generic digit extraction
+        all_nums = re.findall(r'(\d+)', lk)
+        if len(all_nums) > 0:
+            layer = int(all_nums[-1])
+            if 'dif' in lk or 'cell' in lk:
+                if layer not in layer_data:
+                    layer_data[layer] = {}
+                layer_data[layer]['celldiffusion'] = umap_key
+                print(f"  (fallback) Found CellDiffusion layer {layer}: {umap_key}")
+            elif 'gcn' in lk:
+                if layer not in layer_data:
+                    layer_data[layer] = {}
+                layer_data[layer]['gcn'] = umap_key
+                print(f"  (fallback) Found GCN layer {layer}: {umap_key}")
+            else:
+                # unknown method: log it
+                print(f"  Warning: found UMAP key with digits but unknown method: {umap_key}")
 
 # Select specific layers to plot: 2, 8, 16
 target_layers = [2, 8, 16]

@@ -1,33 +1,44 @@
 # PL_uniPort: uniPort integration + scib evaluation
-# Datasets: 10x MTX folders. Each entry: {path: "...", prefix: "..."}
+# Datasets: scRNA-seq H5AD files for integration
 
+datasets: ["Endom314K_GSM4577312_GSM6574543", 
+            "Endom314K_GSM6605435_GSM6605432",
+            "Endom314K_GSM6605435_GSM6605434",
+            "Endom314K_GSM6605436_GSM6605440",
+            "Endom314K_GSM6605437_GSM6605434"]
+
+normalized_data: True
+
+# Data paths
 data:
-  # List of {path, prefix}. Path = directory containing matrix.mtx, genes.tsv, barcodes.tsv
-  datasets:
-    - { path: "/home/ziyinghuang/project/survey/dataset/NM/63", prefix: "63" }
-    - { path: "/home/ziyinghuang/project/survey/dataset/NM/19", prefix: "19" }
-    - { path: "/home/ziyinghuang/project/survey/dataset/NM/39", prefix: "39" }
-    - { path: "/home/ziyinghuang/project/survey/dataset/NM/29", prefix: "29" }
+  input_path: "../data/inputs/integration/"
   output_dir: "../data/outputs/PL_uniPort"
 
+# UniPort parameters
 uniport:
   n_hvg_common: 2000
   n_hvg_specific: 2000
   mode: "h"
   lambda_s: 1.0
-  source_name: "source"
+  source_name: "batch"
   use_rep: "X"   # per-dataset representation name; used as ["X","X",...]
 
+# UMAP parameters
 umap:
   min_dist: 0.3
   n_neighbors: 15
+  n_pcs: 50
 
+# Leiden clustering parameters
 leiden:
   resolution: 0.02
 
+# Evaluation parameters
 evaluation:
-  batch_key: "source"
-  label_key: "domain_id"
+  batch_key: "batch"
+  label_key: "labels"
+  k_neighbor_purity: 50
 
+# SCIB evaluation parameters
 scib_evaluation:
   n_jobs: 1

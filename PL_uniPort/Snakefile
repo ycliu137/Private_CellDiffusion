@@ -1,54 +1,99 @@
 """
 Snakemake workflow for uniPort integration + scib evaluation.
+Integrates multiple scRNA-seq datasets using uniPort.
 """
 from pathlib import Path
 
 configfile: "config.yaml"
 
-def get_output_dir():
-    base = config["data"]["output_dir"]
-    p = Path(base)
-    return p if p.is_absolute() else p.resolve()
+# Get datasets from config
+DATASETS = config.get("datasets", [])
 
-OUTPUT_DIR = get_output_dir()
-OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+def get_output_base_dir():
+    """Get base output directory from config"""
+    if "data" in config and "output_dir" in config["data"]:
+        output_base = config["data"]["output_dir"]
+        if Path(output_base).is_absolute():
+            return Path(output_base)
+        else:
+            return Path(output_base).resolve()
+    return Path("../data/outputs/PL_uniPort").resolve()
 
+def get_input_path(wildcards):
+    """Get input path for a dataset"""
+    if "data" in config and "input_path" in config["data"]:
+        input_base = config["data"]["input_path"]
+        if not input_base.endswith(('.h5ad', '.h5')):
+            if not input_base.endswith('/'):
+                input_base = input_base + "/"
+            input_path = input_base + f"{wildcards.dataset}.h5ad"
+        else:
+            input_path = input_base
+        return input_path
+    return f"../data/inputs/integration/{wildcards.dataset}.h5ad"
+
+OUTPUT_BASE_DIR = get_output_base_dir()
+OUTPUT_BASE_DIR.mkdir(parents=True, exist_ok=True)
+
+# Rule all: define final outputs for all datasets
 rule all:
     input:
-        str(OUTPUT_DIR / "uniport_integrated.h5ad"),
-        str(OUTPUT_DIR / "scib_benchmarker.pkl"),
-        str(OUTPUT_DIR / "scib_results_table.csv"),
-        str(OUTPUT_DIR / "scib_results_table_plot.pdf"),
-        str(OUTPUT_DIR / "scib_comparison_barplot.pdf"),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/uniport_integrated.h5ad"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/aggregated_embeddings.h5ad"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table.csv"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_benchmarker.pkl"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table_plot.pdf"), dataset=DATASETS),
 
+# Rule: Integrate single dataset with uniPort
 rule integrate_uniport:
     input:
-        config = "config.yaml",
+        h5ad = get_input_path
     output:
-        h5ad = str(OUTPUT_DIR / "uniport_integrated.h5ad"),
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/uniport_integrated.h5ad")
     params:
-        output_dir = str(OUTPUT_DIR),
+        output_dir = lambda wildcards: str(OUTPUT_BASE_DIR / wildcards.dataset),
+        n_hvg_common = config["uniport"]["n_hvg_common"],
+        n_hvg_specific = config["uniport"]["n_hvg_specific"],
+        mode = config["uniport"]["mode"],
+        lambda_s = config["uniport"]["lambda_s"],
+        source_name = config["uniport"]["source_name"],
+        batch_key = config["evaluation"]["batch_key"],
+        label_key = config["evaluation"]["label_key"],
+        umap_n_neighbors = config["umap"]["n_neighbors"],
+        umap_min_dist = config["umap"]["min_dist"],
+        umap_n_pcs = config["umap"]["n_pcs"],
+        leiden_resolution = config["leiden"]["resolution"],
+        normalized_data = config.get("normalized_data", True)
     script:
-        "scripts/integrate_uniport.py",
+        "scripts/integrate_uniport.py"
 
+# Rule: Aggregate embeddings (for consistency with other pipelines)
+rule aggregate_embeddings:
+    input:
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/uniport_integrated.h5ad")
+    output:
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/aggregated_embeddings.h5ad")
+    run:
+        import scanpy as sc
+        from pathlib import Path
+        
+        # Simply copy the uniport_integrated file as aggregated_embeddings
+        adata = sc.read_h5ad(input.h5ad)
+        Path(output.h5ad).parent.mkdir(parents=True, exist_ok=True)
+        adata.write(output.h5ad)
+        print(f"Aggregated embeddings saved to: {output.h5ad}")
+
+# Rule: SCIB evaluation
 rule scib_evaluation:
     input:
-        h5ad = str(OUTPUT_DIR / "uniport_integrated.h5ad"),
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/aggregated_embeddings.h5ad")
     output:
-        results = str(OUTPUT_DIR / "scib_benchmarker.pkl"),
-        table = str(OUTPUT_DIR / "scib_results_table.csv"),
-        plot = str(OUTPUT_DIR / "scib_results_table_plot.pdf"),
+        results = str(OUTPUT_BASE_DIR / "{dataset}/scib_benchmarker.pkl"),
+        table = str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table.csv"),
+        plot = str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table_plot.pdf")
     params:
         batch_key = config["evaluation"]["batch_key"],
         label_key = config["evaluation"]["label_key"],
-        n_jobs = config["scib_evaluation"]["n_jobs"],
+        n_jobs = config["scib_evaluation"]["n_jobs"]
     script:
-        "scripts/scib_evaluation.py",
-
-rule scib_evaluation_plot:
-    input:
-        table = str(OUTPUT_DIR / "scib_results_table.csv"),
-    output:
-        pdf = str(OUTPUT_DIR / "scib_comparison_barplot.pdf"),
-    script:
-        "scripts/scib_evaluation_plot.py",
+        "scripts/scib_evaluation.py"
