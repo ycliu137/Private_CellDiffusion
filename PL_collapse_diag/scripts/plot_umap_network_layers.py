@@ -111,14 +111,14 @@ n_cols = 4  # CellDiffusion batch, CellDiffusion labels, GCN batch, GCN labels
 n_rows = n_layers + 1  # +1 for legend row
 
 # Calculate figure size with square subplots (publication quality)
-subplot_size = 6  # Size of each square subplot (in inches)
-fig_width = subplot_size * n_cols + 1.5  # Add extra width for spacing
-fig_height = subplot_size * n_layers + 2.5  # Height for UMAP rows + legend row
+subplot_size = 7  # Size of each square subplot (in inches) - enlarged
+fig_width = subplot_size * n_cols + 1.2  # Add extra width for spacing
+fig_height = subplot_size * n_layers + 2.2  # Height for UMAP rows + legend row
 
 fig = plt.figure(figsize=(fig_width, fig_height))
 gs = GridSpec(n_rows, n_cols, figure=fig,
-              hspace=0.4, wspace=0.4,  # Spacing between subplots
-              left=0.06, right=0.96, top=0.96, bottom=0.08)
+              hspace=0.25, wspace=0.25,  # Reduced spacing between subplots
+              left=0.08, right=0.96, top=0.96, bottom=0.08)
 
 # Create axes array for UMAP plots
 axes = []
@@ -253,10 +253,10 @@ for layer_idx, layer in enumerate(layers_to_plot):
     try:
         pos = axes[layer_idx][0].get_position()  # Bbox in figure coordinates
         y_center = pos.y0 + pos.height / 2.0
-        # put the label slightly left of the leftmost axis
-        x_label = pos.x0 - 0.035
-        fig.text(x_label, y_center, f"{layer}-layers", rotation='vertical',
-                 fontsize=16, fontweight='bold', va='center', ha='center')
+        # put the label slightly left of the leftmost axis, well centered vertically
+        x_label = pos.x0 - 0.038
+        fig.text(x_label, y_center, f"{layer}-layers", rotation=90,
+                 fontsize=15, fontweight='bold', va='center', ha='center')
     except Exception:
         # non-fatal; continue if positions not available
         pass
@@ -312,12 +312,10 @@ if batch_handles and batch_labels:
     # Create batch legend spanning columns 0-1
     batch_legend = fig.legend(batch_handles, batch_labels,
                               loc='lower left',
-                              frameon=True, fontsize=12,
+                              frameon=False, fontsize=11,
                               ncol=5,  # Multiple columns for batch legend
-                              bbox_to_anchor=(0.055, 0.01),
-                              title='Batch', title_fontsize=13,
-                              framealpha=0.98,
-                              edgecolor='black', fancybox=True)
+                              bbox_to_anchor=(0.08, 0.015),
+                              title='Batch', title_fontsize=12)
 else:
     legend_axes[0].axis('off')
     legend_axes[1].axis('off')
@@ -328,12 +326,10 @@ if label_handles and label_labels:
     # Create cell type legend spanning columns 2-3
     label_legend = fig.legend(label_handles, label_labels,
                               loc='lower center',
-                              frameon=True, fontsize=12,
+                              frameon=False, fontsize=11,
                               ncol=7,  # Multiple columns for cell type legend
-                              bbox_to_anchor=(0.65, 0.01),
-                              title='Cell Type', title_fontsize=13,
-                              framealpha=0.98,
-                              edgecolor='black', fancybox=True)
+                              bbox_to_anchor=(0.65, 0.015),
+                              title='Cell Type', title_fontsize=12)
 else:
     legend_axes[2].axis('off')
     legend_axes[3].axis('off')
