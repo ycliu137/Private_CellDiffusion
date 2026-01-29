@@ -249,6 +249,13 @@ for layer_idx, layer in enumerate(layers_to_plot):
         axes[layer_idx][3].text(0.5, 0.5, 'Not available', ha='center', va='center', fontsize=12)
 
 # Add standardized subplot titles and left-side vertical row labels
+# Compute a fixed x position for the vertical row labels so they align across rows
+try:
+    x0_list = [axes[i][0].get_position().x0 for i in range(n_layers)]
+    x_label_fixed = min(x0_list) - 0.046
+except Exception:
+    x_label_fixed = None
+
 for layer_idx, layer in enumerate(layers_to_plot):
     # Standard column titles for each subplot column
     col_titles = ["CellDiffusion | Batch", "CellDiffusion | Cell Type", "GCN | Batch", "GCN | Cell Type"]
@@ -264,10 +271,13 @@ for layer_idx, layer in enumerate(layers_to_plot):
     try:
         pos = axes[layer_idx][0].get_position()  # Bbox in figure coordinates
         y_center = pos.y0 + pos.height / 2.0
-        # put the label slightly left of the leftmost axis, use ha='right' for better alignment
-        x_label = pos.x0 - 0.046
+        if x_label_fixed is not None:
+            x_label = x_label_fixed
+        else:
+            x_label = pos.x0 - 0.046
+        # draw label aligned to the right edge so all rows align
         fig.text(x_label, y_center, f"{layer}-layers", rotation=90,
-             fontsize=20, fontweight='bold', va='center', ha='right')
+                 fontsize=20, fontweight='bold', va='center', ha='right')
     except Exception:
         # non-fatal; continue if positions not available
         pass
@@ -326,7 +336,8 @@ if batch_handles and batch_labels:
                               frameon=False, fontsize=16,
                               ncol=5,  # Multiple columns for batch legend
                               bbox_to_anchor=(0.08, 0.25),
-                              title='Batch', title_fontsize=16)
+                              title='Batch', title_fontsize=16,
+                              markerscale=3, handleheight=1.5, handlelength=1.5)
 else:
     legend_axes[0].axis('off')
     legend_axes[1].axis('off')
@@ -340,7 +351,8 @@ if label_handles and label_labels:
                               frameon=False, fontsize=16,
                               ncol=7,  # Multiple columns for cell type legend
                               bbox_to_anchor=(0.65, 0.25),
-                              title='Cell Type', title_fontsize=16)
+                              title='Cell Type', title_fontsize=16,
+                              markerscale=3, handleheight=1.5, handlelength=1.5)
 else:
     legend_axes[2].axis('off')
     legend_axes[3].axis('off')
