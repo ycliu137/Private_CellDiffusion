@@ -25,6 +25,32 @@ while getopts ":Fnj:" opt; do
 done
 shift $((OPTIND -1))
 
+# --- Environment setup (mirror PL_collapse_diag/run.sh) ---
+# Unload python3 module and load miniconda if available (HPC environments)
+if command -v module &> /dev/null; then
+  echo "Unloading python3 module..."
+  module unload python3 2>/dev/null || true
+  echo "Loading miniconda module..."
+  module load miniconda 2>/dev/null || true
+fi
+
+# Activate conda environment if not already active
+if [ -n "${CONDA_DEFAULT_ENV:-}" ]; then
+  echo "Conda environment already active: $CONDA_DEFAULT_ENV"
+else
+  echo "Activating conda environment: dif_snake_scib_env"
+  # Ensure conda is initialised in this shell
+  source "$(conda info --base)/etc/profile.d/conda.sh"
+  conda activate dif_snake_scib_env 2>/dev/null || {
+    echo "Error: Could not activate conda environment 'dif_snake_scib_env'"
+    echo "Please create the environment first or update this script with the correct environment name"
+    exit 1
+  }
+fi
+
+# Unlock snakemake in case previous runs left it locked
+snakemake --unlock 2>/dev/null || true
+
 # List of plotting rules to run
 RULES=(
   plot_collapse_diag
