@@ -245,7 +245,7 @@ for layer_idx, layer in enumerate(layers_to_plot):
     col_titles = ["CellDiffusion | Batch", "CellDiffusion | Cell Type", "GCN | Batch", "GCN | Cell Type"]
     for j, t in enumerate(col_titles):
         try:
-            axes[layer_idx][j].set_title(t, fontsize=12, fontweight='bold')
+            axes[layer_idx][j].set_title(t, fontsize=14, fontweight='bold')
         except Exception:
             pass
 
@@ -253,10 +253,10 @@ for layer_idx, layer in enumerate(layers_to_plot):
     try:
         pos = axes[layer_idx][0].get_position()  # Bbox in figure coordinates
         y_center = pos.y0 + pos.height / 2.0
-        # put the label slightly left of the leftmost axis, well centered vertically
-        x_label = pos.x0 - 0.038
+        # put the label slightly left of the leftmost axis, use ha='right' for better alignment
+        x_label = pos.x0 - 0.042
         fig.text(x_label, y_center, f"{layer}-layers", rotation=90,
-                 fontsize=15, fontweight='bold', va='center', ha='center')
+                 fontsize=17, fontweight='bold', va='center', ha='right')
     except Exception:
         # non-fatal; continue if positions not available
         pass
@@ -311,11 +311,11 @@ if batch_handles and batch_labels:
     legend_axes[1].axis('off')
     # Create batch legend spanning columns 0-1
     batch_legend = fig.legend(batch_handles, batch_labels,
-                              loc='lower left',
-                              frameon=False, fontsize=11,
+                              loc='upper left',
+                              frameon=False, fontsize=12,
                               ncol=5,  # Multiple columns for batch legend
-                              bbox_to_anchor=(0.08, 0.015),
-                              title='Batch', title_fontsize=12)
+                              bbox_to_anchor=(0.08, 0.108),
+                              title='Batch', title_fontsize=13)
 else:
     legend_axes[0].axis('off')
     legend_axes[1].axis('off')
@@ -325,11 +325,11 @@ if label_handles and label_labels:
     legend_axes[3].axis('off')
     # Create cell type legend spanning columns 2-3
     label_legend = fig.legend(label_handles, label_labels,
-                              loc='lower center',
-                              frameon=False, fontsize=11,
+                              loc='upper center',
+                              frameon=False, fontsize=12,
                               ncol=7,  # Multiple columns for cell type legend
-                              bbox_to_anchor=(0.65, 0.015),
-                              title='Cell Type', title_fontsize=12)
+                              bbox_to_anchor=(0.65, 0.108),
+                              title='Cell Type', title_fontsize=13)
 else:
     legend_axes[2].axis('off')
     legend_axes[3].axis('off')
