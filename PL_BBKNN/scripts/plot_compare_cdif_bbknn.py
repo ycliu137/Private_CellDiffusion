@@ -1,5 +1,6 @@
 """
-Compare CellDiffusion and BBKNN integration results
+Plot UMAP comparison between CellDiffusion and BBKNN integration
+Displays side-by-side: Batch and Cell Type UMAPs (2x2 layout)
 """
 import sys
 from pathlib import Path
@@ -8,96 +9,106 @@ project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 import scanpy as sc
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
+from matplotlib import rcParams
+from matplotlib.gridspec import GridSpec
 import numpy as np
+import pandas as pd
 
-# Load outputs
-celldiffusion_h5ad = snakemake.input.celldiffusion_h5ad
+rcParams["figure.figsize"] = (12, 6)
+rcParams["font.size"] = 12
+rcParams["axes.titlesize"] = 14
+rcParams["axes.labelsize"] = 12
+
+cdif_h5ad = snakemake.input.celldiffusion_h5ad
 bbknn_h5ad = snakemake.input.bbknn_h5ad
 output_pdf = snakemake.output.pdf
 params = snakemake.params
+batch_key = params.batch_key
+label_key = params.label_key
 
-print(f"\n=== Loading integrated adata ===")
-print(f"  CellDiffusion: {celldiffusion_h5ad}")
-print(f"  BBKNN: {bbknn_h5ad}")
+print(f"\n=== Loading CellDiffusion data ===")
+adata_cdif = sc.read_h5ad(cdif_h5ad)
+print(f"  Shape: {adata_cdif.shape}")
 
-adata_cdif = sc.read_h5ad(celldiffusion_h5ad)
+print(f"\n=== Loading BBKNN data ===")
 adata_bbknn = sc.read_h5ad(bbknn_h5ad)
+print(f"  Shape: {adata_bbknn.shape}")
 
-print(f"  CellDiffusion shape: {adata_cdif.shape}")
-print(f"  BBKNN shape: {adata_bbknn.shape}")
+cdif_umap_key = "X_umap_dif" if "X_umap_dif" in adata_cdif.obsm else "X_umap"
+bbknn_umap_key = "X_umap"
 
-# Ensure same cell order for color mapping
-common_cells = list(set(adata_cdif.obs_names) & set(adata_bbknn.obs_names))
-adata_cdif = adata_cdif[common_cells]
-adata_bbknn = adata_bbknn[common_cells]
+print(f"\n=== Aligning cell order ===")
+common_cells = set(adata_cdif.obs.index) & set(adata_bbknn.obs.index)
+common_cells_ordered = [cell for cell in adata_cdif.obs.index if cell in common_cells]
+adata_bbknn = adata_bbknn[common_cells_ordered].copy()
+adata_cdif = adata_cdif[common_cells_ordered].copy()
+adata_cdif.obsm["X_umap_bbknn"] = adata_bbknn.obsm[bbknn_umap_key].copy()
 
-print(f"  Common cells: {len(common_cells)}")
+n_cols = 4
+n_rows = 2
+fig = plt.figure(figsize=(20, 6))
+gs = GridSpec(n_rows, n_cols, figure=fig, hspace=0.25, wspace=0.25,
+              left=0.06, right=0.98, top=0.95, bottom=0.12)
 
-# Create comparison plot: 1x4 grid
-# [CellDif Batch] [CellDif Labels] [BBKNN Batch] [BBKNN Labels]
-fig = plt.figure(figsize=(16, 4))
-gs = fig.add_gridspec(2, 4, height_ratios=[20, 1], hspace=0.3, wspace=0.3)
+axes = [[fig.add_subplot(gs[i, j]) for j in range(n_cols)] for i in range(n_rows)]
+for j in range(n_cols):
+    axes[0][j].set_aspect("equal", adjustable="box")
 
-# CellDiffusion - Batch
-ax1 = fig.add_subplot(gs[0, 0])
-sc.pl.umap(adata_cdif, color=params.batch_key, ax=ax1, show=False, 
-           title='CellDiffusion - Batch', legend_loc=None, frameon=False)
+if not adata_cdif.obs[batch_key].dtype.name == "category":
+    adata_cdif.obs[batch_key] = adata_cdif.obs[batch_key].astype("category")
+if label_key in adata_cdif.obs.columns and not adata_cdif.obs[label_key].dtype.name == "category":
+    adata_cdif.obs[label_key] = adata_cdif.obs[label_key].astype("category")
 
-# CellDiffusion - Labels
-ax2 = fig.add_subplot(gs[0, 1])
-sc.pl.umap(adata_cdif, color=params.label_key, ax=ax2, show=False,
-           title='CellDiffusion - Labels', legend_loc=None, frameon=False)
+print(f"\n=== Plotting UMAPs ===")
+methods = [("CellDiffusion", cdif_umap_key), ("BBKNN", "X_umap_bbknn")]
+for idx, (mname, umap_key) in enumerate(methods):
+    col_batch = idx * 2
+    col_labels = idx * 2 + 1
+    adata_cdif.obsm["X_umap"] = adata_cdif.obsm[umap_key].copy()
+    sc.pl.umap(adata_cdif, color=batch_key, ax=axes[0][col_batch], show=False, frameon=False,
+               title=f"{mname} - Batch", legend_loc="none")
+    axes[0][col_batch].title.set_fontsize(14)
+    if label_key in adata_cdif.obs.columns:
+        sc.pl.umap(adata_cdif, color=label_key, ax=axes[0][col_labels], show=False, frameon=False,
+                   title=f"{mname} - Labels", legend_loc="none")
+        axes[0][col_labels].title.set_fontsize(14)
+    else:
+        axes[0][col_labels].axis("off")
 
-# BBKNN - Batch
-ax3 = fig.add_subplot(gs[0, 2])
-sc.pl.umap(adata_bbknn, color=params.batch_key, ax=ax3, show=False,
-           title='BBKNN - Batch', legend_loc=None, frameon=False)
+del adata_cdif.obsm["X_umap"]
 
-# BBKNN - Labels
-ax4 = fig.add_subplot(gs[0, 3])
-sc.pl.umap(adata_bbknn, color=params.label_key, ax=ax4, show=False,
-           title='BBKNN - Labels', legend_loc=None, frameon=False)
+adata_cdif.obsm["X_umap"] = adata_cdif.obsm[cdif_umap_key].copy()
+temp_fig, temp_ax = plt.subplots(figsize=(1, 1))
+sc.pl.umap(adata_cdif, color=batch_key, ax=temp_ax, show=False)
+batch_handles, batch_labels = temp_ax.get_legend_handles_labels()
+plt.close(temp_fig)
 
-# Add shared legends in bottom row
-# Legend for batch (from CellDiffusion)
-batch_colors = adata_cdif.obs[params.batch_key].cat.categories
-# Get colors from adata if available, otherwise use default palette
-if f"{params.batch_key}_colors" in adata_cdif.uns:
-    batch_color_list = adata_cdif.uns[f"{params.batch_key}_colors"]
-else:
-    import seaborn as sns
-    batch_color_list = sns.color_palette("husl", len(batch_colors))
-batch_handles = [mpatches.Patch(facecolor=batch_color_list[i], 
-                                label=batch_colors[i]) 
-                for i in range(len(batch_colors))]
+label_handles, label_labels = None, None
+if label_key in adata_cdif.obs.columns:
+    temp_fig, temp_ax = plt.subplots(figsize=(1, 1))
+    sc.pl.umap(adata_cdif, color=label_key, ax=temp_ax, show=False)
+    label_handles, label_labels = temp_ax.get_legend_handles_labels()
+    plt.close(temp_fig)
 
-# Legend for labels (from CellDiffusion)
-label_colors = adata_cdif.obs[params.label_key].cat.categories
-# Get colors from adata if available, otherwise use default palette
-if f"{params.label_key}_colors" in adata_cdif.uns:
-    label_color_list = adata_cdif.uns[f"{params.label_key}_colors"]
-else:
-    import seaborn as sns
-    label_color_list = sns.color_palette("tab20", len(label_colors))
-label_handles = [mpatches.Patch(facecolor=label_color_list[i % len(label_color_list)],
-                                label=label_colors[i])
-                for i in range(len(label_colors))]
+del adata_cdif.obsm["X_umap"]
 
-# Add batch legend
-ax_batch_leg = fig.add_subplot(gs[1, :2])
-ax_batch_leg.legend(handles=batch_handles, loc='center', ncol=5, frameon=False)
-ax_batch_leg.set_title('Batch', loc='left', fontsize=10)
-ax_batch_leg.axis('off')
+for j in range(n_cols):
+    axes[1][j].axis("off")
 
-# Add label legend
-ax_label_leg = fig.add_subplot(gs[1, 2:])
-ax_label_leg.legend(handles=label_handles, loc='center', ncol=5, frameon=False)
-ax_label_leg.set_title('Cell Type', loc='left', fontsize=10)
-ax_label_leg.axis('off')
+if batch_handles:
+    axes[1][0].text(0.5, 0.98, "Batch", transform=axes[1][0].transAxes,
+                    ha="center", va="top", fontsize=12, fontweight="bold")
+    axes[1][0].legend(batch_handles, batch_labels, loc="upper center",
+                      frameon=False, fontsize=10, bbox_to_anchor=(0.5, 0.92))
 
-plt.suptitle('CellDiffusion vs BBKNN Integration Comparison', fontsize=14, y=0.98)
+if label_handles:
+    axes[1][2].text(0.5, 0.98, "Labels", transform=axes[1][2].transAxes,
+                    ha="center", va="top", fontsize=12, fontweight="bold")
+    axes[1][2].legend(label_handles, label_labels, loc="upper center", frameon=False,
+                      fontsize=10, ncol=3, bbox_to_anchor=(0.5, 0.92))
 
 print(f"\n=== Saving comparison plot ===")
 print(f"  Output: {output_pdf}")
