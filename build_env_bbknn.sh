@@ -71,9 +71,9 @@ $PM install -n ${ENV_NAME} -c conda-forge \
     python-louvain \
     -y
 
-# Install BBKNN and remaining packages via pip
-echo "Installing BBKNN and pip dependencies..."
-$PM run -n ${ENV_NAME} pip install bbknn
+# Install BBKNN, scib-metrics, and remaining packages via pip
+echo "Installing BBKNN, scib-metrics, and pip dependencies..."
+$PM run -n ${ENV_NAME} pip install bbknn scib-metrics
 $PM run -n ${ENV_NAME} pip install -r requirements.txt
 
 echo ""

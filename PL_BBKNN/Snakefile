@@ -89,7 +89,7 @@ rule run_celldiffusion:
     script:
         "scripts/run_celldiffusion.py"
 
-# Rule: Integrate single dataset with uniPort
+# Rule: Integrate single dataset with BBKNN
 rule integrate_bbknn:
     input:
         h5ad = get_input_path
@@ -125,8 +125,14 @@ rule aggregate_embeddings:
         import scanpy as sc
         from pathlib import Path
         
-        # Simply copy the bbknn_integrated file as aggregated_embeddings
+        # Copy the bbknn_integrated file and ensure X_bbknn embedding exists
         adata = sc.read_h5ad(input.h5ad)
+        
+        # Create X_bbknn embedding from X_umap_bbknn if not already present
+        if 'X_bbknn' not in adata.obsm and 'X_umap_bbknn' in adata.obsm:
+            adata.obsm['X_bbknn'] = adata.obsm['X_umap_bbknn'].copy()
+            print(f"Created X_bbknn from X_umap_bbknn")
+        
         Path(output.h5ad).parent.mkdir(parents=True, exist_ok=True)
         adata.write(output.h5ad)
         print(f"Aggregated embeddings saved to: {output.h5ad}")

@@ -1,5 +1,5 @@
 """
-Bar plot of SCIB aggregate scores for uniPort (single embedding X_uniport).
+Bar plot of SCIB aggregate scores for BBKNN (single embedding X_bbknn).
 """
 from pathlib import Path
 
@@ -19,12 +19,12 @@ print(f"Shape: {df.shape}, index: {list(df.index)}")
 if "Metric Type" in df.index:
     df = df.drop("Metric Type")
 
-# Expect a single embedding row (X_uniport or similar)
+# Expect a single embedding row (X_bbknn or similar)
 embedding_rows = [i for i in df.index if str(i).startswith("X_")]
 if not embedding_rows:
     embedding_rows = list(df.index)
 row_name = embedding_rows[0]
-display_name = "uniPort" if "uniport" in str(row_name).lower() else str(row_name)
+display_name = "BBKNN" if "bbknn" in str(row_name).lower() else str(row_name)
 
 agg = {}
 for col in df.columns:

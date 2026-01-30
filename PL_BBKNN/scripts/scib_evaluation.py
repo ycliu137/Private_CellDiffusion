@@ -1,5 +1,5 @@
 """
-SCIB evaluation for uniPort integration (single embedding X_uniport).
+SCIB evaluation for BBKNN integration (single embedding X_bbknn).
 """
 import sys
 from pathlib import Path
@@ -28,7 +28,7 @@ print(f"Input: {input_h5ad}")
 adata = sc.read_h5ad(input_h5ad)
 print(f"Shape: {adata.shape}")
 
-embedding_key = "X_uniport"
+embedding_key = "X_bbknn"
 if embedding_key not in adata.obsm:
     raise ValueError(f"obsm['{embedding_key}'] not found. Keys: {list(adata.obsm.keys())}")
 all_embedding_keys = [embedding_key]
