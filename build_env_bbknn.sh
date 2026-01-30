@@ -63,10 +63,11 @@ $PM install -n ${ENV_NAME} -c pytorch -c nvidia -c conda-forge \
     pytorch-cuda \
     -y
 
-# Install scanpy via conda-forge
-echo "Installing scanpy and dependencies..."
+# Install scanpy, snakemake, and dependencies via conda-forge
+echo "Installing scanpy, snakemake, and dependencies..."
 $PM install -n ${ENV_NAME} -c conda-forge \
     scanpy \
+    snakemake \
     python-louvain \
     -y
 

@@ -58,19 +58,17 @@ print(f"  Scaling complete")
 
 # PCA for neighbor computation
 print(f"\n=== Step 2: Computing PCA ===")
-sc.tl.pca(adata, n_comps=params.n_pcs)
+sc.tl.pca(adata, svd_solver='arpack', n_comps=params.n_pcs)
 print(f"  PCA complete")
 
 # BBKNN integration
 print(f"\n=== Step 3: BBKNN integration ===")
 print(f"  Batch key: {params.batch_key}")
-print(f"  n_neighbors: {params.n_neighbors}")
 print(f"  Computation: {params.computation}")
 
 bbknn.bbknn(
     adata,
     batch_key=params.batch_key,
-    n_neighbors=params.n_neighbors,
     computation=params.computation
 )
 print(f"  BBKNN integration complete")
