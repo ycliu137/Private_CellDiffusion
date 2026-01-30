@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 from matplotlib import rcParams
 from matplotlib.gridspec import GridSpec
 import numpy as np
+import pandas as pd
 
 # Set up figure parameters
 rcParams["figure.figsize"] = (12, 6)
@@ -37,12 +38,14 @@ print(f"  File: {cdif_h5ad}")
 adata_cdif = sc.read_h5ad(cdif_h5ad)
 print(f"  Shape: {adata_cdif.shape}")
 print(f"  Available obsm keys: {list(adata_cdif.obsm.keys())}")
+print(f"  Cell index (first 5): {adata_cdif.obs.index[:5].tolist()}")
 
 print(f"\n=== Loading UniPort data ===")
 print(f"  File: {uniport_h5ad}")
 adata_uniport = sc.read_h5ad(uniport_h5ad)
 print(f"  Shape: {adata_uniport.shape}")
 print(f"  Available obsm keys: {list(adata_uniport.obsm.keys())}")
+print(f"  Cell index (first 5): {adata_uniport.obs.index[:5].tolist()}")
 
 # Check for UMAP embeddings
 cdif_umap_key = None
@@ -90,6 +93,36 @@ if not uniport_umap_key:
         print(f"ERROR: Cannot compute UMAP - no embedding found")
         sys.exit(1)
 
+# Align cell order: reorder UniPort to match CellDiffusion
+print(f"\n=== Aligning cell order ===")
+print(f"  CellDiffusion cells: {adata_cdif.n_obs}")
+print(f"  UniPort cells: {adata_uniport.n_obs}")
+
+# Find common cells
+cdif_cells = set(adata_cdif.obs.index)
+uniport_cells = set(adata_uniport.obs.index)
+common_cells = cdif_cells & uniport_cells
+
+if not common_cells:
+    print(f"ERROR: No common cells between CellDiffusion and UniPort data")
+    sys.exit(1)
+
+print(f"  Common cells: {len(common_cells)}")
+
+# Reorder UniPort to match CellDiffusion cell order
+common_cells_ordered = [cell for cell in adata_cdif.obs.index if cell in common_cells]
+adata_uniport = adata_uniport[common_cells_ordered].copy()
+adata_cdif = adata_cdif[common_cells_ordered].copy()
+
+print(f"  After alignment - CellDiffusion: {adata_cdif.n_obs}, UniPort: {adata_uniport.n_obs}")
+print(f"  Cells are aligned: {(adata_cdif.obs.index == adata_uniport.obs.index).all()}")
+
+# Add UniPort UMAP embedding to CellDiffusion adata
+print(f"\n=== Merging embeddings ===")
+uniport_umap = adata_uniport.obsm[uniport_umap_key].copy()
+adata_cdif.obsm['X_umap_uniport'] = uniport_umap
+print(f"  Added UniPort UMAP to CellDiffusion as 'X_umap_uniport'")
+
 # Create figure with subplots: 2 methods (CellDiffusion, UniPort) x 3 cols (Batch, Labels, Lineage)
 n_methods = 2
 n_cols = 3
@@ -115,130 +148,73 @@ for i in range(n_methods + 1):
 
 has_lineage = 'lineage' in adata_cdif.obs.columns
 
-# Ensure categorical variables and sync their color mapping
-print(f"\n=== Setting up unified color mapping ===")
+# Ensure categorical variables
+print(f"\n=== Setting up visualization ===")
 
 # Convert to categorical if not already
-for adata in [adata_cdif, adata_uniport]:
-    if batch_key not in adata.obs.columns:
-        print(f"ERROR: {batch_key} not found in data")
-        sys.exit(1)
-    if not isinstance(adata.obs[batch_key], type(adata_cdif.obs[batch_key])):
-        if not adata.obs[batch_key].dtype.name == 'category':
-            adata.obs[batch_key] = adata.obs[batch_key].astype('category')
-    
-    if hasattr(params, 'label_key') and params.label_key and label_key in adata.obs.columns:
-        if not adata.obs[label_key].dtype.name == 'category':
-            adata.obs[label_key] = adata.obs[label_key].astype('category')
-    
-    if has_lineage and 'lineage' in adata.obs.columns:
-        if not adata.obs['lineage'].dtype.name == 'category':
-            adata.obs['lineage'] = adata.obs['lineage'].astype('category')
+if not adata_cdif.obs[batch_key].dtype.name == 'category':
+    adata_cdif.obs[batch_key] = adata_cdif.obs[batch_key].astype('category')
 
-# Create unified categories from CellDiffusion data
-batch_categories = list(adata_cdif.obs[batch_key].cat.categories)
-if label_key in adata_cdif.obs.columns:
-    label_categories = list(adata_cdif.obs[label_key].cat.categories)
-else:
-    label_categories = None
+if hasattr(params, 'label_key') and params.label_key and label_key in adata_cdif.obs.columns:
+    if not adata_cdif.obs[label_key].dtype.name == 'category':
+        adata_cdif.obs[label_key] = adata_cdif.obs[label_key].astype('category')
 
-if has_lineage:
-    lineage_categories = list(adata_cdif.obs['lineage'].cat.categories)
-else:
-    lineage_categories = None
+if has_lineage and 'lineage' in adata_cdif.obs.columns:
+    if not adata_cdif.obs['lineage'].dtype.name == 'category':
+        adata_cdif.obs['lineage'] = adata_cdif.obs['lineage'].astype('category')
 
-# Sync categories in both datasets
-for adata in [adata_cdif, adata_uniport]:
-    adata.obs[batch_key] = adata.obs[batch_key].cat.set_categories(batch_categories)
-    
-    if label_categories and label_key in adata.obs.columns:
-        adata.obs[label_key] = adata.obs[label_key].cat.set_categories(label_categories)
-    
-    if lineage_categories and 'lineage' in adata.obs.columns:
-        adata.obs['lineage'] = adata.obs['lineage'].cat.set_categories(lineage_categories)
-
-# Generate color mapping using scanpy's color schema and store in .uns
-print(f"  Generating color mapping...")
-from matplotlib import cm
-from matplotlib.colors import rgb2hex
-
-# Generate palette for batch
-batch_palette = sc.pl.palettes.default_20
-batch_colors = [rgb2hex(batch_palette[i % len(batch_palette)]) for i in range(len(batch_categories))]
-adata_cdif.uns[f'{batch_key}_colors'] = batch_colors
-adata_uniport.uns[f'{batch_key}_colors'] = batch_colors
-
-print(f"  Batch categories: {batch_categories}")
-print(f"  Batch colors assigned: {len(batch_colors)}")
-
-# Generate palette for labels
-if label_categories:
-    label_colors = [rgb2hex(batch_palette[i % len(batch_palette)]) for i in range(len(label_categories))]
-    adata_cdif.uns[f'{label_key}_colors'] = label_colors
-    adata_uniport.uns[f'{label_key}_colors'] = label_colors
-    print(f"  Label categories: {label_categories}")
-    print(f"  Label colors assigned: {len(label_colors)}")
-
-# Generate palette for lineage
-if lineage_categories:
-    lineage_colors = [rgb2hex(batch_palette[i % len(batch_palette)]) for i in range(len(lineage_categories))]
-    adata_cdif.uns[f'lineage_colors'] = lineage_colors
-    adata_uniport.uns[f'lineage_colors'] = lineage_colors
-    print(f"  Lineage categories: {lineage_categories}")
-    print(f"  Lineage colors assigned: {len(lineage_colors)}")
+print(f"  CellDiffusion color scheme preserved (original .uns settings)")
 
 print(f"\n=== Plotting UMAPs ===")
 
-methods = [("CellDiffusion", adata_cdif, cdif_umap_key), ("UniPort", adata_uniport, uniport_umap_key)]
+# Use CellDiffusion UMAP as main, UniPort UMAP as comparison
+umaps = [
+    ("CellDiffusion", cdif_umap_key),
+    ("UniPort", 'X_umap_uniport')
+]
 
-for i, (mname, madata, mukey) in enumerate(methods):
+for i, (mname, umap_key) in enumerate(umaps):
+    # Copy the UMAP to X_umap for plotting
+    adata_cdif.obsm['X_umap'] = adata_cdif.obsm[umap_key].copy()
+    
     # Batch
     print(f"  Plotting {mname} Batch UMAP...")
-    if mukey != 'X_umap':
-        madata.obsm['X_umap'] = madata.obsm[mukey].copy()
-    sc.pl.umap(madata, color=batch_key, ax=axes[i][0], show=False, frameon=False,
+    sc.pl.umap(adata_cdif, color=batch_key, ax=axes[i][0], show=False, frameon=False,
                title=f"{mname} - Batch", legend_loc='none')
     axes[i][0].title.set_fontsize(14)
-    if mukey != 'X_umap':
-        del madata.obsm['X_umap']
 
     # Labels
     print(f"  Plotting {mname} Labels UMAP...")
-    if hasattr(params, 'label_key') and params.label_key and label_key in madata.obs.columns:
-        if mukey != 'X_umap':
-            madata.obsm['X_umap'] = madata.obsm[mukey].copy()
-        sc.pl.umap(madata, color=label_key, ax=axes[i][1], show=False, frameon=False,
+    if hasattr(params, 'label_key') and params.label_key and label_key in adata_cdif.obs.columns:
+        sc.pl.umap(adata_cdif, color=label_key, ax=axes[i][1], show=False, frameon=False,
                    title=f"{mname} - Labels", legend_loc='none')
         axes[i][1].title.set_fontsize(14)
-        if mukey != 'X_umap':
-            del madata.obsm['X_umap']
     else:
         axes[i][1].axis('off')
 
     # Lineage
-    if has_lineage and 'lineage' in madata.obs.columns:
+    if has_lineage and 'lineage' in adata_cdif.obs.columns:
         print(f"  Plotting {mname} Lineage UMAP...")
-        if mukey != 'X_umap':
-            madata.obsm['X_umap'] = madata.obsm[mukey].copy()
-        sc.pl.umap(madata, color='lineage', ax=axes[i][2], show=False, frameon=False,
+        sc.pl.umap(adata_cdif, color='lineage', ax=axes[i][2], show=False, frameon=False,
                    title=f"{mname} - Lineage", legend_loc='none')
         axes[i][2].title.set_fontsize(14)
-        if mukey != 'X_umap':
-            del madata.obsm['X_umap']
     else:
         axes[i][2].axis('off')
 
+# Clean up temporary X_umap
+if 'X_umap' in adata_cdif.obsm:
+    del adata_cdif.obsm['X_umap']
+
 # Extract legends from the color mapping in .uns
 print(f"\n=== Extracting legends ===")
-if cdif_umap_key != 'X_umap':
-    adata_cdif.obsm['X_umap'] = adata_cdif.obsm[cdif_umap_key].copy()
+adata_cdif.obsm['X_umap'] = adata_cdif.obsm[cdif_umap_key].copy()
 
 temp_fig, temp_ax = plt.subplots(figsize=(1, 1))
 sc.pl.umap(adata_cdif, color=batch_key, ax=temp_ax, show=False, frameon=False)
 batch_handles, batch_labels = temp_ax.get_legend_handles_labels()
 plt.close(temp_fig)
 
-if label_categories:
+if hasattr(params, 'label_key') and params.label_key and label_key in adata_cdif.obs.columns:
     temp_fig, temp_ax = plt.subplots(figsize=(1, 1))
     sc.pl.umap(adata_cdif, color=label_key, ax=temp_ax, show=False, frameon=False)
     label_handles, label_labels = temp_ax.get_legend_handles_labels()
@@ -246,7 +222,7 @@ if label_categories:
 else:
     label_handles, label_labels = None, None
 
-if lineage_categories:
+if has_lineage and 'lineage' in adata_cdif.obs.columns:
     temp_fig, temp_ax = plt.subplots(figsize=(1, 1))
     sc.pl.umap(adata_cdif, color='lineage', ax=temp_ax, show=False, frameon=False)
     lineage_handles, lineage_labels = temp_ax.get_legend_handles_labels()
