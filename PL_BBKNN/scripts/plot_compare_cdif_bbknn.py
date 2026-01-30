@@ -63,15 +63,25 @@ sc.pl.umap(adata_bbknn, color=params.label_key, ax=ax4, show=False,
 # Add shared legends in bottom row
 # Legend for batch (from CellDiffusion)
 batch_colors = adata_cdif.obs[params.batch_key].cat.categories
-batch_palette = sc.pl.palplot(sc.pl.color_palette("husl", len(batch_colors)), show_values=False)
-batch_handles = [mpatches.Patch(facecolor=sc.pl.color_palette("husl", len(batch_colors))[i], 
+# Get colors from adata if available, otherwise use default palette
+if f"{params.batch_key}_colors" in adata_cdif.uns:
+    batch_color_list = adata_cdif.uns[f"{params.batch_key}_colors"]
+else:
+    import seaborn as sns
+    batch_color_list = sns.color_palette("husl", len(batch_colors))
+batch_handles = [mpatches.Patch(facecolor=batch_color_list[i], 
                                 label=batch_colors[i]) 
                 for i in range(len(batch_colors))]
 
 # Legend for labels (from CellDiffusion)
 label_colors = adata_cdif.obs[params.label_key].cat.categories
-label_palette = sc.pl.color_palette("tab20", len(label_colors))
-label_handles = [mpatches.Patch(facecolor=label_palette[i % len(label_palette)],
+# Get colors from adata if available, otherwise use default palette
+if f"{params.label_key}_colors" in adata_cdif.uns:
+    label_color_list = adata_cdif.uns[f"{params.label_key}_colors"]
+else:
+    import seaborn as sns
+    label_color_list = sns.color_palette("tab20", len(label_colors))
+label_handles = [mpatches.Patch(facecolor=label_color_list[i % len(label_color_list)],
                                 label=label_colors[i])
                 for i in range(len(label_colors))]
 
