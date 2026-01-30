@@ -1,24 +1,58 @@
-# PL_uniPort: uniPort integration + scib evaluation
-# Datasets: scRNA-seq H5AD files for integration
+# Configuration file for UniPort integration with CellDiffusion comparison
 
-datasets: ["Endom314K_GSM4577312_GSM6574543", 
-            "Endom314K_GSM6605435_GSM6605432",
-            "Endom314K_GSM6605435_GSM6605434",
-            "Endom314K_GSM6605436_GSM6605440",
-            "Endom314K_GSM6605437_GSM6605434"]
+# datasets: ["Endom314K_GSM4577312_GSM6574543", 
+#             "Endom314K_GSM6605435_GSM6605432",
+#             "Endom314K_GSM6605435_GSM6605434",
+#             "Endom314K_GSM6605436_GSM6605440",
+#             "Endom314K_GSM6605437_GSM6605434"]
 
-normalized_data: True
+# normalized_data: True
+
+datasets: ["BMMC_s1d3_s4d9",
+            "BMMC_s1d2_s3d1",
+            "BMMC_s2d5_s3d7",
+            "pbmc10k",]
+
+normalized_data: False
 
 # Data paths
 data:
   input_path: "../data/inputs/integration/"
+  # Output directory (relative to project root, or use absolute path)
   output_dir: "../data/outputs/PL_uniPort"
+
+# CellDiffusion parameters
+celldiffusion:
+  device: "cuda"
+  # Preprocessing parameters
+  min_cells: 3
+  target_sum: 10000
+  n_top_genes: 2000
+  min_mean: 0.0125
+  max_mean: 3
+  min_disp: 0.5
+  # Feature auto-encoder parameters
+  max_epoch_fae: 300
+  lr_fae: 0.001
+  latent_size_fae: 128
+  hidden_layers_fae: [512, 256]
+  # Graph building parameters
+  k: 10
+  n_edges_per_node: 10
+  k_mnn: 10
+  # Diffusion parameters
+  max_epoch_dif: 300
+  lr_dif: 0.001
+  num_features_diffusion: 128
+  num_heads_diffusion: 4
+  num_steps_diffusion: 10
+  time_increment_diffusion: 0.1
 
 # UniPort parameters
 uniport:
   n_hvg_common: 2000
   n_hvg_specific: 2000
-  mode: "h"
+  mode: "s"
   lambda_s: 1.0
   source_name: "batch"
   use_rep: "X"   # per-dataset representation name; used as ["X","X",...]

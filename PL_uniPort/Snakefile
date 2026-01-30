@@ -38,12 +38,56 @@ OUTPUT_BASE_DIR.mkdir(parents=True, exist_ok=True)
 # Rule all: define final outputs for all datasets
 rule all:
     input:
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/celldiffusion_integrated.h5ad"), dataset=DATASETS),
         expand(str(OUTPUT_BASE_DIR / "{dataset}/uniport_integrated.h5ad"), dataset=DATASETS),
         expand(str(OUTPUT_BASE_DIR / "{dataset}/aggregated_embeddings.h5ad"), dataset=DATASETS),
         expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table.csv"), dataset=DATASETS),
         expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_benchmarker.pkl"), dataset=DATASETS),
         expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table_plot.pdf"), dataset=DATASETS),
         expand(str(OUTPUT_BASE_DIR / "{dataset}/uniport_umap.pdf"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/compare_cdif_uniport.pdf"), dataset=DATASETS),
+
+# Rule: Run CellDiffusion integration
+rule run_celldiffusion:
+    input:
+        h5ad = get_input_path
+    output:
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/celldiffusion_integrated.h5ad")
+    params:
+        batch_key = config["evaluation"]["batch_key"],
+        device = config["celldiffusion"]["device"],
+        # Preprocessing parameters
+        normalized_data = config.get("normalized_data", False),
+        min_cells = config["celldiffusion"]["min_cells"],
+        target_sum = config["celldiffusion"]["target_sum"],
+        n_top_genes = config["celldiffusion"]["n_top_genes"],
+        min_mean = config["celldiffusion"]["min_mean"],
+        max_mean = config["celldiffusion"]["max_mean"],
+        min_disp = config["celldiffusion"]["min_disp"],
+        # Feature auto-encoder parameters
+        max_epoch_fae = config["celldiffusion"]["max_epoch_fae"],
+        lr_fae = config["celldiffusion"]["lr_fae"],
+        latent_size_fae = config["celldiffusion"]["latent_size_fae"],
+        hidden_layers_fae = config["celldiffusion"]["hidden_layers_fae"],
+        # Graph building parameters
+        k = config["celldiffusion"]["k"],
+        n_edges_per_node = config["celldiffusion"]["n_edges_per_node"],
+        k_mnn = config["celldiffusion"]["k_mnn"],
+        # Diffusion parameters
+        max_epoch_dif = config["celldiffusion"]["max_epoch_dif"],
+        lr_dif = config["celldiffusion"]["lr_dif"],
+        num_features_diffusion = config["celldiffusion"]["num_features_diffusion"],
+        num_heads_diffusion = config["celldiffusion"]["num_heads_diffusion"],
+        num_steps_diffusion = config["celldiffusion"]["num_steps_diffusion"],
+        time_increment_diffusion = config["celldiffusion"]["time_increment_diffusion"],
+        # UMAP parameters
+        umap_n_neighbors = config["umap"]["n_neighbors"],
+        umap_min_dist = config["umap"]["min_dist"],
+        umap_n_pcs = config["umap"]["n_pcs"],
+        # Leiden parameters
+        leiden_resolution = config["leiden"]["resolution"]
+    script:
+        "scripts/run_celldiffusion.py"
 
 # Rule: Integrate single dataset with uniPort
 rule integrate_uniport:
@@ -99,3 +143,17 @@ rule scib_evaluation:
         n_jobs = config["scib_evaluation"]["n_jobs"]
     script:
         "scripts/scib_evaluation.py"
+
+# Rule: Compare CellDiffusion with UniPort integration
+rule plot_compare_cdif_uniport:
+    input:
+        cdif_h5ad = str(OUTPUT_BASE_DIR / "{dataset}/celldiffusion_integrated.h5ad"),
+        uniport_h5ad = str(OUTPUT_BASE_DIR / "{dataset}/uniport_integrated.h5ad")
+    output:
+        pdf = str(OUTPUT_BASE_DIR / "{dataset}/compare_cdif_uniport.pdf")
+    params:
+        batch_key = config["evaluation"]["batch_key"],
+        label_key = config["evaluation"]["label_key"]
+    script:
+        "scripts/plot_compare_cdif_uniport.py"
+
