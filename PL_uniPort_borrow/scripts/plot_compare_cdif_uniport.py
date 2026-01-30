@@ -115,48 +115,77 @@ for i in range(n_methods + 1):
 
 has_lineage = 'lineage' in adata_cdif.obs.columns
 
-# Extract unified color palettes before plotting
-print(f"\n=== Extracting unified color palettes ===")
-if cdif_umap_key != 'X_umap':
-    adata_cdif.obsm['X_umap'] = adata_cdif.obsm[cdif_umap_key].copy()
+# Ensure categorical variables and sync their color mapping
+print(f"\n=== Setting up unified color mapping ===")
 
-# Get palette for batch
-temp_fig, temp_ax = plt.subplots(figsize=(1, 1))
-sc.pl.umap(adata_cdif, color=batch_key, ax=temp_ax, show=False, frameon=False)
-batch_palette = {}
-if temp_ax.get_legend():
-    for patch, label in zip(temp_ax.get_legend().get_patches(), [t.get_text() for t in temp_ax.get_legend().get_texts()]):
-        batch_palette[label] = patch.get_facecolor()
-plt.close(temp_fig)
+# Convert to categorical if not already
+for adata in [adata_cdif, adata_uniport]:
+    if batch_key not in adata.obs.columns:
+        print(f"ERROR: {batch_key} not found in data")
+        sys.exit(1)
+    if not isinstance(adata.obs[batch_key], type(adata_cdif.obs[batch_key])):
+        if not adata.obs[batch_key].dtype.name == 'category':
+            adata.obs[batch_key] = adata.obs[batch_key].astype('category')
+    
+    if hasattr(params, 'label_key') and params.label_key and label_key in adata.obs.columns:
+        if not adata.obs[label_key].dtype.name == 'category':
+            adata.obs[label_key] = adata.obs[label_key].astype('category')
+    
+    if has_lineage and 'lineage' in adata.obs.columns:
+        if not adata.obs['lineage'].dtype.name == 'category':
+            adata.obs['lineage'] = adata.obs['lineage'].astype('category')
 
-# Get palette for label_key if present
-label_palette = {}
-if hasattr(params, 'label_key') and params.label_key:
-    temp_fig, temp_ax = plt.subplots(figsize=(1, 1))
-    sc.pl.umap(adata_cdif, color=label_key, ax=temp_ax, show=False, frameon=False)
-    if temp_ax.get_legend():
-        for patch, label in zip(temp_ax.get_legend().get_patches(), [t.get_text() for t in temp_ax.get_legend().get_texts()]):
-            label_palette[label] = patch.get_facecolor()
-    plt.close(temp_fig)
+# Create unified categories from CellDiffusion data
+batch_categories = list(adata_cdif.obs[batch_key].cat.categories)
+if label_key in adata_cdif.obs.columns:
+    label_categories = list(adata_cdif.obs[label_key].cat.categories)
+else:
+    label_categories = None
 
-# Get palette for lineage if present
-lineage_palette = {}
 if has_lineage:
-    temp_fig, temp_ax = plt.subplots(figsize=(1, 1))
-    sc.pl.umap(adata_cdif, color='lineage', ax=temp_ax, show=False, frameon=False)
-    if temp_ax.get_legend():
-        for patch, label in zip(temp_ax.get_legend().get_patches(), [t.get_text() for t in temp_ax.get_legend().get_texts()]):
-            lineage_palette[label] = patch.get_facecolor()
-    plt.close(temp_fig)
+    lineage_categories = list(adata_cdif.obs['lineage'].cat.categories)
+else:
+    lineage_categories = None
 
-if cdif_umap_key != 'X_umap':
-    del adata_cdif.obsm['X_umap']
+# Sync categories in both datasets
+for adata in [adata_cdif, adata_uniport]:
+    adata.obs[batch_key] = adata.obs[batch_key].cat.set_categories(batch_categories)
+    
+    if label_categories and label_key in adata.obs.columns:
+        adata.obs[label_key] = adata.obs[label_key].cat.set_categories(label_categories)
+    
+    if lineage_categories and 'lineage' in adata.obs.columns:
+        adata.obs['lineage'] = adata.obs['lineage'].cat.set_categories(lineage_categories)
 
-print(f"  Batch palette categories: {list(batch_palette.keys())}")
-if label_palette:
-    print(f"  Label palette categories: {list(label_palette.keys())}")
-if lineage_palette:
-    print(f"  Lineage palette categories: {list(lineage_palette.keys())}")
+# Generate color mapping using scanpy's color schema and store in .uns
+print(f"  Generating color mapping...")
+from matplotlib import cm
+from matplotlib.colors import rgb2hex
+
+# Generate palette for batch
+batch_palette = sc.pl.palettes.default_20
+batch_colors = [rgb2hex(batch_palette[i % len(batch_palette)]) for i in range(len(batch_categories))]
+adata_cdif.uns[f'{batch_key}_colors'] = batch_colors
+adata_uniport.uns[f'{batch_key}_colors'] = batch_colors
+
+print(f"  Batch categories: {batch_categories}")
+print(f"  Batch colors assigned: {len(batch_colors)}")
+
+# Generate palette for labels
+if label_categories:
+    label_colors = [rgb2hex(batch_palette[i % len(batch_palette)]) for i in range(len(label_categories))]
+    adata_cdif.uns[f'{label_key}_colors'] = label_colors
+    adata_uniport.uns[f'{label_key}_colors'] = label_colors
+    print(f"  Label categories: {label_categories}")
+    print(f"  Label colors assigned: {len(label_colors)}")
+
+# Generate palette for lineage
+if lineage_categories:
+    lineage_colors = [rgb2hex(batch_palette[i % len(batch_palette)]) for i in range(len(lineage_categories))]
+    adata_cdif.uns[f'lineage_colors'] = lineage_colors
+    adata_uniport.uns[f'lineage_colors'] = lineage_colors
+    print(f"  Lineage categories: {lineage_categories}")
+    print(f"  Lineage colors assigned: {len(lineage_colors)}")
 
 print(f"\n=== Plotting UMAPs ===")
 
@@ -168,18 +197,18 @@ for i, (mname, madata, mukey) in enumerate(methods):
     if mukey != 'X_umap':
         madata.obsm['X_umap'] = madata.obsm[mukey].copy()
     sc.pl.umap(madata, color=batch_key, ax=axes[i][0], show=False, frameon=False,
-               title=f"{mname} - Batch", legend_loc='none', palette=batch_palette)
+               title=f"{mname} - Batch", legend_loc='none')
     axes[i][0].title.set_fontsize(14)
     if mukey != 'X_umap':
         del madata.obsm['X_umap']
 
     # Labels
     print(f"  Plotting {mname} Labels UMAP...")
-    if hasattr(params, 'label_key') and params.label_key:
+    if hasattr(params, 'label_key') and params.label_key and label_key in madata.obs.columns:
         if mukey != 'X_umap':
             madata.obsm['X_umap'] = madata.obsm[mukey].copy()
         sc.pl.umap(madata, color=label_key, ax=axes[i][1], show=False, frameon=False,
-                   title=f"{mname} - Labels", legend_loc='none', palette=label_palette)
+                   title=f"{mname} - Labels", legend_loc='none')
         axes[i][1].title.set_fontsize(14)
         if mukey != 'X_umap':
             del madata.obsm['X_umap']
@@ -187,39 +216,39 @@ for i, (mname, madata, mukey) in enumerate(methods):
         axes[i][1].axis('off')
 
     # Lineage
-    if has_lineage:
+    if has_lineage and 'lineage' in madata.obs.columns:
         print(f"  Plotting {mname} Lineage UMAP...")
         if mukey != 'X_umap':
             madata.obsm['X_umap'] = madata.obsm[mukey].copy()
         sc.pl.umap(madata, color='lineage', ax=axes[i][2], show=False, frameon=False,
-                   title=f"{mname} - Lineage", legend_loc='none', palette=lineage_palette)
+                   title=f"{mname} - Lineage", legend_loc='none')
         axes[i][2].title.set_fontsize(14)
         if mukey != 'X_umap':
             del madata.obsm['X_umap']
     else:
         axes[i][2].axis('off')
 
-# Extract legends from CellDiffusion (use first method's embedding)
+# Extract legends from the color mapping in .uns
 print(f"\n=== Extracting legends ===")
 if cdif_umap_key != 'X_umap':
     adata_cdif.obsm['X_umap'] = adata_cdif.obsm[cdif_umap_key].copy()
 
 temp_fig, temp_ax = plt.subplots(figsize=(1, 1))
-sc.pl.umap(adata_cdif, color=batch_key, ax=temp_ax, show=False, frameon=False, palette=batch_palette)
+sc.pl.umap(adata_cdif, color=batch_key, ax=temp_ax, show=False, frameon=False)
 batch_handles, batch_labels = temp_ax.get_legend_handles_labels()
 plt.close(temp_fig)
 
-if hasattr(params, 'label_key') and params.label_key:
+if label_categories:
     temp_fig, temp_ax = plt.subplots(figsize=(1, 1))
-    sc.pl.umap(adata_cdif, color=label_key, ax=temp_ax, show=False, frameon=False, palette=label_palette)
+    sc.pl.umap(adata_cdif, color=label_key, ax=temp_ax, show=False, frameon=False)
     label_handles, label_labels = temp_ax.get_legend_handles_labels()
     plt.close(temp_fig)
 else:
     label_handles, label_labels = None, None
 
-if has_lineage:
+if lineage_categories:
     temp_fig, temp_ax = plt.subplots(figsize=(1, 1))
-    sc.pl.umap(adata_cdif, color='lineage', ax=temp_ax, show=False, frameon=False, palette=lineage_palette)
+    sc.pl.umap(adata_cdif, color='lineage', ax=temp_ax, show=False, frameon=False)
     lineage_handles, lineage_labels = temp_ax.get_legend_handles_labels()
     plt.close(temp_fig)
 else:
