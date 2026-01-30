@@ -85,17 +85,14 @@ if params.device == "cuda":
 print("\n=== Step 1: Feature Auto-Encoder ===")
 print(f"  Max epochs: {params.max_epoch_fae}")
 print(f"  Learning rate: {params.lr_fae}")
-print(f"  Latent size: {params.latent_size_fae}")
 print(f"  Hidden layers: {params.hidden_layers_fae}")
 
-cd.diff.train_feature_encoder(
+cd.encode_features(
     adata,
-    use_rep='X',
-    save_latent_key='X_fae',
+    D_encode_list=params.hidden_layers_fae + [params.latent_size_fae],
+    D_decode_list=list(reversed(params.hidden_layers_fae)) + [adata.n_vars],
     max_epoch=params.max_epoch_fae,
     lr=params.lr_fae,
-    latent_size=params.latent_size_fae,
-    hidden_layers=params.hidden_layers_fae,
     device=params.device
 )
 
