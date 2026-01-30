@@ -52,7 +52,7 @@ celldiffusion:
 uniport:
   n_hvg_common: 2000
   n_hvg_specific: 2000
-  mode: "s"
+  mode: "h"
   lambda_s: 1.0
   source_name: "batch"
   use_rep: "X"   # per-dataset representation name; used as ["X","X",...]
