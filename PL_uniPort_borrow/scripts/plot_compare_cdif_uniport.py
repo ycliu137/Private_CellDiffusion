@@ -47,27 +47,47 @@ print(f"  Available obsm keys: {list(adata_uniport.obsm.keys())}")
 gcn_umap_key = None
 uniport_umap_key = None
 
-# Find GCN UMAP key
-for key in adata_gcn.obsm.keys():
-    if 'umap' in key.lower():
-        gcn_umap_key = key
-        print(f"  Found GCN UMAP: {gcn_umap_key}")
-        break
+# Find CellDiffusion UMAP key (X_umap_dif)
+if 'X_umap_dif' in adata_gcn.obsm.keys():
+    gcn_umap_key = 'X_umap_dif'
+    print(f"  Found CellDiffusion UMAP: {gcn_umap_key}")
+elif 'X_umap' in adata_gcn.obsm.keys():
+    gcn_umap_key = 'X_umap'
+    print(f"  Found UMAP: {gcn_umap_key}")
+else:
+    # Find any umap key
+    for key in adata_gcn.obsm.keys():
+        if 'umap' in key.lower():
+            gcn_umap_key = key
+            print(f"  Found UMAP: {gcn_umap_key}")
+            break
 
 # Find UniPort UMAP key
-for key in adata_uniport.obsm.keys():
-    if 'umap' in key.lower():
-        uniport_umap_key = key
-        print(f"  Found UniPort UMAP: {uniport_umap_key}")
-        break
+if 'X_umap' in adata_uniport.obsm.keys():
+    uniport_umap_key = 'X_umap'
+    print(f"  Found UniPort UMAP: {uniport_umap_key}")
+else:
+    # Find any umap key
+    for key in adata_uniport.obsm.keys():
+        if 'umap' in key.lower():
+            uniport_umap_key = key
+            print(f"  Found UniPort UMAP: {uniport_umap_key}")
+            break
 
 if not gcn_umap_key:
-    print(f"ERROR: No UMAP found in GCN data")
+    print(f"ERROR: No UMAP found in CellDiffusion data")
     sys.exit(1)
 
 if not uniport_umap_key:
-    print(f"ERROR: No UMAP found in UniPort data")
-    sys.exit(1)
+    print(f"ERROR: No UMAP found in UniPort data. Computing UMAP...")
+    # Compute UMAP if not present
+    if 'X_uniport' in adata_uniport.obsm.keys():
+        sc.pp.neighbors(adata_uniport, use_rep='X_uniport')
+        sc.tl.umap(adata_uniport)
+        uniport_umap_key = 'X_umap'
+    else:
+        print(f"ERROR: Cannot compute UMAP - no embedding found")
+        sys.exit(1)
 
 # Create figure with subplots: 2 rows (Batch, Labels) x 2 cols (CellDiffusion, UniPort)
 fig = plt.figure(figsize=(14, 12))
@@ -84,8 +104,8 @@ for i in range(2):
 print(f"\n=== Plotting UMAPs ===")
 
 # Row 0: Batch coloring
-# Column 0: CellDiffusion (GCN)
-print(f"  Plotting GCN Batch UMAP...")
+# Column 0: CellDiffusion
+print(f"  Plotting CellDiffusion Batch UMAP...")
 adata_gcn.obsm['X_umap'] = adata_gcn.obsm[gcn_umap_key].copy()
 sc.pl.umap(
     adata_gcn,
@@ -115,8 +135,8 @@ axes[0][1].title.set_fontsize(14)
 del adata_uniport.obsm['X_umap']
 
 # Row 1: Cell Type coloring
-# Column 0: CellDiffusion (GCN)
-print(f"  Plotting GCN Labels UMAP...")
+# Column 0: CellDiffusion
+print(f"  Plotting CellDiffusion Labels UMAP...")
 adata_gcn.obsm['X_umap'] = adata_gcn.obsm[gcn_umap_key].copy()
 sc.pl.umap(
     adata_gcn,
@@ -148,7 +168,7 @@ del adata_uniport.obsm['X_umap']
 # Extract and add legends
 print(f"\n=== Extracting legends ===")
 
-# Extract batch legend from GCN
+# Extract batch legend from CellDiffusion
 adata_gcn.obsm['X_umap'] = adata_gcn.obsm[gcn_umap_key].copy()
 temp_fig, temp_ax = plt.subplots(figsize=(1, 1))
 sc.pl.umap(adata_gcn, color=batch_key, ax=temp_ax, show=False, frameon=False)
@@ -156,7 +176,7 @@ batch_handles, batch_labels = temp_ax.get_legend_handles_labels()
 plt.close(temp_fig)
 del adata_gcn.obsm['X_umap']
 
-# Extract label legend from GCN
+# Extract label legend from CellDiffusion
 adata_gcn.obsm['X_umap'] = adata_gcn.obsm[gcn_umap_key].copy()
 temp_fig, temp_ax = plt.subplots(figsize=(1, 1))
 sc.pl.umap(adata_gcn, color=label_key, ax=temp_ax, show=False, frameon=False)
