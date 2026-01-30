@@ -10,8 +10,7 @@
 
 datasets: ["BMMC_s1d3_s4d9",
             "BMMC_s1d2_s3d1",
-            "BMMC_s2d5_s3d7",
-            "pbmc10k",]
+            "BMMC_s2d5_s3d7"]
 
 normalized_data: False
 
