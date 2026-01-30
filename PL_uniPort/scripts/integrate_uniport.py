@@ -63,12 +63,15 @@ for batch in sorted(batches):
 print(f"\n=== Preparing per-batch data ===")
 adata_list = []
 
-for batch in sorted(batches):
+for batch_idx, batch in enumerate(sorted(batches)):
     print(f"  Processing batch: {batch}")
     
     # Get cells for this batch
     ad = adata[adata.obs[batch_key] == batch].copy()
     print(f"    Shape: {ad.shape}")
+    
+    # Add 'source' column for UniPort identification
+    ad.obs['source'] = f'batch_{batch_idx}'
     
     # Normalize if not already normalized
     if not normalized_data:
@@ -84,7 +87,7 @@ for batch in sorted(batches):
     
     # Scale data
     print(f"    Scaling...")
-    up.batch_scale(ad)
+    sc.pp.scale(ad)
     
     adata_list.append(ad)
     print(f"    After HVG selection: {ad.shape}")
@@ -104,7 +107,7 @@ sc.pp.highly_variable_genes(adata_full, n_top_genes=n_hvg_common)
 common_hvgs = adata_full.var[adata_full.var['highly_variable']].index.tolist()
 print(f"  Found {len(common_hvgs)} common HVGs")
 
-# Create full-union gene set for per-batch data
+# Prepare data for UniPort: align all batches to full gene set
 print(f"\n=== Creating unified data structures ===")
 all_genes_set = set()
 for ad in adata_list:
