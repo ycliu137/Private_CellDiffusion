@@ -1,4 +1,4 @@
-# Configuration file for UniPort integration with CellDiffusion comparison
+# Configuration file for BBKNN integration with CellDiffusion comparison
 
 # datasets: ["Endom314K_GSM4577312_GSM6574543", 
 #             "Endom314K_GSM6605435_GSM6605432",
@@ -18,7 +18,7 @@ normalized_data: False
 data:
   input_path: "../data/inputs/integration/"
   # Output directory (relative to project root, or use absolute path)
-  output_dir: "../data/outputs/PL_uniPort"
+  output_dir: "../data/outputs/PL_BBKNN"
 
 # CellDiffusion parameters
 celldiffusion:
@@ -34,7 +34,7 @@ celldiffusion:
   max_epoch_fae: 2000
   lr_fae: 0.001
   latent_size_fae: 50
-  hidden_layers_fae: [300,]
+  hidden_layers_fae: [300, ]
   # Graph building parameters
   k: 50
   n_edges_per_node: 50
@@ -47,14 +47,10 @@ celldiffusion:
   num_steps_diffusion: 8
   time_increment_diffusion: 0.2
 
-# UniPort parameters
-uniport:
-  n_hvg_common: 2000
-  n_hvg_specific: 2000
-  mode: "h"
-  lambda_s: 1.0
-  source_name: "batch"
-  use_rep: "X"   # per-dataset representation name; used as ["X","X",...]
+# BBKNN parameters
+bbknn:
+  n_neighbors: 15
+  computation: "pynndescent"
 
 # UMAP parameters
 umap:

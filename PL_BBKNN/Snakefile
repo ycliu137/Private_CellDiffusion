@@ -1,0 +1,161 @@
+"""
+Snakemake workflow for BBKNN integration + scib evaluation.
+Integrates multiple scRNA-seq datasets using BBKNN and compares with CellDiffusion.
+"""
+from pathlib import Path
+
+configfile: "config.yaml"
+
+# Get datasets from config
+DATASETS = config.get("datasets", [])
+
+def get_output_base_dir():
+    """Get base output directory from config"""
+    if "data" in config and "output_dir" in config["data"]:
+        output_base = config["data"]["output_dir"]
+        if Path(output_base).is_absolute():
+            return Path(output_base)
+        else:
+            return Path(output_base).resolve()
+    return Path("../data/outputs/PL_BBKNN").resolve()
+
+def get_input_path(wildcards):
+    """Get input path for a dataset"""
+    if "data" in config and "input_path" in config["data"]:
+        input_base = config["data"]["input_path"]
+        if not input_base.endswith(('.h5ad', '.h5')):
+            if not input_base.endswith('/'):
+                input_base = input_base + "/"
+            input_path = input_base + f"{wildcards.dataset}.h5ad"
+        else:
+            input_path = input_base
+        return input_path
+    return f"../data/inputs/integration/{wildcards.dataset}.h5ad"
+
+OUTPUT_BASE_DIR = get_output_base_dir()
+OUTPUT_BASE_DIR.mkdir(parents=True, exist_ok=True)
+
+# Rule all: define final outputs for all datasets
+rule all:
+    input:
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/celldiffusion_integrated.h5ad"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/bbknn_integrated.h5ad"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/aggregated_embeddings.h5ad"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table.csv"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_benchmarker.pkl"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table_plot.pdf"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/bbknn_umap.pdf"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/compare_cdif_bbknn.pdf"), dataset=DATASETS),
+
+# Rule: Run CellDiffusion integration
+rule run_celldiffusion:
+    input:
+        h5ad = get_input_path
+    output:
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/celldiffusion_integrated.h5ad")
+    params:
+        batch_key = config["evaluation"]["batch_key"],
+        device = config["celldiffusion"]["device"],
+        # Preprocessing parameters
+        normalized_data = config.get("normalized_data", False),
+        min_cells = config["celldiffusion"]["min_cells"],
+        target_sum = config["celldiffusion"]["target_sum"],
+        n_top_genes = config["celldiffusion"]["n_top_genes"],
+        min_mean = config["celldiffusion"]["min_mean"],
+        max_mean = config["celldiffusion"]["max_mean"],
+        min_disp = config["celldiffusion"]["min_disp"],
+        # Feature auto-encoder parameters
+        max_epoch_fae = config["celldiffusion"]["max_epoch_fae"],
+        lr_fae = config["celldiffusion"]["lr_fae"],
+        latent_size_fae = config["celldiffusion"]["latent_size_fae"],
+        hidden_layers_fae = config["celldiffusion"]["hidden_layers_fae"],
+        # Graph building parameters
+        k = config["celldiffusion"]["k"],
+        n_edges_per_node = config["celldiffusion"]["n_edges_per_node"],
+        k_mnn = config["celldiffusion"]["k_mnn"],
+        # Diffusion parameters
+        max_epoch_dif = config["celldiffusion"]["max_epoch_dif"],
+        lr_dif = config["celldiffusion"]["lr_dif"],
+        num_features_diffusion = config["celldiffusion"]["num_features_diffusion"],
+        num_heads_diffusion = config["celldiffusion"]["num_heads_diffusion"],
+        num_steps_diffusion = config["celldiffusion"]["num_steps_diffusion"],
+        time_increment_diffusion = config["celldiffusion"]["time_increment_diffusion"],
+        # UMAP parameters
+        umap_n_neighbors = config["umap"]["n_neighbors"],
+        umap_min_dist = config["umap"]["min_dist"],
+        umap_n_pcs = config["umap"]["n_pcs"],
+        # Leiden parameters
+        leiden_resolution = config["leiden"]["resolution"]
+    script:
+        "scripts/run_celldiffusion.py"
+
+# Rule: Integrate single dataset with uniPort
+rule integrate_bbknn:
+    input:
+        h5ad = get_input_path
+    output:
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/bbknn_integrated.h5ad"),
+        umap = str(OUTPUT_BASE_DIR / "{dataset}/bbknn_umap.pdf")
+    params:
+        output_dir = lambda wildcards: str(OUTPUT_BASE_DIR / wildcards.dataset),
+        n_neighbors = config["bbknn"]["n_neighbors"],
+        computation = config["bbknn"]["computation"],
+        batch_key = config["evaluation"]["batch_key"],
+        label_key = config["evaluation"]["label_key"],
+        min_cells = config["celldiffusion"]["min_cells"],
+        target_sum = config["celldiffusion"]["target_sum"],
+        n_top_genes = config["celldiffusion"]["n_top_genes"],
+        min_mean = config["celldiffusion"]["min_mean"],
+        max_mean = config["celldiffusion"]["max_mean"],
+        min_disp = config["celldiffusion"]["min_disp"],
+        n_pcs = config["umap"]["n_pcs"],
+        umap_min_dist = config["umap"]["min_dist"],
+        leiden_resolution = config["leiden"]["resolution"],
+        normalized_data = config.get("normalized_data", False)
+    script:
+        "scripts/integrate_bbknn.py"
+
+# Rule: Aggregate embeddings (for consistency with other pipelines)
+rule aggregate_embeddings:
+    input:
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/bbknn_integrated.h5ad")
+    output:
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/aggregated_embeddings.h5ad")
+    run:
+        import scanpy as sc
+        from pathlib import Path
+        
+        # Simply copy the bbknn_integrated file as aggregated_embeddings
+        adata = sc.read_h5ad(input.h5ad)
+        Path(output.h5ad).parent.mkdir(parents=True, exist_ok=True)
+        adata.write(output.h5ad)
+        print(f"Aggregated embeddings saved to: {output.h5ad}")
+
+# Rule: SCIB evaluation
+rule scib_evaluation:
+    input:
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/aggregated_embeddings.h5ad")
+    output:
+        results = str(OUTPUT_BASE_DIR / "{dataset}/scib_benchmarker.pkl"),
+        table = str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table.csv"),
+        plot = str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table_plot.pdf")
+    params:
+        batch_key = config["evaluation"]["batch_key"],
+        label_key = config["evaluation"]["label_key"],
+        n_jobs = config["scib_evaluation"]["n_jobs"]
+    script:
+        "scripts/scib_evaluation.py"
+
+# Rule: Compare CellDiffusion with BBKNN integration
+rule plot_compare_cdif_bbknn:
+    input:
+        celldiffusion_h5ad = str(OUTPUT_BASE_DIR / "{dataset}/celldiffusion_integrated.h5ad"),
+        bbknn_h5ad = str(OUTPUT_BASE_DIR / "{dataset}/bbknn_integrated.h5ad")
+    output:
+        pdf = str(OUTPUT_BASE_DIR / "{dataset}/compare_cdif_bbknn.pdf")
+    params:
+        batch_key = config["evaluation"]["batch_key"],
+        label_key = config["evaluation"]["label_key"]
+    script:
+        "scripts/plot_compare_cdif_bbknn.py"
+
