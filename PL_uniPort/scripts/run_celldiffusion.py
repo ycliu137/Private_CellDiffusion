@@ -87,10 +87,13 @@ print(f"  Max epochs: {params.max_epoch_fae}")
 print(f"  Learning rate: {params.lr_fae}")
 print(f"  Hidden layers: {params.hidden_layers_fae}")
 
+D_encode_list = [adata.n_vars] + params.hidden_layers_fae + [params.latent_size_fae]
+D_decode_list = [params.latent_size_fae] + list(reversed(params.hidden_layers_fae)) + [adata.n_vars]
+
 cd.encode_features(
     adata,
-    D_encode_list=params.hidden_layers_fae + [params.latent_size_fae],
-    D_decode_list=list(reversed(params.hidden_layers_fae)) + [adata.n_vars],
+    D_encode_list=D_encode_list,
+    D_decode_list=D_decode_list,
     max_epoch=params.max_epoch_fae,
     lr=params.lr_fae,
     device=params.device
