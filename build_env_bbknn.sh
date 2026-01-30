@@ -63,16 +63,16 @@ $PM install -n ${ENV_NAME} -c pytorch -c nvidia -c conda-forge \
     pytorch-cuda \
     -y
 
-# Install scanpy and BBKNN via conda-forge
-echo "Installing scanpy and BBKNN..."
+# Install scanpy via conda-forge
+echo "Installing scanpy and dependencies..."
 $PM install -n ${ENV_NAME} -c conda-forge \
     scanpy \
-    bbknn \
     python-louvain \
     -y
 
-# Install remaining packages via pip
-echo "Installing pip dependencies..."
+# Install BBKNN and remaining packages via pip
+echo "Installing BBKNN and pip dependencies..."
+$PM run -n ${ENV_NAME} pip install bbknn
 $PM run -n ${ENV_NAME} pip install -r requirements.txt
 
 echo ""
