@@ -13,6 +13,7 @@ scanpy>=1.9
 leidenalg>=0.10
 python-igraph>=0.10
 umap-learn>=0.5
+python-louvain>=0.16
 scvi-tools
 scib-metrics
 snakemake>=7.0

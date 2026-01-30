@@ -1,7 +1,7 @@
 #!/bin/bash
 # Run PL_uniPort pipeline (uniPort integration + scib evaluation).
 # Usage: ./run.sh [snakemake options]
-# Requires uniport_env. Create via: ./uniport_env/build_env_mamba.sh or conda env create -f uniport_env/environment.yml
+# Requires cdiff_uniport_env. Create via: ../build_env_cdiff_uniport.sh
 
 cd "$(dirname "$0")"
 
@@ -11,14 +11,17 @@ if command -v module &> /dev/null; then
 fi
 
 if command -v conda &> /dev/null; then
-    if conda env list | grep -qE "^\s*uniport_env\s"; then
+    if conda env list | grep -qE "^\s*cdiff_uniport_env\s"; then
+        echo "Activating conda environment: cdiff_uniport_env"
+        conda activate cdiff_uniport_env
+    elif conda env list | grep -qE "^\s*uniport_env\s"; then
         echo "Activating conda environment: uniport_env"
         conda activate uniport_env
     elif conda env list | grep -q "dif_snake_scib_env"; then
         echo "Activating conda environment: dif_snake_scib_env"
         conda activate dif_snake_scib_env
     else
-        echo "Warning: uniport_env not found. Create with: ./uniport_env/build_env_mamba.sh"
+        echo "Warning: cdiff_uniport_env not found. Create with: ../build_env_cdiff_uniport.sh"
     fi
 fi
 
