@@ -50,7 +50,7 @@ echo "Installing core packages via conda-forge..."
 $PM install -n ${ENV_NAME} -c conda-forge \
     numpy \
     pandas \
-    scipy \
+    "scipy<1.16" \
     scikit-learn \
     matplotlib \
     networkx \
