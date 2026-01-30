@@ -1,18 +1,18 @@
 # Configuration file for BBKNN integration with CellDiffusion comparison
 
-# datasets: ["Endom314K_GSM4577312_GSM6574543", 
-#             "Endom314K_GSM6605435_GSM6605432",
-#             "Endom314K_GSM6605435_GSM6605434",
-#             "Endom314K_GSM6605436_GSM6605440",
-#             "Endom314K_GSM6605437_GSM6605434"]
+datasets: ["Endom314K_GSM4577312_GSM6574543", 
+            "Endom314K_GSM6605435_GSM6605432",
+            "Endom314K_GSM6605435_GSM6605434",
+            "Endom314K_GSM6605436_GSM6605440",
+            "Endom314K_GSM6605437_GSM6605434"]
 
-# normalized_data: True
+normalized_data: True
 
-datasets: ["BMMC_s1d3_s4d9",
-            "BMMC_s1d2_s3d1",
-            "BMMC_s2d5_s3d7"]
+# datasets: ["BMMC_s1d3_s4d9",
+#             "BMMC_s1d2_s3d1",
+#             "BMMC_s2d5_s3d7"]
 
-normalized_data: False
+# normalized_data: False
 
 # Data paths
 data:
