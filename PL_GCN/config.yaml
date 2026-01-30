@@ -56,7 +56,7 @@ integration_gcn:
   max_epoch: 2000
   lr: 0.001
   num_features_gcn: 50
-  num_layers_gcn: 4
+  num_layers_gcn: 2
   dropout: 0.0
 
 # Evaluation parameters

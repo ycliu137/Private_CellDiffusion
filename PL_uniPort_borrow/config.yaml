@@ -1,5 +1,4 @@
-# PL_uniPort: uniPort integration + scib evaluation
-# Datasets: scRNA-seq H5AD files for integration
+# Configuration file for UniPort integration with CellDiffusion comparison
 
 datasets: ["Endom314K_GSM4577312_GSM6574543", 
             "Endom314K_GSM6605435_GSM6605432",
@@ -12,9 +11,10 @@ normalized_data: True
 # Data paths
 data:
   input_path: "../data/inputs/integration/"
+  # Output directory (relative to project root, or use absolute path)
   output_dir: "../data/outputs/PL_uniPort_borrow"
   # Path to PL_GCN output directory for comparison plots
-  pl_gcn_output_dir: "../data/outputs/PL_GCN"
+  pl_gcn_output_dir: "../data/outputs/celldiffusion_vs_gcn_4/"
 
 # UniPort parameters
 uniport:
