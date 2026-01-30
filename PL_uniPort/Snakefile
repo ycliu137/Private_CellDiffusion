@@ -43,13 +43,15 @@ rule all:
         expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table.csv"), dataset=DATASETS),
         expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_benchmarker.pkl"), dataset=DATASETS),
         expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table_plot.pdf"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/uniport_umap.pdf"), dataset=DATASETS),
 
 # Rule: Integrate single dataset with uniPort
 rule integrate_uniport:
     input:
         h5ad = get_input_path
     output:
-        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/uniport_integrated.h5ad")
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/uniport_integrated.h5ad"),
+        umap = str(OUTPUT_BASE_DIR / "{dataset}/uniport_umap.pdf")
     params:
         output_dir = lambda wildcards: str(OUTPUT_BASE_DIR / wildcards.dataset),
         n_hvg_common = config["uniport"]["n_hvg_common"],

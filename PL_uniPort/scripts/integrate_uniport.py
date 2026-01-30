@@ -13,6 +13,9 @@ import scanpy as sc
 import numpy as np
 import uniport as up
 from scipy.sparse import issparse
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 
 # Get input/output from snakemake
 input_h5ad = snakemake.input.h5ad
@@ -209,6 +212,51 @@ try:
 except Exception as e:
     print(f"  Warning: Error during downstream analysis: {e}")
     print(f"  Continuing without downstream analyses...")
+
+# Plot UMAPs for the integrated result (batch and cell type)
+print(f"\n=== Plotting UMAPs for UniPort integrated data ===")
+try:
+    out_dir = Path(output_h5ad).parent
+    fig_path = out_dir / "uniport_umap.pdf"
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    fig, axes = plt.subplots(1, 2, figsize=(14, 7))
+    # Batch UMAP
+    try:
+        sc.pl.umap(
+            adata_integrated,
+            color=batch_key,
+            ax=axes[0],
+            show=False,
+            frameon=False,
+            legend_loc='right',
+            title='Batch'
+        )
+    except Exception as e:
+        print(f"  Warning plotting batch UMAP: {e}")
+        axes[0].text(0.5, 0.5, 'Error', ha='center', va='center', fontsize=12)
+
+    # Cell type UMAP
+    try:
+        sc.pl.umap(
+            adata_integrated,
+            color=label_key,
+            ax=axes[1],
+            show=False,
+            frameon=False,
+            legend_loc='right',
+            title='Cell Type'
+        )
+    except Exception as e:
+        print(f"  Warning plotting cell type UMAP: {e}")
+        axes[1].text(0.5, 0.5, 'Error', ha='center', va='center', fontsize=12)
+
+    plt.tight_layout()
+    plt.savefig(fig_path, dpi=300, bbox_inches='tight')
+    plt.close()
+    print(f"  Saved UMAP figure to: {fig_path}")
+except Exception as e:
+    print(f"  Warning: could not create UMAP figure: {e}")
 
 # Save output
 print(f"\n=== Saving results ===")
