@@ -101,10 +101,10 @@ rule scib_evaluation:
     script:
         "scripts/scib_evaluation.py"
 
-# Rule: Compare CellDiffusion (from PL_GCN) with UniPort integration
+# Rule: Compare CellDiffusion with UniPort integration
 rule plot_compare_cdif_uniport:
     input:
-        gcn_h5ad = lambda wildcards: Path(config["data"]["pl_gcn_output_dir"]) / f"{wildcards.dataset}/data_with_umap.h5ad",
+        cdif_h5ad = lambda wildcards: Path(config["data"]["pl_cdif_output_dir"]) / f"{wildcards.dataset}/data_with_umap.h5ad",
         uniport_h5ad = str(OUTPUT_BASE_DIR / "{dataset}/uniport_integrated.h5ad")
     output:
         pdf = str(OUTPUT_BASE_DIR / "{dataset}/compare_cdif_uniport.pdf")

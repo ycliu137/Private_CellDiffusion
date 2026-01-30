@@ -1,5 +1,5 @@
 """
-Plot UMAP comparison between CellDiffusion (from PL_GCN) and UniPort integration
+Plot UMAP comparison between CellDiffusion and UniPort integration
 Displays side-by-side: Batch and Cell Type UMAPs
 """
 import sys
@@ -23,7 +23,7 @@ rcParams["axes.titlesize"] = 14
 rcParams["axes.labelsize"] = 12
 
 # Get inputs from snakemake
-gcn_h5ad = snakemake.input.gcn_h5ad
+cdif_h5ad = snakemake.input.cdif_h5ad
 uniport_h5ad = snakemake.input.uniport_h5ad
 output_pdf = snakemake.output.pdf
 params = snakemake.params
@@ -31,11 +31,11 @@ params = snakemake.params
 batch_key = params.batch_key
 label_key = params.label_key
 
-print(f"\n=== Loading GCN (CellDiffusion) data ===")
-print(f"  File: {gcn_h5ad}")
-adata_gcn = sc.read_h5ad(gcn_h5ad)
-print(f"  Shape: {adata_gcn.shape}")
-print(f"  Available obsm keys: {list(adata_gcn.obsm.keys())}")
+print(f"\n=== Loading CellDiffusion data ===")
+print(f"  File: {cdif_h5ad}")
+adata_cdif = sc.read_h5ad(cdif_h5ad)
+print(f"  Shape: {adata_cdif.shape}")
+print(f"  Available obsm keys: {list(adata_cdif.obsm.keys())}")
 
 print(f"\n=== Loading UniPort data ===")
 print(f"  File: {uniport_h5ad}")
@@ -44,22 +44,22 @@ print(f"  Shape: {adata_uniport.shape}")
 print(f"  Available obsm keys: {list(adata_uniport.obsm.keys())}")
 
 # Check for UMAP embeddings
-gcn_umap_key = None
+cdif_umap_key = None
 uniport_umap_key = None
 
 # Find CellDiffusion UMAP key (X_umap_dif)
-if 'X_umap_dif' in adata_gcn.obsm.keys():
-    gcn_umap_key = 'X_umap_dif'
-    print(f"  Found CellDiffusion UMAP: {gcn_umap_key}")
-elif 'X_umap' in adata_gcn.obsm.keys():
-    gcn_umap_key = 'X_umap'
-    print(f"  Found UMAP: {gcn_umap_key}")
+if 'X_umap_dif' in adata_cdif.obsm.keys():
+    cdif_umap_key = 'X_umap_dif'
+    print(f"  Found CellDiffusion UMAP: {cdif_umap_key}")
+elif 'X_umap' in adata_cdif.obsm.keys():
+    cdif_umap_key = 'X_umap'
+    print(f"  Found UMAP: {cdif_umap_key}")
 else:
     # Find any umap key
-    for key in adata_gcn.obsm.keys():
+    for key in adata_cdif.obsm.keys():
         if 'umap' in key.lower():
-            gcn_umap_key = key
-            print(f"  Found UMAP: {gcn_umap_key}")
+            cdif_umap_key = key
+            print(f"  Found UMAP: {cdif_umap_key}")
             break
 
 # Find UniPort UMAP key
@@ -74,7 +74,7 @@ else:
             print(f"  Found UniPort UMAP: {uniport_umap_key}")
             break
 
-if not gcn_umap_key:
+if not cdif_umap_key:
     print(f"ERROR: No UMAP found in CellDiffusion data")
     sys.exit(1)
 
@@ -106,9 +106,10 @@ print(f"\n=== Plotting UMAPs ===")
 # Row 0: Batch coloring
 # Column 0: CellDiffusion
 print(f"  Plotting CellDiffusion Batch UMAP...")
-adata_gcn.obsm['X_umap'] = adata_gcn.obsm[gcn_umap_key].copy()
+if cdif_umap_key != 'X_umap':
+    adata_cdif.obsm['X_umap'] = adata_cdif.obsm[cdif_umap_key].copy()
 sc.pl.umap(
-    adata_gcn,
+    adata_cdif,
     color=batch_key,
     ax=axes[0][0],
     show=False,
@@ -117,11 +118,13 @@ sc.pl.umap(
     legend_loc='none'
 )
 axes[0][0].title.set_fontsize(14)
-del adata_gcn.obsm['X_umap']
+if cdif_umap_key != 'X_umap':
+    del adata_cdif.obsm['X_umap']
 
 # Column 1: UniPort
 print(f"  Plotting UniPort Batch UMAP...")
-adata_uniport.obsm['X_umap'] = adata_uniport.obsm[uniport_umap_key].copy()
+if uniport_umap_key != 'X_umap':
+    adata_uniport.obsm['X_umap'] = adata_uniport.obsm[uniport_umap_key].copy()
 sc.pl.umap(
     adata_uniport,
     color=batch_key,
@@ -132,14 +135,16 @@ sc.pl.umap(
     legend_loc='none'
 )
 axes[0][1].title.set_fontsize(14)
-del adata_uniport.obsm['X_umap']
+if uniport_umap_key != 'X_umap':
+    del adata_uniport.obsm['X_umap']
 
 # Row 1: Cell Type coloring
 # Column 0: CellDiffusion
 print(f"  Plotting CellDiffusion Labels UMAP...")
-adata_gcn.obsm['X_umap'] = adata_gcn.obsm[gcn_umap_key].copy()
+if cdif_umap_key != 'X_umap':
+    adata_cdif.obsm['X_umap'] = adata_cdif.obsm[cdif_umap_key].copy()
 sc.pl.umap(
-    adata_gcn,
+    adata_cdif,
     color=label_key,
     ax=axes[1][0],
     show=False,
@@ -148,11 +153,13 @@ sc.pl.umap(
     legend_loc='none'
 )
 axes[1][0].title.set_fontsize(14)
-del adata_gcn.obsm['X_umap']
+if cdif_umap_key != 'X_umap':
+    del adata_cdif.obsm['X_umap']
 
 # Column 1: UniPort
 print(f"  Plotting UniPort Labels UMAP...")
-adata_uniport.obsm['X_umap'] = adata_uniport.obsm[uniport_umap_key].copy()
+if uniport_umap_key != 'X_umap':
+    adata_uniport.obsm['X_umap'] = adata_uniport.obsm[uniport_umap_key].copy()
 sc.pl.umap(
     adata_uniport,
     color=label_key,
@@ -163,26 +170,31 @@ sc.pl.umap(
     legend_loc='none'
 )
 axes[1][1].title.set_fontsize(14)
-del adata_uniport.obsm['X_umap']
+if uniport_umap_key != 'X_umap':
+    del adata_uniport.obsm['X_umap']
 
 # Extract and add legends
 print(f"\n=== Extracting legends ===")
 
 # Extract batch legend from CellDiffusion
-adata_gcn.obsm['X_umap'] = adata_gcn.obsm[gcn_umap_key].copy()
+if cdif_umap_key != 'X_umap':
+    adata_cdif.obsm['X_umap'] = adata_cdif.obsm[cdif_umap_key].copy()
 temp_fig, temp_ax = plt.subplots(figsize=(1, 1))
-sc.pl.umap(adata_gcn, color=batch_key, ax=temp_ax, show=False, frameon=False)
+sc.pl.umap(adata_cdif, color=batch_key, ax=temp_ax, show=False, frameon=False)
 batch_handles, batch_labels = temp_ax.get_legend_handles_labels()
 plt.close(temp_fig)
-del adata_gcn.obsm['X_umap']
+if cdif_umap_key != 'X_umap':
+    del adata_cdif.obsm['X_umap']
 
 # Extract label legend from CellDiffusion
-adata_gcn.obsm['X_umap'] = adata_gcn.obsm[gcn_umap_key].copy()
+if cdif_umap_key != 'X_umap':
+    adata_cdif.obsm['X_umap'] = adata_cdif.obsm[cdif_umap_key].copy()
 temp_fig, temp_ax = plt.subplots(figsize=(1, 1))
-sc.pl.umap(adata_gcn, color=label_key, ax=temp_ax, show=False, frameon=False)
+sc.pl.umap(adata_cdif, color=label_key, ax=temp_ax, show=False, frameon=False)
 label_handles, label_labels = temp_ax.get_legend_handles_labels()
 plt.close(temp_fig)
-del adata_gcn.obsm['X_umap']
+if cdif_umap_key != 'X_umap':
+    del adata_cdif.obsm['X_umap']
 
 # Add legends below the plots
 fig.text(0.25, 0.02, 'Batch Legend:', fontsize=12, fontweight='bold', ha='center')
