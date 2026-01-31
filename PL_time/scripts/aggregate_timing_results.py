@@ -53,12 +53,19 @@ def _normalize_method_name(value):
         return value[0]
     return value
 
+def _normalize_numeric(value):
+    if isinstance(value, (list, tuple)):
+        if len(value) == 0:
+            return 0
+        return value[0]
+    return value
+
 # Create timing dataframe
 timing_dfs = {}
 for data in timing_data:
     dataset = _normalize_dataset_name(data['dataset'])
     method = _normalize_method_name(data['method'])
-    total_time = data['total_time']
+    total_time = _normalize_numeric(data['total_time'])
     
     if dataset not in timing_dfs:
         timing_dfs[dataset] = {}
@@ -103,7 +110,8 @@ for dataset in sorted(timing_dfs.keys()):
     # Add total time for each method (convert to minutes)
     for method in ['CellDiffusion', 'Harmony', 'scVI', 'Seurat']:
         if method in timing_info:
-            row[f'{method}_Time(min)'] = round(timing_info[method]['total_time'] / 60, 2)
+            total_time = _normalize_numeric(timing_info[method]['total_time'])
+            row[f'{method}_Time(min)'] = round(total_time / 60, 2)
         else:
             row[f'{method}_Time(min)'] = np.nan
     
