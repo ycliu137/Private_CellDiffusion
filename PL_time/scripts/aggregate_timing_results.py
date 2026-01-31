@@ -60,10 +60,18 @@ def _normalize_numeric(value):
         return value[0]
     return value
 
+def _dataset_from_path(file_path):
+    try:
+        return Path(file_path).parent.name
+    except Exception:
+        return ""
+
 # Create timing dataframe
 timing_dfs = {}
-for data in timing_data:
+for f, data in zip(timing_files, timing_data):
     dataset = _normalize_dataset_name(data['dataset'])
+    if not dataset or dataset == "integration":
+        dataset = _dataset_from_path(f)
     method = _normalize_method_name(data['method'])
     total_time = _normalize_numeric(data['total_time'])
     
@@ -77,16 +85,18 @@ for data in timing_data:
 
 # Create stats dataframe
 stats_dfs = {}
-for data in stats_data:
+for f, data in zip(stats_files, stats_data):
     dataset = _normalize_dataset_name(data['dataset'])
+    if not dataset or dataset == "integration":
+        dataset = _dataset_from_path(f)
     method = _normalize_method_name(data['method'])
     
     if dataset not in stats_dfs:
         stats_dfs[dataset] = {}
     
     stats_dfs[dataset][method] = {
-        'n_cells': data['n_cells'],
-        'n_batches': data['n_batches']
+        'n_cells': _normalize_numeric(data['n_cells']),
+        'n_batches': _normalize_numeric(data['n_batches'])
     }
 
 # Build comprehensive benchmark table
