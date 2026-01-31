@@ -49,7 +49,7 @@ read_10x_to_seurat <- function(data_dir) {
     batch_file <- file.path(data_dir, "batch.csv")
     if (file.exists(batch_file)) {
         cat("Reading batch metadata from:", batch_file, "\n")
-        batch_data <- read.csv(batch_file, header=TRUE, stringsAsFactors=FALSE)[[1]]
+        batch_data <- read.csv(batch_file, header=FALSE, stringsAsFactors=FALSE)[[1]]
         
         if (length(batch_data) == ncol(seurat_obj)) {
             # Use configured batch_key for metadata column
