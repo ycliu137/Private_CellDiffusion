@@ -66,8 +66,7 @@ snakemake \
     --snakefile Snakefile \
     --configfile config.yaml \
     --cores "$CORES" \
-    --use-conda \
-    --reason
+    --use-conda
 
 echo ""
 echo "=========================================="
