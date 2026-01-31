@@ -66,10 +66,9 @@ $PM install -n ${ENV_NAME} -c pytorch -c nvidia -c conda-forge \
     -y
 
 # Install scanpy, snakemake, and dependencies via conda-forge
-echo "Installing scanpy, snakemake, and related packages..."
+echo "Installing scanpy and related packages..."
 $PM install -n ${ENV_NAME} -c conda-forge \
     scanpy \
-    snakemake \
     python-louvain \
     leidenalg \
     r-base \
@@ -79,8 +78,8 @@ $PM install -n ${ENV_NAME} -c conda-forge \
     -y
 
 # Install Harmony, scVI, and remaining packages via pip
-echo "Installing Harmony, scVI, and additional dependencies..."
-$PM run -n ${ENV_NAME} pip install harmonypy scvi-tools
+echo "Installing Harmony, scVI, snakemake, and additional dependencies..."
+$PM run -n ${ENV_NAME} pip install harmonypy scvi-tools snakemake
 $PM run -n ${ENV_NAME} pip install pytorch-lightning rich jax jaxlib numpyro
 $PM run -n ${ENV_NAME} pip install -r requirements.txt
 
