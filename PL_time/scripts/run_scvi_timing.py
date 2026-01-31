@@ -70,20 +70,20 @@ t0 = time.time()
 if not params.normalized_data:
     print(f"Filtering genes with min_cells={params.min_cells}")
     sc.pp.filter_genes(adata, min_cells=params.min_cells)
-    
-    print(f"Normalizing with target_sum={params.target_sum}")
-    sc.pp.normalize_total(adata, target_sum=params.target_sum)
-    sc.pp.log1p(adata)
+    # scVI requires raw counts (not log-normalized)
+    # Do NOT normalize or log1p
 else:
-    print("Data already normalized, skipping preprocessing")
+    print("Data already in raw counts, using as-is for scVI")
 
-print(f"Finding highly variable genes: n_top_genes={params.n_top_genes}")
+print(f"Finding highly variable genes (batch-aware): n_top_genes={params.n_top_genes}")
 sc.pp.highly_variable_genes(
     adata,
     n_top_genes=params.n_top_genes,
     min_mean=params.min_mean,
     max_mean=params.max_mean,
-    min_disp=params.min_disp
+    min_disp=params.min_disp,
+    batch_key=params.batch_key,
+    flavor="seurat_v3"
 )
 
 adata = adata[:, adata.var.highly_variable]
@@ -125,7 +125,7 @@ model = scvi.model.SCVI(
 train_kwargs = {
     'max_epochs': params.max_epochs,
     'early_stopping': params.early_stopping,
-    'use_gpu': torch.cuda.is_available(),
+    'accelerator': 'cpu',
     'progress_bar': False
 }
 
@@ -143,21 +143,14 @@ t_train = time.time() - t0
 timing_dict["steps"]["train_scvi"] = t_train
 print(f"Training time: {t_train:.2f}s")
 
-# ===== Step 3: PCA on scVI embedding =====
-print(f"\n=== Step 3: PCA on scVI embedding ===")
+# Note: scVI latent representation is already low-dimensional (n_latent=10)
+# No additional PCA needed
+
+# ===== Step 3: UMAP (on scVI latent) =====
+print(f"\n=== Step 3: UMAP (on scVI latent) ===")
 t0 = time.time()
 
-sc.tl.pca(adata, use_rep='X_scvi', n_comps=params.n_pcs)
-
-t_pca = time.time() - t0
-timing_dict["steps"]["pca"] = t_pca
-print(f"PCA time: {t_pca:.2f}s")
-
-# ===== Step 4: UMAP =====
-print(f"\n=== Step 4: UMAP ===")
-t0 = time.time()
-
-sc.pp.neighbors(adata, use_rep='X_scvi', n_neighbors=15, n_pcs=params.n_pcs)
+sc.pp.neighbors(adata, use_rep='X_scvi', n_neighbors=15)
 sc.tl.umap(adata, min_dist=0.3)
 adata.obsm['X_umap_scvi'] = adata.obsm['X_umap'].copy()
 
@@ -165,8 +158,8 @@ t_umap = time.time() - t0
 timing_dict["steps"]["umap"] = t_umap
 print(f"UMAP time: {t_umap:.2f}s")
 
-# ===== Step 5: Leiden =====
-print(f"\n=== Step 5: Leiden Clustering ===")
+# ===== Step 4: Leiden Clustering ===
+print(f"\n=== Step 4: Leiden Clustering ===")
 t0 = time.time()
 
 sc.tl.leiden(adata, resolution=params.leiden_resolution, key_added='leiden_scvi')
