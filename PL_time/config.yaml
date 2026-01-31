@@ -2,8 +2,8 @@
 # Compares CellDiffusion, Harmony, and scVI
 
 datasets: [
-            #"BMMC",
-            #"PBMC-23k",
+            "BMMC",
+            "PBMC-23k",
             "PBMC-10k"]
 
 normalized_data: False
