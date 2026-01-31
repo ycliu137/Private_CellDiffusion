@@ -87,6 +87,7 @@ sc.pp.highly_variable_genes(
 )
 
 adata = adata[:, adata.var.highly_variable]
+adata = adata.copy()  # Convert view to copy for scVI compatibility
 print(f"Shape after HVG selection: {adata.shape}")
 
 t_preprocess = time.time() - t0
