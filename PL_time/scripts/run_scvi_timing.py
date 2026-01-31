@@ -125,7 +125,7 @@ model = scvi.model.SCVI(
 train_kwargs = {
     'max_epochs': params.max_epochs,
     'early_stopping': params.early_stopping,
-    'accelerator': 'cpu'
+    'accelerator': 'cuda' if torch.cuda.is_available() else 'cpu'
 }
 
 if params.early_stopping:

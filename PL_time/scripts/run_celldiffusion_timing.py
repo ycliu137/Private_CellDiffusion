@@ -175,11 +175,6 @@ t_diffusion = time.time() - t0
 timing_dict["steps"]["graph_diffusion"] = t_diffusion
 print(f"Graph diffusion time: {t_diffusion:.2f}s")
 
-
-t_umap = time.time() - t0
-timing_dict["steps"]["umap"] = t_umap
-print(f"UMAP time: {t_umap:.2f}s")
-
 # ===== Save results =====
 print(f"\n=== Saving results ===")
 Path(output_h5ad).parent.mkdir(parents=True, exist_ok=True)
@@ -192,7 +187,7 @@ def _step_duration(v):
         return v.get("duration", 0)
     return v
 
-total_time = sum(_step_duration(v) for v in timing_dict["steps"].values())
+total_time = t_fae + t_graph + t_diffusion
 timing_dict["total_time"] = total_time
 print(f"\nTotal CellDiffusion time: {total_time/60:.2f}min")
 
