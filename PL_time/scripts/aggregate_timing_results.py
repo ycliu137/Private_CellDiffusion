@@ -120,6 +120,10 @@ for dataset in sorted(timing_dfs.keys()):
 # Create dataframe
 df = pd.DataFrame(rows)
 
+# Ensure numeric columns are numeric (handle list/object types)
+df['N_Cells'] = pd.to_numeric(df['N_Cells'], errors='coerce')
+df['N_Batches'] = pd.to_numeric(df['N_Batches'], errors='coerce')
+
 # Calculate speed ratios (relative to CellDiffusion)
 if 'CellDiffusion_Time(min)' in df.columns:
     df['Harmony/CellDiff'] = round(df['Harmony_Time(min)'] / df['CellDiffusion_Time(min)'], 2)
@@ -129,8 +133,8 @@ if 'CellDiffusion_Time(min)' in df.columns:
 # Add summary row
 summary_row = {
     'Dataset': 'Average',
-    'N_Cells': f"~{int(df['N_Cells'].mean())}",
-    'N_Batches': f"~{df['N_Batches'].mean():.1f}",
+    'N_Cells': f"~{int(df['N_Cells'].mean(skipna=True))}",
+    'N_Batches': f"~{df['N_Batches'].mean(skipna=True):.1f}",
 }
 
 for col in df.columns:
