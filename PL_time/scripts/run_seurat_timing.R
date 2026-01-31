@@ -244,7 +244,13 @@ saveRDS(seurat_obj, file=output_h5ad)
 
 # Calculate total time with na.rm=TRUE to handle skipped steps
 timing_list$total_time <- sum(unlist(timing_list$steps), na.rm=TRUE)
-cat("\nTotal Seurat time:", timing_list$total_time, "s\n")
+cat("\nTotal Seurat time:", timing_list$total_time/60, "min\n")
+
+# Convert all timings to minutes
+timing_list$steps <- lapply(timing_list$steps, function(x) {
+    if (is.numeric(x)) x / 60 else x
+})
+timing_list$total_time <- timing_list$total_time / 60
 
 # Save timing and stats as JSON
 dir.create(dirname(output_timing), showWarnings=FALSE, recursive=TRUE)

@@ -85,12 +85,12 @@ for dataset in sorted(timing_dfs.keys()):
         'N_Batches': n_batches,
     }
     
-    # Add total time for each method
+    # Add total time for each method (convert to minutes)
     for method in ['CellDiffusion', 'Harmony', 'scVI', 'Seurat']:
         if method in timing_info:
-            row[f'{method}_Time(s)'] = round(timing_info[method]['total_time'], 2)
+            row[f'{method}_Time(min)'] = round(timing_info[method]['total_time'] / 60, 2)
         else:
-            row[f'{method}_Time(s)'] = np.nan
+            row[f'{method}_Time(min)'] = np.nan
     
     rows.append(row)
 
@@ -98,10 +98,10 @@ for dataset in sorted(timing_dfs.keys()):
 df = pd.DataFrame(rows)
 
 # Calculate speed ratios (relative to CellDiffusion)
-if 'CellDiffusion_Time(s)' in df.columns:
-    df['Harmony/CellDiff'] = round(df['Harmony_Time(s)'] / df['CellDiffusion_Time(s)'], 2)
-    df['scVI/CellDiff'] = round(df['scVI_Time(s)'] / df['CellDiffusion_Time(s)'], 2)
-    df['Seurat/CellDiff'] = round(df['Seurat_Time(s)'] / df['CellDiffusion_Time(s)'], 2)
+if 'CellDiffusion_Time(min)' in df.columns:
+    df['Harmony/CellDiff'] = round(df['Harmony_Time(min)'] / df['CellDiffusion_Time(min)'], 2)
+    df['scVI/CellDiff'] = round(df['scVI_Time(min)'] / df['CellDiffusion_Time(min)'], 2)
+    df['Seurat/CellDiff'] = round(df['Seurat_Time(min)'] / df['CellDiffusion_Time(min)'], 2)
 
 # Add summary row
 summary_row = {
@@ -111,7 +111,7 @@ summary_row = {
 }
 
 for col in df.columns:
-    if '_Time(s)' in col:
+    if '_Time(min)' in col:
         summary_row[col] = round(df[col].mean(), 2)
     elif col.endswith('Diff'):
         summary_row[col] = round(df[col].mean(), 2)
@@ -126,55 +126,52 @@ print("\n" + "="*100)
 print(df.to_string(index=False))
 print("="*100)
 
-# Create visualization
+# Create visualization (table)
 try:
     import matplotlib
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
-    
-    # Plot 1: Total time comparison
+
     data_rows = df[df['Dataset'] != 'Average'].copy()
     if len(data_rows) > 0:
-        fig, axes = plt.subplots(1, 2, figsize=(14, 5))
-        
-        # Time comparison
-        methods = ['CellDiffusion_Time(s)', 'Harmony_Time(s)', 'scVI_Time(s)', 'Seurat_Time(s)']
-        method_labels = ['CellDiffusion', 'Harmony', 'scVI', 'Seurat']
-        
-        x = np.arange(len(data_rows))
-        width = 0.2
-        
-        for i, method in enumerate(methods):
-            if method in data_rows.columns:
-                axes[0].bar(x + i*width, data_rows[method], width, label=method_labels[i])
-        
-        axes[0].set_xlabel('Dataset')
-        axes[0].set_ylabel('Time (seconds)')
-        axes[0].set_title('Integration Method Runtime Comparison')
-        axes[0].set_xticks(x + width * 1.5)
-        axes[0].set_xticklabels(data_rows['Dataset'], rotation=45, ha='right')
-        axes[0].legend()
-        axes[0].grid(axis='y', alpha=0.3)
-        
-        # Speed ratio
-        if 'Harmony/CellDiff' in data_rows.columns and 'scVI/CellDiff' in data_rows.columns and 'Seurat/CellDiff' in data_rows.columns:
-            axes[1].plot(data_rows['Dataset'], data_rows['Harmony/CellDiff'], 'o-', label='Harmony/CellDiff', linewidth=2, markersize=8)
-            axes[1].plot(data_rows['Dataset'], data_rows['scVI/CellDiff'], 's-', label='scVI/CellDiff', linewidth=2, markersize=8)
-            axes[1].plot(data_rows['Dataset'], data_rows['Seurat/CellDiff'], '^-', label='Seurat/CellDiff', linewidth=2, markersize=8)
-            axes[1].axhline(y=1, color='k', linestyle='--', alpha=0.3, label='CellDiffusion baseline')
-            axes[1].set_xlabel('Dataset')
-            axes[1].set_ylabel('Relative Speed (ratio to CellDiffusion)')
-            axes[1].set_title('Relative Speed Comparison')
-            axes[1].set_xticklabels(data_rows['Dataset'], rotation=45, ha='right')
-            axes[1].legend()
-            axes[1].grid(alpha=0.3)
-        
+        table_cols = [
+            'Dataset',
+            'N_Cells',
+            'N_Batches',
+            'CellDiffusion_Time(min)',
+            'Harmony_Time(min)',
+            'scVI_Time(min)',
+            'Seurat_Time(min)'
+        ]
+
+        # Format numeric columns for display
+        display_df = data_rows[table_cols].copy()
+        for col in ['N_Cells', 'N_Batches']:
+            display_df[col] = display_df[col].astype(str)
+        for col in ['CellDiffusion_Time(min)', 'Harmony_Time(min)', 'scVI_Time(min)', 'Seurat_Time(min)']:
+            display_df[col] = display_df[col].map(lambda x: f"{x:.2f}" if pd.notnull(x) else "NA")
+
+        n_rows = len(display_df)
+        fig_height = max(2, 0.5 + 0.35 * n_rows)
+        fig, ax = plt.subplots(figsize=(12, fig_height))
+        ax.axis('off')
+
+        table = ax.table(
+            cellText=display_df.values,
+            colLabels=display_df.columns,
+            cellLoc='center',
+            loc='center'
+        )
+        table.auto_set_font_size(False)
+        table.set_fontsize(8)
+        table.scale(1, 1.2)
+
         plt.tight_layout()
         Path(output_plot).parent.mkdir(parents=True, exist_ok=True)
-        plt.savefig(output_plot, dpi=150, bbox_inches='tight')
+        plt.savefig(output_plot, dpi=200, bbox_inches='tight')
         plt.close()
-        print(f"Benchmark plot saved to: {output_plot}")
+        print(f"Benchmark table plot saved to: {output_plot}")
 except Exception as e:
-    print(f"Warning: Could not create plot: {e}")
+    print(f"Warning: Could not create table plot: {e}")
 
 print("\n=== Timing aggregation complete! ===")

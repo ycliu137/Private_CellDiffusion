@@ -194,7 +194,15 @@ def _step_duration(v):
 
 total_time = sum(_step_duration(v) for v in timing_dict["steps"].values())
 timing_dict["total_time"] = total_time
-print(f"\nTotal CellDiffusion time: {total_time:.2f}s")
+print(f"\nTotal CellDiffusion time: {total_time/60:.2f}min")
+
+# Convert all timings to minutes
+for key in timing_dict["steps"]:
+    if isinstance(timing_dict["steps"][key], dict):
+        timing_dict["steps"][key]["duration"] = timing_dict["steps"][key]["duration"] / 60
+    else:
+        timing_dict["steps"][key] = timing_dict["steps"][key] / 60
+timing_dict["total_time"] = timing_dict["total_time"] / 60
 
 # Save timing results
 Path(output_timing).parent.mkdir(parents=True, exist_ok=True)

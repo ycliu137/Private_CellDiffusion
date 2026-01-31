@@ -132,7 +132,8 @@ ho = harmonypy.run_harmony(
 )
 
 # Update adata with Harmony embeddings
-adata.obsm['X_harmony'] = ho.Z_corr.T
+# ho.Z_corr is already (n_cells, n_pcs), no transpose needed
+adata.obsm['X_harmony'] = ho.Z_corr
 print(f"Harmony embedding shape: {adata.obsm['X_harmony'].shape}")
 
 t_harmony = time.time() - t0
@@ -169,8 +170,10 @@ print(f"Data saved to: {output_h5ad}")
 
 # Calculate total time
 total_time = sum(timing_dict["steps"].values())
-timing_dict["total_time"] = total_time
-print(f"\nTotal Harmony time: {total_time:.2f}s")
+for key in timing_dict["steps"]:
+    timing_dict["steps"][key] = timing_dict["steps"][key] / 60
+timing_dict["total_time"] = total_time / 60
+print(f"\nTotal Harmony time: {total_time/60:.2f}min")
 
 # Save timing results
 Path(output_timing).parent.mkdir(parents=True, exist_ok=True)

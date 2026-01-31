@@ -182,8 +182,10 @@ print(f"Data saved to: {output_h5ad}")
 
 # Calculate total time
 total_time = sum(timing_dict["steps"].values())
-timing_dict["total_time"] = total_time
-print(f"\nTotal scVI time: {total_time:.2f}s")
+for key in timing_dict["steps"]:
+    timing_dict["steps"][key] = timing_dict["steps"][key] / 60
+timing_dict["total_time"] = total_time / 60
+print(f"\nTotal scVI time: {total_time/60:.2f}min")
 
 # Save timing results
 Path(output_timing).parent.mkdir(parents=True, exist_ok=True)
