@@ -12,7 +12,7 @@
 #             "BMMC_s1d2_s3d1",
 #             "BMMC_s2d5_s3d7"]
 
-datasets: ["pbmc23k"]
+datasets: ["BMMC"]
 
 normalized_data: False
 
