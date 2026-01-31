@@ -116,8 +116,7 @@ cd.encode_features(
     D_decode_list=D_decode_list,
     max_epoch=params.max_epoch_fae,
     lr=params.lr_fae,
-    device=params.device,
-    batch_size=32
+    device=params.device
 )
 
 t_fae = time.time() - t0
