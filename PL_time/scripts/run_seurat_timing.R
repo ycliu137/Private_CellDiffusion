@@ -57,39 +57,57 @@ print(all_keys)
 expr_matrix <- NULL
 
 # Check if X exists and its structure
-if ("X" %in% all_keys$name) {
-    cat("\nFound X, checking its structure\n")
-    X_contents <- h5ls(h5f, path="/X")
-    cat("X contents:\n")
-    print(X_contents)
+X_list <- h5ls(h5f)
+X_entries <- X_list[X_list$group == "/X", ]
+
+cat("\nFound X, structure:\n")
+print(X_entries)
+
+# Check if it's a sparse matrix (has data, indices, indptr)
+if ("data" %in% X_entries$name && "indices" %in% X_entries$name && "indptr" %in% X_entries$name) {
+    cat("Reading sparse matrix in CSR format\n")
+    data <- h5read(h5f, "X/data")
+    indices <- h5read(h5f, "X/indices")
+    indptr <- h5read(h5f, "X/indptr")
     
-    # Check if it's a sparse matrix (has data, indices, indptr)
-    if ("data" %in% X_contents$name && "indices" %in% X_contents$name && "indptr" %in% X_contents$name) {
-        cat("Reading sparse matrix in CSR format\n")
-        data <- h5read(h5f, "X/data")
-        indices <- h5read(h5f, "X/indices")
-        indptr <- h5read(h5f, "X/indptr")
-        shape <- h5read(h5f, "X/shape")
-        
-        cat("Sparse matrix shape:", shape, "\n")
-        cat("Data points:", length(data), "\n")
-        
-        # Convert 0-based indices to 1-based for R
-        indices <- indices + 1
-        # indptr is already 0-based, keep as is for sparseMatrix construction
-        
-        # Create sparse matrix from CSR format
-        library(Matrix)
-        expr_matrix <- sparseMatrix(
-            i = rep(1:(length(indptr)-1), diff(indptr)),
-            j = indices,
-            x = data,
-            dims = shape,
-            giveCsparse = FALSE
-        )
+    cat("Data length:", length(data), "\n")
+    cat("Indices length:", length(indices), "\n")
+    cat("Indptr length:", length(indptr), "\n")
+    
+    # Infer dimensions from indices and indptr
+    # indptr length is n_cells + 1, so n_cells = length(indptr) - 1
+    # max(indices) + 1 gives n_genes (assuming 0-based indexing)
+    n_cells <- length(indptr) - 1
+    n_genes <- max(indices) + 1
+    
+    cat("Inferred sparse matrix shape: ", n_genes, "genes x", n_cells, "cells (CSR format)\n")
+    
+    # Convert 0-based indices to 1-based for R
+    indices <- indices + 1
+    
+    # Create sparse matrix from CSR format
+    library(Matrix)
+    # CSR format: indptr describes where each row starts
+    # We need to create (row_indices, col_indices, values) for sparse matrix
+    row_indices <- rep(1:n_cells, diff(indptr))
+    col_indices <- indices
+    values <- data
+    
+    expr_matrix <- sparseMatrix(
+        i = row_indices,
+        j = col_indices,
+        x = values,
+        dims = c(n_genes, n_cells),
+        giveCsparse = FALSE
+    )
+} else {
+    cat("X is stored as dense matrix or other format\n")
+    cat("X entries:", paste(X_entries$name, collapse=", "), "\n")
+    if ("data" %in% X_entries$name) {
+        cat("Reading from X/data\n")
+        expr_matrix <- h5read(h5f, "X/data")
     } else {
-        cat("X is stored as dense matrix\n")
-        expr_matrix <- h5read(h5f, "X")
+        stop("Cannot determine X format")
     }
 }
 
