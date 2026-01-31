@@ -120,13 +120,18 @@ model = scvi.model.SCVI(
     dispersion="gene"
 )
 
-model.train(
-    max_epochs=params.max_epochs,
-    early_stopping=params.early_stopping,
-    early_stopping_patience=params.early_stopping_patience if params.early_stopping else None,
-    use_gpu=torch.cuda.is_available(),
-    progress_bar=False
-)
+# Prepare training kwargs
+train_kwargs = {
+    'max_epochs': params.max_epochs,
+    'early_stopping': params.early_stopping,
+    'use_gpu': torch.cuda.is_available(),
+    'progress_bar': False
+}
+
+if params.early_stopping:
+    train_kwargs['early_stopping_patience'] = params.early_stopping_patience
+
+model.train(**train_kwargs)
 
 # Get latent representation
 latent = model.get_latent_representation()

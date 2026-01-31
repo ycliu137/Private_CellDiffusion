@@ -22,7 +22,7 @@ def get_input_path(wildcards):
 
 # All datasets and methods
 DATASETS = config["datasets"]
-METHODS = ["celldiffusion", "harmony", "scvi"]
+METHODS = ["celldiffusion", "harmony", "scvi", "seurat"]
 
 rule all:
     input:

@@ -50,7 +50,7 @@ h5f <- H5Fopen(input_h5ad, flags="H5F_ACC_RDONLY")
 
 # Read expression matrix
 X <- h5read(h5f, "X")
-if (class(X)[1] == "dgCMatrix" || class(X)[1] == "matrix") {
+if (class(X)[1] == "dgCMatrix" || class(X)[1] == "dgTMatrix") {
     expr_matrix <- X
 } else {
     expr_matrix <- t(X)
@@ -58,26 +58,49 @@ if (class(X)[1] == "dgCMatrix" || class(X)[1] == "matrix") {
 
 # Read observation and variable names from h5ad structure
 # h5ad files store these in obs/_index and var/_index
-obs_names <- h5read(h5f, "obs/_index")
-var_names <- h5read(h5f, "var/_index")
+obs_names <- as.character(h5read(h5f, "obs/_index"))
+var_names <- as.character(h5read(h5f, "var/_index"))
+
+# Ensure correct dimensions before setting names
+cat("Matrix dimensions: ", nrow(expr_matrix), "x", ncol(expr_matrix), "\n")
+cat("obs_names length: ", length(obs_names), "\n")
+cat("var_names length: ", length(var_names), "\n")
 
 # Read observation metadata (batch information)
-obs_group <- h5ls(h5f, recursive=1)
 obs_data <- list()
-obs_items <- obs_group[obs_group$group == "/obs" & obs_group$name != "_index", ]
-for (i in 1:nrow(obs_items)) {
-    key <- obs_items$name[i]
-    tryCatch({
-        obs_data[[key]] <- h5read(h5f, paste0("obs/", key))
-    }, error = function(e) {
-        cat("Warning: Could not read obs/", key, "\n")
-    })
-}
+tryCatch({
+    obs_keys <- h5ls(h5f, path="/obs", recursive=FALSE)$name
+    obs_keys <- obs_keys[obs_keys != "_index"]
+    cat("Found obs keys:", paste(obs_keys, collapse=", "), "\n")
+    
+    for (key in obs_keys) {
+        tryCatch({
+            obs_data[[key]] <- h5read(h5f, paste0("obs/", key))
+        }, error = function(e) {
+            cat("Warning: Could not read obs/", key, "\n")
+        })
+    }
+}, error = function(e) {
+    cat("Warning: Could not read obs metadata\n")
+})
 
 H5Fclose(h5f)
 
-colnames(expr_matrix) <- obs_names
-rownames(expr_matrix) <- var_names
+# Set names with proper transpose if needed
+if (ncol(expr_matrix) == length(obs_names) && nrow(expr_matrix) == length(var_names)) {
+    colnames(expr_matrix) <- obs_names
+    rownames(expr_matrix) <- var_names
+} else if (nrow(expr_matrix) == length(obs_names) && ncol(expr_matrix) == length(var_names)) {
+    cat("Transposing matrix to match dimensions\n")
+    expr_matrix <- t(expr_matrix)
+    colnames(expr_matrix) <- obs_names
+    rownames(expr_matrix) <- var_names
+} else {
+    cat("ERROR: Dimension mismatch!\n")
+    cat("Matrix:", nrow(expr_matrix), "x", ncol(expr_matrix), "\n")
+    cat("obs_names:", length(obs_names), "var_names:", length(var_names), "\n")
+    stop("Cannot match matrix dimensions with index names")
+}
 
 cat("Data shape:", nrow(expr_matrix), "genes x", ncol(expr_matrix), "cells\n")
 
