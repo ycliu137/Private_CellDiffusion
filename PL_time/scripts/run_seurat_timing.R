@@ -74,13 +74,17 @@ if ("data" %in% X_entries$name && "indices" %in% X_entries$name && "indptr" %in%
     cat("Indices length:", length(indices), "\n")
     cat("Indptr length:", length(indptr), "\n")
     
-    # Infer dimensions from indices and indptr
-    # indptr length is n_cells + 1, so n_cells = length(indptr) - 1
-    # max(indices) + 1 gives n_genes (assuming 0-based indexing)
-    n_cells <- length(indptr) - 1
-    n_genes <- max(indices) + 1
+    # In CSR format:
+    # - indptr describes row structure, so n_rows = length(indptr) - 1
+    # - indices are column indices, so n_cols = max(indices) + 1
+    n_rows <- length(indptr) - 1
+    n_cols <- max(indices, na.rm=TRUE) + 1
     
-    cat("Inferred sparse matrix shape: ", n_genes, "genes x", n_cells, "cells (CSR format)\n")
+    cat("Inferred sparse matrix shape: ", n_rows, "rows (cells) x", n_cols, "cols (genes)\n")
+    
+    # Verify dimensions match
+    cat("Max index value:", max(indices, na.rm=TRUE), "\n")
+    cat("Expected max index:", n_cols - 1, "\n")
     
     # Convert 0-based indices to 1-based for R
     indices <- indices + 1
@@ -89,15 +93,19 @@ if ("data" %in% X_entries$name && "indices" %in% X_entries$name && "indptr" %in%
     library(Matrix)
     # CSR format: indptr describes where each row starts
     # We need to create (row_indices, col_indices, values) for sparse matrix
-    row_indices <- rep(1:n_cells, diff(indptr))
+    row_indices <- rep(1:n_rows, diff(indptr))
     col_indices <- indices
     values <- data
+    
+    cat("Creating sparse matrix with dimensions:", n_rows, "x", n_cols, "\n")
+    cat("Row indices range: ", min(row_indices), "-", max(row_indices), "\n")
+    cat("Col indices range: ", min(col_indices), "-", max(col_indices), "\n")
     
     expr_matrix <- sparseMatrix(
         i = row_indices,
         j = col_indices,
         x = values,
-        dims = c(n_genes, n_cells),
+        dims = c(n_rows, n_cols),
         giveCsparse = FALSE
     )
 } else {
