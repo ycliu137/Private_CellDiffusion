@@ -46,11 +46,18 @@ def _normalize_dataset_name(value):
         return value[0]
     return value
 
+def _normalize_method_name(value):
+    if isinstance(value, (list, tuple)):
+        if len(value) == 0:
+            return ""
+        return value[0]
+    return value
+
 # Create timing dataframe
 timing_dfs = {}
 for data in timing_data:
     dataset = _normalize_dataset_name(data['dataset'])
-    method = data['method']
+    method = _normalize_method_name(data['method'])
     total_time = data['total_time']
     
     if dataset not in timing_dfs:
@@ -65,7 +72,7 @@ for data in timing_data:
 stats_dfs = {}
 for data in stats_data:
     dataset = _normalize_dataset_name(data['dataset'])
-    method = data['method']
+    method = _normalize_method_name(data['method'])
     
     if dataset not in stats_dfs:
         stats_dfs[dataset] = {}
