@@ -86,7 +86,7 @@ for dataset in sorted(timing_dfs.keys()):
     }
     
     # Add total time for each method
-    for method in ['CellDiffusion', 'Harmony', 'scVI']:
+    for method in ['CellDiffusion', 'Harmony', 'scVI', 'Seurat']:
         if method in timing_info:
             row[f'{method}_Time(s)'] = round(timing_info[method]['total_time'], 2)
         else:
@@ -101,6 +101,7 @@ df = pd.DataFrame(rows)
 if 'CellDiffusion_Time(s)' in df.columns:
     df['Harmony/CellDiff'] = round(df['Harmony_Time(s)'] / df['CellDiffusion_Time(s)'], 2)
     df['scVI/CellDiff'] = round(df['scVI_Time(s)'] / df['CellDiffusion_Time(s)'], 2)
+    df['Seurat/CellDiff'] = round(df['Seurat_Time(s)'] / df['CellDiffusion_Time(s)'], 2)
 
 # Add summary row
 summary_row = {
@@ -137,11 +138,11 @@ try:
         fig, axes = plt.subplots(1, 2, figsize=(14, 5))
         
         # Time comparison
-        methods = ['CellDiffusion_Time(s)', 'Harmony_Time(s)', 'scVI_Time(s)']
-        method_labels = ['CellDiffusion', 'Harmony', 'scVI']
+        methods = ['CellDiffusion_Time(s)', 'Harmony_Time(s)', 'scVI_Time(s)', 'Seurat_Time(s)']
+        method_labels = ['CellDiffusion', 'Harmony', 'scVI', 'Seurat']
         
         x = np.arange(len(data_rows))
-        width = 0.25
+        width = 0.2
         
         for i, method in enumerate(methods):
             if method in data_rows.columns:
@@ -150,15 +151,16 @@ try:
         axes[0].set_xlabel('Dataset')
         axes[0].set_ylabel('Time (seconds)')
         axes[0].set_title('Integration Method Runtime Comparison')
-        axes[0].set_xticks(x + width)
+        axes[0].set_xticks(x + width * 1.5)
         axes[0].set_xticklabels(data_rows['Dataset'], rotation=45, ha='right')
         axes[0].legend()
         axes[0].grid(axis='y', alpha=0.3)
         
         # Speed ratio
-        if 'Harmony/CellDiff' in data_rows.columns and 'scVI/CellDiff' in data_rows.columns:
+        if 'Harmony/CellDiff' in data_rows.columns and 'scVI/CellDiff' in data_rows.columns and 'Seurat/CellDiff' in data_rows.columns:
             axes[1].plot(data_rows['Dataset'], data_rows['Harmony/CellDiff'], 'o-', label='Harmony/CellDiff', linewidth=2, markersize=8)
             axes[1].plot(data_rows['Dataset'], data_rows['scVI/CellDiff'], 's-', label='scVI/CellDiff', linewidth=2, markersize=8)
+            axes[1].plot(data_rows['Dataset'], data_rows['Seurat/CellDiff'], '^-', label='Seurat/CellDiff', linewidth=2, markersize=8)
             axes[1].axhline(y=1, color='k', linestyle='--', alpha=0.3, label='CellDiffusion baseline')
             axes[1].set_xlabel('Dataset')
             axes[1].set_ylabel('Relative Speed (ratio to CellDiffusion)')

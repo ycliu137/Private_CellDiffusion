@@ -58,6 +58,12 @@ scvi:
   early_stopping_patience: 20
   n_pcs: 50
 
+# Seurat parameters
+seurat:
+  nfeatures: 2000
+  dims: 50
+  resolution: 0.02
+
 # UMAP parameters
 umap:
   min_dist: 0.3

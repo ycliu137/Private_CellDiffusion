@@ -72,6 +72,10 @@ $PM install -n ${ENV_NAME} -c conda-forge \
     snakemake \
     python-louvain \
     leidenalg \
+    r-base \
+    r-matrix \
+    r-ggplot2 \
+    r-rmarkdown \
     -y
 
 # Install Harmony, scVI, and remaining packages via pip
@@ -79,6 +83,15 @@ echo "Installing Harmony, scVI, and additional dependencies..."
 $PM run -n ${ENV_NAME} pip install harmonypy scvi-tools
 $PM run -n ${ENV_NAME} pip install pytorch-lightning rich jax jaxlib numpyro
 $PM run -n ${ENV_NAME} pip install -r requirements.txt
+
+# Install Seurat via R package manager (conda R packages)
+echo "Installing Seurat via R package manager..."
+$PM install -n ${ENV_NAME} -c conda-forge \
+    r-seurat \
+    r-seuratobject \
+    r-hdf5r \
+    r-jsonlite \
+    -y
 
 echo ""
 echo "=========================================="

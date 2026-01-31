@@ -138,15 +138,36 @@ rule scvi_timing:
     script:
         "scripts/run_scvi_timing.py"
 
+# Rule: Seurat timing
+rule seurat_timing:
+    input:
+        h5ad = get_input_path
+    output:
+        h5ad = str(OUTPUT_BASE / "{dataset}/seurat_integrated.rds"),
+        timing = str(OUTPUT_BASE / "{dataset}/seurat_timing.json"),
+        stats = str(OUTPUT_BASE / "{dataset}/seurat_stats.json")
+    params:
+        batch_key = config["evaluation"]["batch_key"],
+        label_key = config["evaluation"]["label_key"],
+        normalized_data = config["normalized_data"],
+        # Preprocessing parameters
+        nfeatures = config["seurat"]["nfeatures"],
+        dims = config["seurat"]["dims"],
+        resolution = config["seurat"]["resolution"]
+    script:
+        "scripts/run_seurat_timing.R"
+
 # Rule: Aggregate all timing results
 rule aggregate_timing:
     input:
         expand(str(OUTPUT_BASE / "{dataset}/celldiffusion_timing.json"), dataset=DATASETS),
         expand(str(OUTPUT_BASE / "{dataset}/harmony_timing.json"), dataset=DATASETS),
         expand(str(OUTPUT_BASE / "{dataset}/scvi_timing.json"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE / "{dataset}/seurat_timing.json"), dataset=DATASETS),
         expand(str(OUTPUT_BASE / "{dataset}/celldiffusion_stats.json"), dataset=DATASETS),
         expand(str(OUTPUT_BASE / "{dataset}/harmony_stats.json"), dataset=DATASETS),
         expand(str(OUTPUT_BASE / "{dataset}/scvi_stats.json"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE / "{dataset}/seurat_stats.json"), dataset=DATASETS),
     output:
         table = str(OUTPUT_BASE / "timing_benchmark_table.csv"),
         plot = str(OUTPUT_BASE / "timing_benchmark_plot.pdf")
