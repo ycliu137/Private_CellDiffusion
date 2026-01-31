@@ -74,13 +74,13 @@ scib_evaluation:
 # Multi-dataset line plot configuration
 # Dictionary mapping dataset keys to display names for comparison line plot
 line_plot_datasets:
-  "Endom314K_GSM4577312_GSM6574543": "Dataset 1"
-  "Endom314K_GSM6605435_GSM6605432": "Dataset 2"
-  "Endom314K_GSM6605435_GSM6605434": "Dataset 3"
-  "Endom314K_GSM6605436_GSM6605440": "Dataset 4"
-  "Endom314K_GSM6605437_GSM6605434": "Dataset 5"
-  "BMMC_s1d3_s4d9": "BMMC_HT1"
-  "BMMC_s1d2_s3d1": "BMMC_HT2"
-  "BMMC_s2d5_s3d7": "BMMC_HT3"
-  "pbmc10k": "PBMC_HT"
+  # "Endom314K_GSM4577312_GSM6574543": "Dataset 1"
+  # "Endom314K_GSM6605435_GSM6605432": "Dataset 2"
+  # "Endom314K_GSM6605435_GSM6605434": "Dataset 3"
+  # "Endom314K_GSM6605436_GSM6605440": "Dataset 4"
+  "BMMC_s1d3_s4d9": "BMMC-HT1"
+  "BMMC_s1d2_s3d1": "BMMC-HT2"
+  "BMMC_s2d5_s3d7": "BMMC-HT3"
+  "Endom314K_GSM6605437_GSM6605434": "Endometrium-HT"
+  "pbmc10k": "PBMC-10k"
 
