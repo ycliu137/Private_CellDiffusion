@@ -205,6 +205,7 @@ t0 <- Sys.time()
 seurat_obj <- RunUMAP(
     seurat_obj,
     reduction=use_reduction,
+        dims=1:params$dims,
     verbose=FALSE
 )
 
@@ -215,7 +216,7 @@ cat("UMAP time:", timing_list$steps$umap, "s\n")
 cat("\n=== Step 4: Leiden Clustering ===\n")
 t0 <- Sys.time()
 
-seurat_obj <- FindNeighbors(seurat_obj, reduction=use_reduction, verbose=FALSE)
+seurat_obj <- FindNeighbors(seurat_obj, reduction=use_reduction, dims=1:params$dims, verbose=FALSE)
 seurat_obj <- FindClusters(
     seurat_obj,
     resolution=params$resolution,
