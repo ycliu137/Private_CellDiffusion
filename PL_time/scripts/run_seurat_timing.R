@@ -139,7 +139,6 @@ read_h5ad_to_seurat <- function(h5ad_path) {
             }, error = function(e) {
                 cat(sprintf("  Warning: Could not read obs/%s: %s\n", key, e$message))
             })
-            })
         }
     }, error = function(e) {
         cat("  Warning: Could not read obs metadata\n")
