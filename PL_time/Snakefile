@@ -1,0 +1,154 @@
+#!/usr/bin/env snakemake -s
+"""
+PL_time: Running time benchmark pipeline for integration methods
+Compares CellDiffusion, Harmony, and scVI integration performance
+"""
+
+from pathlib import Path
+import os
+
+# Configuration
+CONFIG_FILE = "config.yaml"
+configfile: CONFIG_FILE
+
+# Get absolute paths
+PROJECT_ROOT = Path(__file__).parent.parent.resolve()
+INPUT_BASE = Path(config["data"]["input_path"]).resolve()
+OUTPUT_BASE = Path(config["data"]["output_dir"]).resolve()
+
+# Helper function to get input file path
+def get_input_path(wildcards):
+    return str(INPUT_BASE / wildcards.dataset / "adata.h5ad")
+
+# All datasets and methods
+DATASETS = config["datasets"]
+METHODS = ["celldiffusion", "harmony", "scvi"]
+
+rule all:
+    input:
+        # Final benchmark table and plot
+        str(OUTPUT_BASE / "timing_benchmark_table.csv"),
+        str(OUTPUT_BASE / "timing_benchmark_plot.pdf")
+
+# Rule: CellDiffusion timing
+rule celldiffusion_timing:
+    input:
+        h5ad = get_input_path
+    output:
+        h5ad = str(OUTPUT_BASE / "{dataset}/celldiffusion_integrated.h5ad"),
+        timing = str(OUTPUT_BASE / "{dataset}/celldiffusion_timing.json"),
+        stats = str(OUTPUT_BASE / "{dataset}/celldiffusion_stats.json")
+    params:
+        batch_key = config["evaluation"]["batch_key"],
+        label_key = config["evaluation"]["label_key"],
+        normalized_data = config["normalized_data"],
+        # Preprocessing parameters
+        min_cells = config["celldiffusion"]["min_cells"],
+        target_sum = config["celldiffusion"]["target_sum"],
+        n_top_genes = config["celldiffusion"]["n_top_genes"],
+        min_mean = config["celldiffusion"]["min_mean"],
+        max_mean = config["celldiffusion"]["max_mean"],
+        min_disp = config["celldiffusion"]["min_disp"],
+        # Feature auto-encoder parameters
+        max_epoch_fae = config["celldiffusion"]["max_epoch_fae"],
+        lr_fae = config["celldiffusion"]["lr_fae"],
+        latent_size_fae = config["celldiffusion"]["latent_size_fae"],
+        hidden_layers_fae = config["celldiffusion"]["hidden_layers_fae"],
+        pca_n_comps = config["celldiffusion"].get("pca_n_comps", 50),
+        # Graph parameters
+        k = config["celldiffusion"]["k"],
+        n_edges_per_node = config["celldiffusion"]["n_edges_per_node"],
+        k_mnn = config["celldiffusion"]["k_mnn"],
+        # Diffusion parameters
+        max_epoch_dif = config["celldiffusion"]["max_epoch_dif"],
+        lr_dif = config["celldiffusion"]["lr_dif"],
+        num_features_diffusion = config["celldiffusion"]["num_features_diffusion"],
+        num_heads_diffusion = config["celldiffusion"]["num_heads_diffusion"],
+        num_steps_diffusion = config["celldiffusion"]["num_steps_diffusion"],
+        time_increment_diffusion = config["celldiffusion"]["time_increment_diffusion"],
+        # UMAP parameters
+        umap_n_neighbors = config["umap"]["n_neighbors"],
+        umap_min_dist = config["umap"]["min_dist"],
+        umap_n_pcs = config["umap"]["n_pcs"],
+        # Leiden parameters
+        leiden_resolution = config["leiden"]["resolution"],
+        device = config["celldiffusion"]["device"]
+    script:
+        "scripts/run_celldiffusion_timing.py"
+
+# Rule: Harmony timing
+rule harmony_timing:
+    input:
+        h5ad = get_input_path
+    output:
+        h5ad = str(OUTPUT_BASE / "{dataset}/harmony_integrated.h5ad"),
+        timing = str(OUTPUT_BASE / "{dataset}/harmony_timing.json"),
+        stats = str(OUTPUT_BASE / "{dataset}/harmony_stats.json")
+    params:
+        batch_key = config["evaluation"]["batch_key"],
+        label_key = config["evaluation"]["label_key"],
+        normalized_data = config["normalized_data"],
+        # Preprocessing parameters
+        min_cells = config["celldiffusion"]["min_cells"],
+        target_sum = config["celldiffusion"]["target_sum"],
+        n_top_genes = config["celldiffusion"]["n_top_genes"],
+        min_mean = config["celldiffusion"]["min_mean"],
+        max_mean = config["celldiffusion"]["max_mean"],
+        min_disp = config["celldiffusion"]["min_disp"],
+        # Harmony parameters
+        theta = config["harmony"]["theta"],
+        lambda_ = config["harmony"]["lambda"],
+        sigma = config["harmony"]["sigma"],
+        nclust = config["harmony"]["nclust"],
+        max_iter_harmony = config["harmony"]["max_iter_harmony"],
+        n_pcs = config["harmony"]["n_pcs"],
+        # Leiden parameters
+        leiden_resolution = config["leiden"]["resolution"]
+    script:
+        "scripts/run_harmony_timing.py"
+
+# Rule: scVI timing
+rule scvi_timing:
+    input:
+        h5ad = get_input_path
+    output:
+        h5ad = str(OUTPUT_BASE / "{dataset}/scvi_integrated.h5ad"),
+        timing = str(OUTPUT_BASE / "{dataset}/scvi_timing.json"),
+        stats = str(OUTPUT_BASE / "{dataset}/scvi_stats.json")
+    params:
+        batch_key = config["evaluation"]["batch_key"],
+        label_key = config["evaluation"]["label_key"],
+        normalized_data = config["normalized_data"],
+        # Preprocessing parameters
+        min_cells = config["celldiffusion"]["min_cells"],
+        target_sum = config["celldiffusion"]["target_sum"],
+        n_top_genes = config["scvi"]["n_top_genes"],
+        min_mean = config["celldiffusion"]["min_mean"],
+        max_mean = config["celldiffusion"]["max_mean"],
+        min_disp = config["celldiffusion"]["min_disp"],
+        # scVI parameters
+        n_layers = config["scvi"]["n_layers"],
+        n_latent = config["scvi"]["n_latent"],
+        max_epochs = config["scvi"]["max_epochs"],
+        early_stopping = config["scvi"]["early_stopping"],
+        early_stopping_patience = config["scvi"]["early_stopping_patience"],
+        n_pcs = config["scvi"]["n_pcs"],
+        # Leiden parameters
+        leiden_resolution = config["leiden"]["resolution"]
+    script:
+        "scripts/run_scvi_timing.py"
+
+# Rule: Aggregate all timing results
+rule aggregate_timing:
+    input:
+        expand(str(OUTPUT_BASE / "{dataset}/celldiffusion_timing.json"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE / "{dataset}/harmony_timing.json"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE / "{dataset}/scvi_timing.json"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE / "{dataset}/celldiffusion_stats.json"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE / "{dataset}/harmony_stats.json"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE / "{dataset}/scvi_stats.json"), dataset=DATASETS),
+    output:
+        table = str(OUTPUT_BASE / "timing_benchmark_table.csv"),
+        plot = str(OUTPUT_BASE / "timing_benchmark_plot.pdf")
+    script:
+        "scripts/aggregate_timing_results.py"

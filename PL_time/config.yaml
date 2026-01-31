@@ -1,0 +1,74 @@
+# Configuration file for timing benchmark of integration methods
+# Compares CellDiffusion, Harmony, and scVI
+
+datasets: ["BMMC_s1d3_s4d9",
+            "BMMC_s1d2_s3d1",
+            "BMMC_s2d5_s3d7"]
+
+normalized_data: False
+
+# Data paths
+data:
+  input_path: "../data/inputs/integration/"
+  output_dir: "../data/outputs/PL_time"
+
+# CellDiffusion parameters
+celldiffusion:
+  device: "cuda"
+  # Preprocessing parameters
+  min_cells: 3
+  target_sum: 10000
+  n_top_genes: 2000
+  min_mean: 0.0125
+  max_mean: 3
+  min_disp: 0.5
+  # Feature auto-encoder parameters
+  max_epoch_fae: 2000
+  lr_fae: 0.001
+  latent_size_fae: 50
+  hidden_layers_fae: [300]
+  # Graph building parameters
+  k: 50
+  n_edges_per_node: 50
+  k_mnn: 50
+  # Diffusion parameters
+  max_epoch_dif: 2000
+  lr_dif: 0.001
+  num_features_diffusion: 50
+  num_heads_diffusion: 8
+  num_steps_diffusion: 8
+  time_increment_diffusion: 0.2
+
+# Harmony parameters
+harmony:
+  theta: 2.0
+  lambda: 1.0
+  sigma: 0.1
+  nclust: 30
+  max_iter_harmony: 10
+  n_pcs: 50
+
+# scVI parameters
+scvi:
+  n_top_genes: 2000
+  n_layers: 2
+  n_latent: 10
+  max_epochs: 400
+  early_stopping: True
+  early_stopping_patience: 20
+  n_pcs: 50
+
+# UMAP parameters
+umap:
+  min_dist: 0.3
+  n_neighbors: 15
+  n_pcs: 50
+
+# Leiden clustering parameters
+leiden:
+  resolution: 0.02
+
+# Evaluation parameters
+evaluation:
+  batch_key: "batch"
+  label_key: "labels"
