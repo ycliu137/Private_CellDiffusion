@@ -48,20 +48,23 @@ cat("\n=== Loading data ===\n")
 library(rhdf5)
 h5f <- H5Fopen(input_h5ad, flags="H5F_ACC_RDONLY")
 
-# Check X structure
-cat("X type:", class(h5f[["X"]]), "\n")
-cat("X contents:", if (is.null(h5f[["X"]])) "NULL" else "present", "\n")
+# List all available datasets/groups
+all_keys <- h5ls(h5f)
+cat("Available keys in h5ad:\n")
+print(all_keys)
 
 # h5ad stores sparse matrices in CSR/CSC format with data, indices, indptr
-# Try to read sparse matrix components
 expr_matrix <- NULL
 
-if (!is.null(h5f[["X"]])) {
-    X_group <- h5f[["X"]]
-    cat("X group keys:", paste(names(X_group), collapse=", "), "\n")
+# Check if X exists and its structure
+if ("X" %in% all_keys$name) {
+    cat("\nFound X, checking its structure\n")
+    X_contents <- h5ls(h5f, path="/X")
+    cat("X contents:\n")
+    print(X_contents)
     
     # Check if it's a sparse matrix (has data, indices, indptr)
-    if ("data" %in% names(X_group) && "indices" %in% names(X_group) && "indptr" %in% names(X_group)) {
+    if ("data" %in% X_contents$name && "indices" %in% X_contents$name && "indptr" %in% X_contents$name) {
         cat("Reading sparse matrix in CSR format\n")
         data <- h5read(h5f, "X/data")
         indices <- h5read(h5f, "X/indices")
@@ -84,11 +87,8 @@ if (!is.null(h5f[["X"]])) {
             dims = shape,
             giveCsparse = FALSE
         )
-    } else if ("data" %in% names(X_group)) {
-        cat("Reading dense matrix from X/data\n")
-        expr_matrix <- h5read(h5f, "X/data")
     } else {
-        cat("Reading X as dense matrix\n")
+        cat("X is stored as dense matrix\n")
         expr_matrix <- h5read(h5f, "X")
     }
 }
@@ -110,8 +110,8 @@ cat("var_names length:", length(var_names), "\n")
 # Read observation metadata (batch information)
 obs_data <- list()
 tryCatch({
-    obs_keys <- h5ls(h5f, path="/obs", recursive=FALSE)$name
-    obs_keys <- obs_keys[obs_keys != "_index"]
+    obs_contents <- h5ls(h5f, path="/obs")
+    obs_keys <- obs_contents$name[obs_contents$name != "_index"]
     cat("Found obs keys:", paste(obs_keys, collapse=", "), "\n")
     
     for (key in obs_keys) {
