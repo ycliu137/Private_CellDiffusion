@@ -56,15 +56,22 @@ if (class(X)[1] == "dgCMatrix" || class(X)[1] == "matrix") {
     expr_matrix <- t(X)
 }
 
-# Read observation metadata
-obs_names <- h5read(h5f, "obs_names")
-var_names <- h5read(h5f, "var_names")
-obs_keys <- h5ls(h5f, recursive=FALSE)$name[grep("^obs$", h5ls(h5f, recursive=FALSE)$name)]
+# Read observation and variable names from h5ad structure
+# h5ad files store these in obs/_index and var/_index
+obs_names <- h5read(h5f, "obs/_index")
+var_names <- h5read(h5f, "var/_index")
+
+# Read observation metadata (batch information)
+obs_group <- h5ls(h5f, recursive=1)
 obs_data <- list()
-for (key in obs_keys) {
+obs_items <- obs_group[obs_group$group == "/obs" & obs_group$name != "_index", ]
+for (i in 1:nrow(obs_items)) {
+    key <- obs_items$name[i]
     tryCatch({
         obs_data[[key]] <- h5read(h5f, paste0("obs/", key))
-    }, error = function(e) {})
+    }, error = function(e) {
+        cat("Warning: Could not read obs/", key, "\n")
+    })
 }
 
 H5Fclose(h5f)
