@@ -125,8 +125,7 @@ model = scvi.model.SCVI(
 train_kwargs = {
     'max_epochs': params.max_epochs,
     'early_stopping': params.early_stopping,
-    'accelerator': 'cpu',
-    'progress_bar': False
+    'accelerator': 'cpu'
 }
 
 if params.early_stopping:
