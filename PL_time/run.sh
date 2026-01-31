@@ -5,17 +5,29 @@
 
 set -e
 
-# Load miniconda module if available
-if command -v module &> /dev/null; then
-    echo "Loading miniconda module..."
-    module load miniconda || true
-fi
-
-# Initialize conda
+# Initialize conda first if already in PATH
 if command -v conda &> /dev/null; then
     eval "$(conda shell.bash hook)"
-else
-    echo "Error: conda not found. Please install miniconda/anaconda first."
+    echo "Using existing conda: $(which conda)"
+# Load miniconda module if available and conda not found
+elif command -v module &> /dev/null; then
+    echo "Loading miniconda module..."
+    # Unload conflicting modules
+    module unload python3 2>/dev/null || true
+    module load miniconda || {
+        echo "Warning: Failed to load miniconda module"
+    }
+    # Try again after module load
+    if command -v conda &> /dev/null; then
+        eval "$(conda shell.bash hook)"
+    fi
+fi
+
+# Final check for conda
+if ! command -v conda &> /dev/null; then
+    echo "Error: conda not found. Please ensure conda is installed and in PATH."
+    echo "You may need to run: source ~/miniconda3/bin/activate"
+    echo "Or manually activate your conda installation."
     exit 1
 fi
 
