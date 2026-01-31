@@ -55,7 +55,9 @@ read_10x_to_seurat <- function(data_dir) {
             # Use configured batch_key for metadata column
             seurat_obj[[batch_key]] <- batch_data
             obs_data[[batch_key]] <- batch_data
-            cat("  Batch metadata added:", length(unique(batch_data)), "batches\n")
+            n_batches <- length(unique(batch_data))
+            cat("  Batch metadata added:", n_batches, "batches\n")
+            cat("  Batch IDs:", paste(unique(batch_data), collapse=", "), "\n")
         } else {
             warning(sprintf("Batch file length (%d) does not match cell count (%d)",
                           length(batch_data), ncol(seurat_obj)))
@@ -159,39 +161,30 @@ n_batches <- if (batch_key %in% names(obs_data)) {
     1
 }
 
-if (n_batches > 1 && batch_key %in% names(obs_data)) {
-    cat("Running Seurat Anchors integration with", n_batches, "batches...\n")
-    
-    # Split by batch and preprocess each dataset
-    seurat_list <- SplitObject(seurat_obj, split.by = batch_key)
-    seurat_list <- lapply(seurat_list, function(x) {
-        x <- NormalizeData(x)
-        x <- FindVariableFeatures(x, nfeatures = params$nfeatures)
-        x
-    })
-    
-    timing_list$steps$preprocessing <- as.numeric(difftime(Sys.time(), t0, units="secs"))
-    cat("Preprocessing time:", timing_list$steps$preprocessing, "s\n")
-    
-    # ===== Step 1: Integration (Anchors) =====
-    cat("\n=== Step 1: Integration (Anchors) ===\n")
-    t0 <- Sys.time()
-    
-    features <- SelectIntegrationFeatures(object.list = seurat_list, nfeatures = params$nfeatures)
-    anchors <- FindIntegrationAnchors(object.list = seurat_list, anchor.features = features, dims = 1:params$dims)
-    seurat_obj <- IntegrateData(anchorset = anchors)
-    DefaultAssay(seurat_obj) <- "integrated"
-    
-    timing_list$steps$integration <- as.numeric(difftime(Sys.time(), t0, units="secs"))
-    cat("Integration time:", timing_list$steps$integration, "s\n")
-} else {
-    cat("Single batch or no batch key, skipping integration\n")
-    seurat_obj <- NormalizeData(seurat_obj)
-    seurat_obj <- FindVariableFeatures(seurat_obj, nfeatures = params$nfeatures)
-    timing_list$steps$preprocessing <- as.numeric(difftime(Sys.time(), t0, units="secs"))
-    cat("Preprocessing time:", timing_list$steps$preprocessing, "s\n")
-    timing_list$steps$integration <- 0
-}
+cat("Running Seurat Anchors integration with", n_batches, "batches...\n")
+
+# Split by batch and preprocess each dataset
+seurat_list <- SplitObject(seurat_obj, split.by = batch_key)
+seurat_list <- lapply(seurat_list, function(x) {
+    x <- NormalizeData(x)
+    x <- FindVariableFeatures(x, nfeatures = params$nfeatures)
+    x
+})
+
+timing_list$steps$preprocessing <- as.numeric(difftime(Sys.time(), t0, units="secs"))
+cat("Preprocessing time:", timing_list$steps$preprocessing, "s\n")
+
+# ===== Step 1: Integration (Anchors) =====
+cat("\n=== Step 1: Integration (Anchors) ===\n")
+t0 <- Sys.time()
+
+features <- SelectIntegrationFeatures(object.list = seurat_list, nfeatures = params$nfeatures)
+anchors <- FindIntegrationAnchors(object.list = seurat_list, anchor.features = features, dims = 1:params$dims)
+seurat_obj <- IntegrateData(anchorset = anchors)
+DefaultAssay(seurat_obj) <- "integrated"
+
+timing_list$steps$integration <- as.numeric(difftime(Sys.time(), t0, units="secs"))
+cat("Integration time:", timing_list$steps$integration, "s\n")
 
 # ===== Step 2: PCA =====
 cat("\n=== Step 2: PCA ===\n")
