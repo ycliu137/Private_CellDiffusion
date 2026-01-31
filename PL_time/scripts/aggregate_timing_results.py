@@ -121,7 +121,8 @@ for dataset in sorted(timing_dfs.keys()):
     for method in ['CellDiffusion', 'Harmony', 'scVI', 'Seurat']:
         if method in timing_info:
             total_time = _normalize_numeric(timing_info[method]['total_time'])
-            row[f'{method}_Time(min)'] = round(total_time / 60, 2)
+            # total_time is already in minutes in timing JSON
+            row[f'{method}_Time(min)'] = round(total_time, 2)
         else:
             row[f'{method}_Time(min)'] = np.nan
     
