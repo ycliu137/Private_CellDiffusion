@@ -84,12 +84,14 @@ $PM run -n ${ENV_NAME} pip install pytorch-lightning rich jax jaxlib numpyro
 $PM run -n ${ENV_NAME} pip install -r requirements.txt
 
 # Install Seurat via R package manager (conda R packages)
-echo "Installing Seurat via R package manager..."
-$PM install -n ${ENV_NAME} -c conda-forge \
+echo "Installing Seurat and R dependencies..."
+$PM install -n ${ENV_NAME} -c conda-forge -c bioconda \
     r-seurat \
     r-seuratobject \
     r-hdf5r \
     r-jsonlite \
+    bioconductor-rhdf5 \
+    r-harmony \
     -y
 
 echo ""

@@ -124,7 +124,7 @@ ho = harmonypy.run_harmony(
     adata.obs,
     vars_use=[params.batch_key],
     theta=params.theta,
-    lambda_=params.lambda_,
+    lamb=params.lambda_,
     sigma=params.sigma,
     nclust=params.nclust,
     max_iter_harmony=params.max_iter_harmony,

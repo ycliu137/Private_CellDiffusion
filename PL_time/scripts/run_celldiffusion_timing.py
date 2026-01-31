@@ -127,15 +127,27 @@ print(f"Feature Auto-Encoder time: {t_fae:.2f}s")
 print(f"\n=== Step 3: Graph Building ===")
 t0 = time.time()
 
-adata.obsm['X_neighbors'] = adata.obsm['X_fae'].copy()
+# Create node_batch_mt (required by build_integration_loss_adj)
+if 'node_batch_mt' not in adata.obsm:
+    adata.obsm['node_batch_mt'] = pd.get_dummies(adata.obs[params.batch_key]).to_numpy()
+    print("Created node_batch_mt")
 
-cd.build_graph(
+# Build integration loss adjacency
+cd.inte.build_integration_loss_adj(
     adata,
     use_rep='X_fae',
     k=params.k,
+    device=params.device
+)
+
+# Build integration graph
+cd.inte.build_integration_graph(
+    adata,
+    batch_key=params.batch_key,
+    use_rep='X_fae',
     n_edges_per_node=params.n_edges_per_node,
     k_mnn=params.k_mnn,
-    seed=0
+    device=params.device
 )
 
 t_graph = time.time() - t0
@@ -146,7 +158,7 @@ print(f"Graph building time: {t_graph:.2f}s")
 print(f"\n=== Step 4: Graph Diffusion ===")
 t0 = time.time()
 
-cd.graph_diffusion(
+cd.inte.integration_diffusion(
     adata,
     use_rep='X_fae',
     save_key='X_dif',
