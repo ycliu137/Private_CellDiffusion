@@ -48,23 +48,64 @@ cat("\n=== Loading data ===\n")
 library(rhdf5)
 h5f <- H5Fopen(input_h5ad, flags="H5F_ACC_RDONLY")
 
-# Read expression matrix
-X <- h5read(h5f, "X")
-if (class(X)[1] == "dgCMatrix" || class(X)[1] == "dgTMatrix") {
-    expr_matrix <- X
-} else {
-    expr_matrix <- t(X)
+# Check X structure
+cat("X type:", class(h5f[["X"]]), "\n")
+cat("X contents:", if (is.null(h5f[["X"]])) "NULL" else "present", "\n")
+
+# h5ad stores sparse matrices in CSR/CSC format with data, indices, indptr
+# Try to read sparse matrix components
+expr_matrix <- NULL
+
+if (!is.null(h5f[["X"]])) {
+    X_group <- h5f[["X"]]
+    cat("X group keys:", paste(names(X_group), collapse=", "), "\n")
+    
+    # Check if it's a sparse matrix (has data, indices, indptr)
+    if ("data" %in% names(X_group) && "indices" %in% names(X_group) && "indptr" %in% names(X_group)) {
+        cat("Reading sparse matrix in CSR format\n")
+        data <- h5read(h5f, "X/data")
+        indices <- h5read(h5f, "X/indices")
+        indptr <- h5read(h5f, "X/indptr")
+        shape <- h5read(h5f, "X/shape")
+        
+        cat("Sparse matrix shape:", shape, "\n")
+        cat("Data points:", length(data), "\n")
+        
+        # Convert 0-based indices to 1-based for R
+        indices <- indices + 1
+        # indptr is already 0-based, keep as is for sparseMatrix construction
+        
+        # Create sparse matrix from CSR format
+        library(Matrix)
+        expr_matrix <- sparseMatrix(
+            i = rep(1:(length(indptr)-1), diff(indptr)),
+            j = indices,
+            x = data,
+            dims = shape,
+            giveCsparse = FALSE
+        )
+    } else if ("data" %in% names(X_group)) {
+        cat("Reading dense matrix from X/data\n")
+        expr_matrix <- h5read(h5f, "X/data")
+    } else {
+        cat("Reading X as dense matrix\n")
+        expr_matrix <- h5read(h5f, "X")
+    }
 }
 
+if (is.null(expr_matrix)) {
+    stop("Could not read expression matrix from X")
+}
+
+cat("Expression matrix class:", class(expr_matrix), "\n")
+cat("Expression matrix dimensions:", dim(expr_matrix), "\n")
+
 # Read observation and variable names from h5ad structure
-# h5ad files store these in obs/_index and var/_index
 obs_names <- as.character(h5read(h5f, "obs/_index"))
 var_names <- as.character(h5read(h5f, "var/_index"))
 
-# Ensure correct dimensions before setting names
-cat("Matrix dimensions: ", nrow(expr_matrix), "x", ncol(expr_matrix), "\n")
-cat("obs_names length: ", length(obs_names), "\n")
-cat("var_names length: ", length(var_names), "\n")
+cat("obs_names length:", length(obs_names), "\n")
+cat("var_names length:", length(var_names), "\n")
 
 # Read observation metadata (batch information)
 obs_data <- list()
@@ -86,7 +127,7 @@ tryCatch({
 
 H5Fclose(h5f)
 
-# Set names with proper transpose if needed
+# Set matrix names
 if (ncol(expr_matrix) == length(obs_names) && nrow(expr_matrix) == length(var_names)) {
     colnames(expr_matrix) <- obs_names
     rownames(expr_matrix) <- var_names
