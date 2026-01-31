@@ -147,30 +147,11 @@ if (batch_key %in% names(obs_data)) {
 
 timing_list$steps$load_data <- as.numeric(difftime(Sys.time(), t0, units="secs"))
 
-# ===== Step 0: Preprocessing =====
+ # ===== Step 0: Preprocessing =====
 cat("\n=== Step 0: Preprocessing ===\n")
 t0 <- Sys.time()
 
-seurat_obj <- NormalizeData(seurat_obj)
-seurat_obj <- FindVariableFeatures(seurat_obj, nfeatures=params$nfeatures)
-seurat_obj <- ScaleData(seurat_obj)
-
-timing_list$steps$preprocessing <- as.numeric(difftime(Sys.time(), t0, units="secs"))
-cat("Preprocessing time:", timing_list$steps$preprocessing, "s\n")
-
-# ===== Step 1: PCA =====
-cat("\n=== Step 1: PCA ===\n")
-t0 <- Sys.time()
-
-seurat_obj <- RunPCA(seurat_obj, npcs=params$dims, verbose=FALSE)
-
-timing_list$steps$pca <- as.numeric(difftime(Sys.time(), t0, units="secs"))
-cat("PCA time:", timing_list$steps$pca, "s\n")
-
-# ===== Step 2: Batch Correction (Harmony) - GUARDED =====
-cat("\n=== Step 2: Batch Correction ===\n")
-
-# Only run Harmony if we have multiple batches
+# Determine number of batches
 n_batches <- if (batch_key %in% names(obs_data)) {
     length(unique(obs_data[[batch_key]]))
 } else {
@@ -178,25 +159,48 @@ n_batches <- if (batch_key %in% names(obs_data)) {
 }
 
 if (n_batches > 1 && batch_key %in% names(obs_data)) {
+    cat("Running Seurat Anchors integration with", n_batches, "batches...\n")
+    
+    # Split by batch and preprocess each dataset
+    seurat_list <- SplitObject(seurat_obj, split.by = batch_key)
+    seurat_list <- lapply(seurat_list, function(x) {
+        x <- NormalizeData(x)
+        x <- FindVariableFeatures(x, nfeatures = params$nfeatures)
+        x
+    })
+    
+    timing_list$steps$preprocessing <- as.numeric(difftime(Sys.time(), t0, units="secs"))
+    cat("Preprocessing time:", timing_list$steps$preprocessing, "s\n")
+    
+    # ===== Step 1: Integration (Anchors) =====
+    cat("\n=== Step 1: Integration (Anchors) ===\n")
     t0 <- Sys.time()
-    cat("Running Harmony with", n_batches, "batches...\n")
     
-    library(harmony)
-    seurat_obj <- RunHarmony(
-        seurat_obj,
-        group.by.vars=batch_key,
-        dims.use=1:params$dims,
-        verbose=FALSE
-    )
+    features <- SelectIntegrationFeatures(object.list = seurat_list, nfeatures = params$nfeatures)
+    anchors <- FindIntegrationAnchors(object.list = seurat_list, anchor.features = features, dims = 1:params$dims)
+    seurat_obj <- IntegrateData(anchorset = anchors)
+    DefaultAssay(seurat_obj) <- "integrated"
     
-    timing_list$steps$harmony <- as.numeric(difftime(Sys.time(), t0, units="secs"))
-    cat("Harmony time:", timing_list$steps$harmony, "s\n")
-    use_reduction <- "harmony"
+    timing_list$steps$integration <- as.numeric(difftime(Sys.time(), t0, units="secs"))
+    cat("Integration time:", timing_list$steps$integration, "s\n")
 } else {
-    cat("Skipping Harmony: single batch or no batch key\n")
-    timing_list$steps$harmony <- 0
-    use_reduction <- "pca"
+    cat("Single batch or no batch key, skipping integration\n")
+    seurat_obj <- NormalizeData(seurat_obj)
+    seurat_obj <- FindVariableFeatures(seurat_obj, nfeatures = params$nfeatures)
+    timing_list$steps$preprocessing <- as.numeric(difftime(Sys.time(), t0, units="secs"))
+    cat("Preprocessing time:", timing_list$steps$preprocessing, "s\n")
+    timing_list$steps$integration <- 0
 }
+
+# ===== Step 2: PCA =====
+cat("\n=== Step 2: PCA ===\n")
+t0 <- Sys.time()
+
+seurat_obj <- ScaleData(seurat_obj)
+seurat_obj <- RunPCA(seurat_obj, npcs=params$dims, verbose=FALSE)
+
+timing_list$steps$pca <- as.numeric(difftime(Sys.time(), t0, units="secs"))
+cat("PCA time:", timing_list$steps$pca, "s\n")
 
 # ===== Step 3: UMAP =====
 cat("\n=== Step 3: UMAP ===\n")
@@ -204,8 +208,8 @@ t0 <- Sys.time()
 
 seurat_obj <- RunUMAP(
     seurat_obj,
-    reduction=use_reduction,
-        dims=1:params$dims,
+    reduction="pca",
+    dims=1:params$dims,
     verbose=FALSE
 )
 
@@ -216,7 +220,7 @@ cat("UMAP time:", timing_list$steps$umap, "s\n")
 cat("\n=== Step 4: Leiden Clustering ===\n")
 t0 <- Sys.time()
 
-seurat_obj <- FindNeighbors(seurat_obj, reduction=use_reduction, dims=1:params$dims, verbose=FALSE)
+seurat_obj <- FindNeighbors(seurat_obj, reduction="pca", dims=1:params$dims, verbose=FALSE)
 seurat_obj <- FindClusters(
     seurat_obj,
     resolution=params$resolution,

@@ -175,27 +175,10 @@ t_diffusion = time.time() - t0
 timing_dict["steps"]["graph_diffusion"] = t_diffusion
 print(f"Graph diffusion time: {t_diffusion:.2f}s")
 
-# ===== Step 5: UMAP =====
-print(f"\n=== Step 5: UMAP ===")
-t0 = time.time()
-
-sc.pp.neighbors(adata, use_rep='X_dif', n_neighbors=params.umap_n_neighbors, n_pcs=params.umap_n_pcs)
-sc.tl.umap(adata, min_dist=params.umap_min_dist)
-adata.obsm['X_umap_dif'] = adata.obsm['X_umap'].copy()
 
 t_umap = time.time() - t0
 timing_dict["steps"]["umap"] = t_umap
 print(f"UMAP time: {t_umap:.2f}s")
-
-# ===== Step 6: Leiden =====
-print(f"\n=== Step 6: Leiden Clustering ===")
-t0 = time.time()
-
-sc.tl.leiden(adata, resolution=params.leiden_resolution, key_added='leiden_dif')
-
-t_leiden = time.time() - t0
-timing_dict["steps"]["leiden"] = t_leiden
-print(f"Leiden time: {t_leiden:.2f}s")
 
 # ===== Save results =====
 print(f"\n=== Saving results ===")
@@ -203,8 +186,13 @@ Path(output_h5ad).parent.mkdir(parents=True, exist_ok=True)
 adata.write(output_h5ad)
 print(f"Data saved to: {output_h5ad}")
 
-# Calculate total time
-total_time = sum(timing_dict["steps"].values())
+ # Calculate total time (handle nested step dicts like {"duration": ...})
+def _step_duration(v):
+    if isinstance(v, dict):
+        return v.get("duration", 0)
+    return v
+
+total_time = sum(_step_duration(v) for v in timing_dict["steps"].values())
 timing_dict["total_time"] = total_time
 print(f"\nTotal CellDiffusion time: {total_time:.2f}s")
 
