@@ -7,162 +7,79 @@
 library(Seurat)
 library(Matrix)
 library(jsonlite)
-library(rhdf5)
 
 # ========================================
-# Helper function: Read h5ad into Seurat
+# Helper function: Read 10X data into Seurat
 # ========================================
-read_h5ad_to_seurat <- function(h5ad_path) {
-    # Robustly read h5ad file and convert to Seurat object
+read_10x_to_seurat <- function(data_dir) {
+    # Read 10X data directory and associated metadata CSV files
     # Handles:
-    # - CSC sparse matrix format (AnnData default)
-    # - Correct obs/var dimension mapping
-    # - Batch and label metadata
+    # - 10X matrix.mtx, genes.tsv, barcodes.tsv
+    # - batch.csv (1 column, no header)
+    # - labels.csv (1 column, no header)
     
-    h5f <- H5Fopen(h5ad_path, flags="H5F_ACC_RDONLY")
+    cat("Reading 10X data from:", data_dir, "\n")
     
-    # Cache h5ls() result for performance
-    h5_tree <- h5ls(h5f)
+    # ===== Read 10X matrix =====
+    seurat_obj <- Read10X(data.dir = data_dir)
     
-    # ===== Read X matrix (expression data) =====
-    cat("Reading expression matrix X...\n")
-    
-    X_entries <- h5_tree[h5_tree$group == "/X", ]
-    
-    # h5ad stores X as CSC (Column Sparse Compressed)
-    # NOT CSR (Row Sparse Compressed)
-    # Key point: indptr describes COLUMNS, not rows
-    
-    if ("data" %in% X_entries$name && 
-        "indices" %in% X_entries$name && 
-        "indptr" %in% X_entries$name) {
-        
-        cat("  Found CSC sparse matrix\n")
-        data <- as.numeric(as.vector(h5read(h5f, "X/data")))
-        indices <- as.integer(as.vector(h5read(h5f, "X/indices")))
-        indptr <- as.integer(as.vector(h5read(h5f, "X/indptr")))
-        
-        # CSC format interpretation:
-        # indptr: column pointers (length = n_cols + 1)
-        # indices: row indices (0-based, length = nnz)
-        # data: values (length = nnz)
-        
-        n_cols <- length(indptr) - 1  # Number of columns (genes in CSC)
-        n_rows <- max(indices, na.rm=TRUE) + 1  # Number of rows (cells in CSC)
-        
-        cat(sprintf("  CSC matrix dims: %d rows (cells) × %d cols (genes)\n", n_rows, n_cols))
-        
-        # Build sparse matrix from CSC format
-        # For sparseMatrix(), we need (i, j) = (row, col) indices
-        col_indices <- rep(seq_len(n_cols), diff(indptr))  # Column index for each element
-        row_indices <- indices + 1L  # Row index (convert 0-based to 1-based)
-        values <- data
-        
-        expr_matrix <- sparseMatrix(
-            i = row_indices,
-            j = col_indices,
-            x = values,
-            dims = c(n_rows, n_cols)
-        )
-        
-    } else {
-        stop(sprintf("Cannot find CSC sparse matrix components in %s", h5ad_path))
+    # If Read10X returns a list (multiple feature types), take the first
+    if (is.list(seurat_obj)) {
+        cat("  Multiple feature types detected, using first one\n")
+        seurat_obj <- seurat_obj[[1]]
     }
     
-    cat(sprintf("  Expression matrix loaded: %d genes × %d cells\n", 
-                nrow(expr_matrix), ncol(expr_matrix)))
-    
-    # ===== Read obs and var indices =====
-    cat("Reading metadata...\n")
-    
-    obs_names <- as.character(h5read(h5f, "obs/_index"))
-    var_names <- as.character(h5read(h5f, "var/_index"))
-    
-    cat(sprintf("  obs: %d cells\n", length(obs_names)))
-    cat(sprintf("  var: %d genes\n", length(var_names)))
-    
-    # ===== Dimension sanity check =====
-    # h5ad convention: X is cells × genes (CSC format)
-    # This means nrow(X) = cells, ncol(X) = genes
-    
-    if (nrow(expr_matrix) != length(obs_names)) {
-        stop(sprintf(
-            "Dimension mismatch: expr_matrix has %d rows but obs_names has %d\n",
-            nrow(expr_matrix), length(obs_names)
-        ))
-    }
-    
-    if (ncol(expr_matrix) != length(var_names)) {
-        stop(sprintf(
-            "Dimension mismatch: expr_matrix has %d cols but var_names has %d\n",
-            ncol(expr_matrix), length(var_names)
-        ))
-    }
-    
-    # ===== Set dimension names =====
-    # Currently: expr_matrix is cells × genes (AnnData convention)
-    rownames(expr_matrix) <- obs_names
-    colnames(expr_matrix) <- var_names
-    
-    # Seurat expects: genes × cells (transpose required)
-    expr_matrix <- t(expr_matrix)
-    
-    # ===== Read obs metadata =====
-    obs_data <- list()
-    tryCatch({
-        # Build full paths for checking (h5ls()$name only returns basename)
-        all_paths <- paste(h5_tree$group, h5_tree$name, sep="/")
-        
-        obs_meta_entries <- h5_tree[h5_tree$group == "/obs" & h5_tree$otype == "H5I_GROUP", ]
-        
-        for (i in seq_len(nrow(obs_meta_entries))) {
-            key <- obs_meta_entries$name[i]
-            if (key == "_index") next  # Skip index
-            
-            tryCatch({
-                # Try to read codes if it exists (for categorical)
-                codes_path <- sprintf("/obs/%s/codes", key)
-                cats_path <- sprintf("/obs/%s/categories", key)
-                
-                if (codes_path %in% all_paths && cats_path %in% all_paths) {
-                    # Categorical variable
-                    codes <- h5read(h5f, codes_path)
-                    categories <- h5read(h5f, cats_path)
-                    obs_data[[key]] <- as.factor(categories[codes + 1])
-                } else {
-                    # Try to read as regular array (e.g., /obs/batch/data)
-                    data_path <- sprintf("/obs/%s/data", key)
-                    if (data_path %in% all_paths) {
-                        obs_data[[key]] <- h5read(h5f, data_path)
-                    }
-                }
-            }, error = function(e) {
-                cat(sprintf("  Warning: Could not read obs/%s: %s\n", key, e$message))
-            })
-        }
-    }, error = function(e) {
-        cat("  Warning: Could not read obs metadata\n")
-    })
-    
-    H5Fclose(h5f)
+    cat(sprintf("  10X matrix loaded: %d genes × %d cells\n", 
+                nrow(seurat_obj), ncol(seurat_obj)))
     
     # ===== Create Seurat object =====
-    # Seurat expects: genes × cells
     seurat_obj <- CreateSeuratObject(
-        counts = expr_matrix,
+        counts = seurat_obj,
         min.cells = 3,
         min.features = 200
     )
     
-    # Add metadata
-    for (key in names(obs_data)) {
-        if (length(obs_data[[key]]) == ncol(seurat_obj)) {
-            seurat_obj[[key]] <- obs_data[[key]]
-        }
-    }
-    
     cat(sprintf("Seurat object created: %d genes × %d cells\n",
                 nrow(seurat_obj), ncol(seurat_obj)))
+    
+    # ===== Read metadata CSVs =====
+    obs_data <- list()
+    
+    # Read batch.csv
+    batch_file <- file.path(data_dir, "batch.csv")
+    if (file.exists(batch_file)) {
+        cat("Reading batch metadata from:", batch_file, "\n")
+        batch_data <- read.csv(batch_file, header=FALSE, stringsAsFactors=FALSE)[[1]]
+        
+        if (length(batch_data) == ncol(seurat_obj)) {
+            seurat_obj$batch <- batch_data
+            obs_data$batch <- batch_data
+            cat("  Batch metadata added:", length(unique(batch_data)), "batches\n")
+        } else {
+            warning(sprintf("Batch file length (%d) does not match cell count (%d)",
+                          length(batch_data), ncol(seurat_obj)))
+        }
+    } else {
+        warning("batch.csv not found in", data_dir)
+    }
+    
+    # Read labels.csv
+    labels_file <- file.path(data_dir, "labels.csv")
+    if (file.exists(labels_file)) {
+        cat("Reading label metadata from:", labels_file, "\n")
+        label_data <- read.csv(labels_file, header=FALSE, stringsAsFactors=FALSE)[[1]]
+        
+        if (length(label_data) == ncol(seurat_obj)) {
+            seurat_obj$label <- label_data
+            obs_data$label <- label_data
+            cat("  Label metadata added:", length(unique(label_data)), "unique labels\n")
+        } else {
+            warning(sprintf("Labels file length (%d) does not match cell count (%d)",
+                          length(label_data), ncol(seurat_obj)))
+        }
+    } else {
+        warning("labels.csv not found in", data_dir)
+    }
     
     # Return dataset stats along with object
     return(list(
@@ -178,8 +95,8 @@ read_h5ad_to_seurat <- function(h5ad_path) {
 # ========================================
 
 # Get arguments from Snakemake
-input_h5ad <- snakemake@input$h5ad
-output_h5ad <- snakemake@output$h5ad  # Will be .h5seurat
+data_dir <- snakemake@input$data_dir
+output_h5ad <- snakemake@output$h5ad  # Will be .rds
 output_timing <- snakemake@output$timing
 output_stats <- snakemake@output$stats
 params <- snakemake@params
@@ -188,7 +105,7 @@ batch_key <- params$batch_key
 label_key <- params$label_key
 
 # Initialize timing and stats
-dataset_name <- basename(dirname(input_h5ad))
+dataset_name <- basename(data_dir)
 
 timing_list <- list(
     dataset = dataset_name,
@@ -204,19 +121,19 @@ stats_list <- list(
 )
 
 cat("\n=== Seurat Timing Pipeline ===\n")
-cat("Input:", input_h5ad, "\n")
+cat("Input:", data_dir, "\n")
 cat("Output:", output_h5ad, "\n")
 
 # ===== Load data =====
 t0 <- Sys.time()
 cat("\n=== Loading data ===\n")
 
-h5ad_data <- read_h5ad_to_seurat(input_h5ad)
-seurat_obj <- h5ad_data$obj
-obs_data <- h5ad_data$obs_data
+data_10x <- read_10x_to_seurat(data_dir)
+seurat_obj <- data_10x$obj
+obs_data <- data_10x$obs_data
 
-stats_list$n_cells <- h5ad_data$n_cells
-stats_list$n_genes <- h5ad_data$n_genes
+stats_list$n_cells <- data_10x$n_cells
+stats_list$n_genes <- data_10x$n_genes
 
 # Determine number of batches
 if (batch_key %in% names(obs_data)) {

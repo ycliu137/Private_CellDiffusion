@@ -20,6 +20,9 @@ OUTPUT_BASE = Path(config["data"]["output_dir"]).resolve()
 def get_input_path(wildcards):
     return str(INPUT_BASE / (wildcards.dataset + ".h5ad"))
 
+def get_input_path_seurat_10X(wildcards):
+    return str(INPUT_BASE / wildcards.dataset)
+
 # All datasets and methods
 DATASETS = config["datasets"]
 METHODS = ["celldiffusion", "harmony", "scvi", "seurat"]
@@ -141,7 +144,7 @@ rule scvi_timing:
 # Rule: Seurat timing
 rule seurat_timing:
     input:
-        h5ad = get_input_path
+        data_dir = get_input_path_seurat_10X
     output:
         h5ad = str(OUTPUT_BASE / "{dataset}/seurat_integrated.rds"),
         timing = str(OUTPUT_BASE / "{dataset}/seurat_timing.json"),
