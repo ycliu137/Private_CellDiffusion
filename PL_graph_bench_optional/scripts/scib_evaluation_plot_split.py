@@ -9,17 +9,25 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 
-# Global plot style for publication-quality figures
+# Science journal figure style: 180mm double-column, 300+ DPI, sans-serif
+# Ref: https://www.science.org/content/page/science-information-authors
+MM_TO_IN = 1 / 25.4
+COL_SINGLE_MM = 88
+COL_DOUBLE_MM = 180
+FIG_DPI = 600  # Science prefers 300-600 DPI
 plt.rcParams.update({
     "font.family": "sans-serif",
-    "font.size": 12,
-    "axes.titlesize": 16,
-    "axes.labelsize": 14,
-    "xtick.labelsize": 12,
-    "ytick.labelsize": 12,
-    "legend.fontsize": 12,
-    "axes.linewidth": 1.0,
-    "figure.dpi": 300,
+    "font.sans-serif": ["Arial", "Helvetica", "DejaVu Sans"],
+    "font.size": 7,
+    "axes.titlesize": 8,
+    "axes.labelsize": 8,
+    "xtick.labelsize": 7,
+    "ytick.labelsize": 7,
+    "legend.fontsize": 7,
+    "axes.linewidth": 0.75,
+    "axes.spines.top": False,
+    "axes.spines.right": False,
+    "figure.dpi": FIG_DPI,
 })
 
 # Get input and output from snakemake
@@ -115,51 +123,44 @@ for (method_key, integration_type), method_name in method_rows.items():
 def plot_single_score(score_name: str, output_pdf: str, colors: tuple[str, str]) -> None:
     print(f"\n=== Creating plot for {score_name} ===")
 
-    # Set up plot
-    fig, ax = plt.subplots(figsize=(8.5, 5))
+    # Single-column width (88 mm) for Science
+    w_in = COL_SINGLE_MM * MM_TO_IN
+    fig, ax = plt.subplots(figsize=(w_in, w_in * 0.6))
 
     n_methods = len(all_method_keys)
-    width = 0.22
+    width = 0.28
     x = np.arange(n_methods)
 
-    # Values for CellDiffusion and GCN
-    values_cd = []
-    values_gcn = []
-    for method_key in all_method_keys:
-        values_cd.append(scores_data.get((method_key, 'CellDiffusion'), {}).get(score_name, 0.0))
-        values_gcn.append(scores_data.get((method_key, 'GCN'), {}).get(score_name, 0.0))
+    values_cd = [scores_data.get((m, 'CellDiffusion'), {}).get(score_name, 0.0) for m in all_method_keys]
+    values_gcn = [scores_data.get((m, 'GCN'), {}).get(score_name, 0.0) for m in all_method_keys]
 
     cd_color, gcn_color = colors
-    ax.bar(x - width / 2, values_cd, width,
-        color=cd_color, edgecolor='black', linewidth=0.8, label='CellDiffusion')
-    ax.bar(x + width / 2, values_gcn, width,
-        color=gcn_color, edgecolor='black', linewidth=0.8, label='GCN')
+    ax.bar(x - width / 2, values_cd, width, color=cd_color, edgecolor='#333333', linewidth=0.5, label='CellDiffusion')
+    ax.bar(x + width / 2, values_gcn, width, color=gcn_color, edgecolor='#333333', linewidth=0.5, label='GCN')
 
-    ax.set_xlabel('Graph Building Method', fontweight='bold')
-    ax.set_ylabel('Score Value', fontweight='bold')
-    ax.set_title(f'SCIB Evaluation: {score_name}', fontweight='bold')
+    ax.set_xlabel('Graph building method')
+    ax.set_ylabel('Score')
+    ax.set_title(score_name)
     ax.set_xticks(x)
     ax.set_xticklabels(all_method_keys, rotation=45, ha='right')
-    ax.legend(loc='best', framealpha=0.9)
+    ax.legend(loc='upper right', frameon=True, framealpha=1, edgecolor='#cccccc')
 
-    all_values = values_cd + values_gcn
-    min_val = min(all_values) if all_values else 0
-    max_val = max(all_values) if all_values else 1
-    ax.set_ylim(bottom=max(0, min_val - 0.1), top=min(1.0, max_val + 0.1))
+    all_vals = values_cd + values_gcn
+    y_min = max(0, (min(all_vals) if all_vals else 0) - 0.08)
+    y_max = min(1.05, (max(all_vals) if all_vals else 1) + 0.05)
+    ax.set_ylim(y_min, y_max)
 
-    # Add value labels
     for k, v in enumerate(values_cd):
         if v > 0.05:
-            ax.text(k - width / 2, v + 0.01, f'{v:.3f}', ha='center', va='bottom', fontsize=9, fontweight='bold')
+            ax.text(k - width / 2, v + 0.015, f'{v:.2f}', ha='center', va='bottom', fontsize=6)
     for k, v in enumerate(values_gcn):
         if v > 0.05:
-            ax.text(k + width / 2, v + 0.01, f'{v:.3f}', ha='center', va='bottom', fontsize=9, fontweight='bold')
+            ax.text(k + width / 2, v + 0.015, f'{v:.2f}', ha='center', va='bottom', fontsize=6)
 
     plt.tight_layout()
-
     print(f"Saving plot: {output_pdf}")
     Path(output_pdf).parent.mkdir(parents=True, exist_ok=True)
-    plt.savefig(output_pdf, dpi=300, bbox_inches='tight')
+    plt.savefig(output_pdf, dpi=FIG_DPI, bbox_inches='tight')
     plt.close()
 
 
@@ -174,63 +175,55 @@ plot_single_score('Total', output_total, score_colors['Total'])
 plot_single_score('Batch correction', output_batch, score_colors['Batch correction'])
 plot_single_score('Bio conservation', output_bio, score_colors['Bio conservation'])
 
-# Combined plot: Total and Bio conservation as subplots
+# Combined plot: Total and Bio conservation (Science double-column, 180 mm)
 print("\n=== Creating combined plot (Total + Bio conservation) ===")
-fig = plt.figure(figsize=(14, 6))
-gs = fig.add_gridspec(2, 2, height_ratios=[10, 1], width_ratios=[1, 1], hspace=0.5, wspace=0.3)
-axes_plot = [fig.add_subplot(gs[0, 0]), fig.add_subplot(gs[0, 1])]
-axes_legend = [fig.add_subplot(gs[1, 0]), fig.add_subplot(gs[1, 1])]
+w_in = COL_DOUBLE_MM * MM_TO_IN
+h_in = w_in * 0.38  # ~68 mm height
+fig, axes_plot = plt.subplots(1, 2, figsize=(w_in, h_in))
 
-# Hide legend axes
-for ax_leg in axes_legend:
-    ax_leg.axis('off')
-
-def _plot_on_ax(ax, score_name: str, colors: tuple[str, str]) -> None:
+def _plot_on_ax(ax, score_name: str, colors: tuple[str, str], panel_label: str) -> None:
     n_methods = len(all_method_keys)
-    width = 0.22
+    width = 0.28
     x = np.arange(n_methods)
 
     values_cd = [scores_data.get((m, 'CellDiffusion'), {}).get(score_name, 0.0) for m in all_method_keys]
     values_gcn = [scores_data.get((m, 'GCN'), {}).get(score_name, 0.0) for m in all_method_keys]
 
     cd_color, gcn_color = colors
-    ax.bar(x - width / 2, values_cd, width,
-        color=cd_color, edgecolor='black', linewidth=0.8, label='CellDiffusion')
-    ax.bar(x + width / 2, values_gcn, width,
-        color=gcn_color, edgecolor='black', linewidth=0.8, label='GCN')
+    ax.bar(x - width / 2, values_cd, width, color=cd_color, edgecolor='#333333', linewidth=0.5, label='CellDiffusion')
+    ax.bar(x + width / 2, values_gcn, width, color=gcn_color, edgecolor='#333333', linewidth=0.5, label='GCN')
 
-    ax.set_title(score_name, fontsize=16, fontweight='bold', pad=12)
-    ax.set_xlabel('Graph Building Method', fontweight='bold', fontsize=13)
+    ax.set_title(score_name)
+    ax.set_xlabel('Graph building method')
     ax.set_xticks(x)
-    ax.set_xticklabels(all_method_keys, rotation=45, ha='right', fontsize=11)
+    ax.set_xticklabels(all_method_keys, rotation=45, ha='right')
 
-    all_values = values_cd + values_gcn
-    min_val = min(all_values) if all_values else 0
-    max_val = max(all_values) if all_values else 1
-    ax.set_ylim(bottom=max(0, min_val - 0.1), top=min(1.0, max_val + 0.1))
+    all_vals = values_cd + values_gcn
+    y_min = max(0, (min(all_vals) if all_vals else 0) - 0.08)
+    y_max = min(1.05, (max(all_vals) if all_vals else 1) + 0.05)
+    ax.set_ylim(y_min, y_max)
 
     for k, v in enumerate(values_cd):
         if v > 0.05:
-            ax.text(k - width / 2, v + 0.01, f'{v:.3f}', ha='center', va='bottom', fontsize=9, fontweight='bold')
+            ax.text(k - width / 2, v + 0.015, f'{v:.2f}', ha='center', va='bottom', fontsize=6)
     for k, v in enumerate(values_gcn):
         if v > 0.05:
-            ax.text(k + width / 2, v + 0.01, f'{v:.3f}', ha='center', va='bottom', fontsize=9, fontweight='bold')
+            ax.text(k + width / 2, v + 0.015, f'{v:.2f}', ha='center', va='bottom', fontsize=6)
 
-_plot_on_ax(axes_plot[0], 'Total', score_colors['Total'])
-_plot_on_ax(axes_plot[1], 'Bio conservation', score_colors['Bio conservation'])
+    # Panel label (a, b) for Science
+    ax.text(-0.12, 1.02, panel_label, transform=ax.transAxes, fontsize=9, fontweight='bold', va='bottom')
 
-axes_plot[0].set_ylabel('Score Value', fontsize=14, fontweight='bold')
-fig.suptitle('SCIB Evaluation: Total & Bio conservation', fontsize=17, fontweight='bold', y=0.98)
+_plot_on_ax(axes_plot[0], 'Total', score_colors['Total'], 'a')
+_plot_on_ax(axes_plot[1], 'Bio conservation', score_colors['Bio conservation'], 'b')
 
-# Add legends to legend subplot areas
-for idx, (ax_plot, ax_leg) in enumerate(zip(axes_plot, axes_legend)):
-    handles, labels = ax_plot.get_legend_handles_labels()
-    ax_leg.legend(handles, labels, loc='center', ncol=2, fontsize=12, framealpha=0.9, 
-                  bbox_to_anchor=(0.5, 0.5), frameon=True)
+axes_plot[0].set_ylabel('Score')
+axes_plot[0].legend(loc='upper right', frameon=True, framealpha=1, edgecolor='#cccccc')
+axes_plot[1].legend(loc='upper right', frameon=True, framealpha=1, edgecolor='#cccccc')
 
+plt.tight_layout()
 print(f"Saving combined plot: {output_combined}")
 Path(output_combined).parent.mkdir(parents=True, exist_ok=True)
-plt.savefig(output_combined, dpi=300, bbox_inches='tight')
+plt.savefig(output_combined, dpi=FIG_DPI, bbox_inches='tight')
 plt.close()
 
 print("\n=== Plotting complete! ===")
