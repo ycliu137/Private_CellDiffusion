@@ -186,11 +186,11 @@ def _plot_on_ax(ax, score_name: str, colors: tuple[str, str]) -> None:
     values_cd = [scores_data.get((m, 'CellDiffusion'), {}).get(score_name, 0.0) for m in all_method_keys]
     values_gcn = [scores_data.get((m, 'GCN'), {}).get(score_name, 0.0) for m in all_method_keys]
 
-        cd_color, gcn_color = colors
-        ax.bar(x - width / 2, values_cd, width,
-            color=cd_color, edgecolor='black', linewidth=0.8, label='CellDiffusion')
-        ax.bar(x + width / 2, values_gcn, width,
-            color=gcn_color, edgecolor='black', linewidth=0.8, label='GCN')
+    cd_color, gcn_color = colors
+    ax.bar(x - width / 2, values_cd, width,
+        color=cd_color, edgecolor='black', linewidth=0.8, label='CellDiffusion')
+    ax.bar(x + width / 2, values_gcn, width,
+        color=gcn_color, edgecolor='black', linewidth=0.8, label='GCN')
 
     ax.set_title(score_name, fontsize=15, fontweight='bold')
     ax.set_xticks(x)
