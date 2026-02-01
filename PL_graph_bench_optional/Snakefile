@@ -81,6 +81,7 @@ rule all:
         expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_comparison_total.pdf"), dataset=DATASETS),
         expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_comparison_batch.pdf"), dataset=DATASETS),
         expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_comparison_bio.pdf"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_comparison_total_bio.pdf"), dataset=DATASETS),
         expand(str(OUTPUT_BASE_DIR / "{dataset}/umap_combined_multipage.pdf"), dataset=DATASETS)
 
 # Rule: Preprocess data
@@ -232,7 +233,8 @@ rule scib_evaluation_plot_split:
     output:
         total_pdf = str(OUTPUT_BASE_DIR / "{dataset}/scib_comparison_total.pdf"),
         batch_pdf = str(OUTPUT_BASE_DIR / "{dataset}/scib_comparison_batch.pdf"),
-        bio_pdf = str(OUTPUT_BASE_DIR / "{dataset}/scib_comparison_bio.pdf")
+        bio_pdf = str(OUTPUT_BASE_DIR / "{dataset}/scib_comparison_bio.pdf"),
+        combined_pdf = str(OUTPUT_BASE_DIR / "{dataset}/scib_comparison_total_bio.pdf")
     script:
         "scripts/scib_evaluation_plot_split.py"
 

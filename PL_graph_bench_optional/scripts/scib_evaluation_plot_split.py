@@ -9,11 +9,25 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 
+# Global plot style for publication-quality figures
+plt.rcParams.update({
+    "font.family": "sans-serif",
+    "font.size": 12,
+    "axes.titlesize": 16,
+    "axes.labelsize": 14,
+    "xtick.labelsize": 12,
+    "ytick.labelsize": 12,
+    "legend.fontsize": 12,
+    "axes.linewidth": 1.0,
+    "figure.dpi": 300,
+})
+
 # Get input and output from snakemake
 input_table = snakemake.input.table
 output_total = snakemake.output.total_pdf
 output_batch = snakemake.output.batch_pdf
 output_bio = snakemake.output.bio_pdf
+output_combined = snakemake.output.combined_pdf
 
 print("\n=== Loading SCIB results ===")
 print(f"Input file: {input_table}")
@@ -98,14 +112,14 @@ for (method_key, integration_type), method_name in method_rows.items():
         print(f"  {method_key} ({integration_type}) - {score_name}: {value:.4f}")
 
 
-def plot_single_score(score_name: str, output_pdf: str, color: str) -> None:
+def plot_single_score(score_name: str, output_pdf: str, colors: tuple[str, str]) -> None:
     print(f"\n=== Creating plot for {score_name} ===")
 
     # Set up plot
-    fig, ax = plt.subplots(figsize=(12, 6))
+    fig, ax = plt.subplots(figsize=(8.5, 5))
 
     n_methods = len(all_method_keys)
-    width = 0.35
+    width = 0.22
     x = np.arange(n_methods)
 
     # Values for CellDiffusion and GCN
@@ -115,18 +129,18 @@ def plot_single_score(score_name: str, output_pdf: str, color: str) -> None:
         values_cd.append(scores_data.get((method_key, 'CellDiffusion'), {}).get(score_name, 0.0))
         values_gcn.append(scores_data.get((method_key, 'GCN'), {}).get(score_name, 0.0))
 
-    ax.bar(x - width / 2, values_cd, width,
-           color=color, alpha=0.9, edgecolor='black', linewidth=1.0, label='CellDiffusion')
-    ax.bar(x + width / 2, values_gcn, width,
-           color=color, alpha=0.7, edgecolor='gray', linewidth=1.0, label='GCN')
+        cd_color, gcn_color = colors
+        ax.bar(x - width / 2, values_cd, width,
+            color=cd_color, edgecolor='black', linewidth=0.8, label='CellDiffusion')
+        ax.bar(x + width / 2, values_gcn, width,
+            color=gcn_color, edgecolor='black', linewidth=0.8, label='GCN')
 
-    ax.set_xlabel('Graph Building Method', fontsize=12, fontweight='bold')
-    ax.set_ylabel('Score Value', fontsize=12, fontweight='bold')
-    ax.set_title(f'SCIB Evaluation: {score_name}', fontsize=14, fontweight='bold')
+    ax.set_xlabel('Graph Building Method', fontweight='bold')
+    ax.set_ylabel('Score Value', fontweight='bold')
+    ax.set_title(f'SCIB Evaluation: {score_name}', fontweight='bold')
     ax.set_xticks(x)
     ax.set_xticklabels(all_method_keys, rotation=45, ha='right')
-    ax.legend(loc='best', fontsize=10, framealpha=0.9)
-    ax.grid(True, alpha=0.3, linestyle='--', axis='y')
+    ax.legend(loc='best', framealpha=0.9)
 
     all_values = values_cd + values_gcn
     min_val = min(all_values) if all_values else 0
@@ -136,10 +150,10 @@ def plot_single_score(score_name: str, output_pdf: str, color: str) -> None:
     # Add value labels
     for k, v in enumerate(values_cd):
         if v > 0.05:
-            ax.text(k - width / 2, v + 0.01, f'{v:.3f}', ha='center', va='bottom', fontsize=8, fontweight='bold')
+            ax.text(k - width / 2, v + 0.01, f'{v:.3f}', ha='center', va='bottom', fontsize=9, fontweight='bold')
     for k, v in enumerate(values_gcn):
         if v > 0.05:
-            ax.text(k + width / 2, v + 0.01, f'{v:.3f}', ha='center', va='bottom', fontsize=8, fontweight='bold')
+            ax.text(k + width / 2, v + 0.01, f'{v:.3f}', ha='center', va='bottom', fontsize=9, fontweight='bold')
 
     plt.tight_layout()
 
@@ -151,16 +165,65 @@ def plot_single_score(score_name: str, output_pdf: str, color: str) -> None:
 
 # Plot and save three PDFs
 score_colors = {
-    'Total': '#4472C4',
-    'Batch correction': '#70AD47',
-    'Bio conservation': '#C55A11'
+    'Total': ('#377eb8', '#a6cee3'),
+    'Batch correction': ('#4daf4a', '#b2df8a'),
+    'Bio conservation': ('#ff7f00', '#fdbf6f')
 }
 
 plot_single_score('Total', output_total, score_colors['Total'])
 plot_single_score('Batch correction', output_batch, score_colors['Batch correction'])
 plot_single_score('Bio conservation', output_bio, score_colors['Bio conservation'])
 
+# Combined plot: Total and Bio conservation as subplots
+print("\n=== Creating combined plot (Total + Bio conservation) ===")
+fig, axes = plt.subplots(1, 2, figsize=(11, 5), sharey=True)
+
+def _plot_on_ax(ax, score_name: str, colors: tuple[str, str]) -> None:
+    n_methods = len(all_method_keys)
+    width = 0.22
+    x = np.arange(n_methods)
+
+    values_cd = [scores_data.get((m, 'CellDiffusion'), {}).get(score_name, 0.0) for m in all_method_keys]
+    values_gcn = [scores_data.get((m, 'GCN'), {}).get(score_name, 0.0) for m in all_method_keys]
+
+        cd_color, gcn_color = colors
+        ax.bar(x - width / 2, values_cd, width,
+            color=cd_color, edgecolor='black', linewidth=0.8, label='CellDiffusion')
+        ax.bar(x + width / 2, values_gcn, width,
+            color=gcn_color, edgecolor='black', linewidth=0.8, label='GCN')
+
+    ax.set_title(score_name, fontsize=15, fontweight='bold')
+    ax.set_xticks(x)
+    ax.set_xticklabels(all_method_keys, rotation=45, ha='right', fontsize=11)
+
+    all_values = values_cd + values_gcn
+    min_val = min(all_values) if all_values else 0
+    max_val = max(all_values) if all_values else 1
+    ax.set_ylim(bottom=max(0, min_val - 0.1), top=min(1.0, max_val + 0.1))
+
+    for k, v in enumerate(values_cd):
+        if v > 0.05:
+            ax.text(k - width / 2, v + 0.01, f'{v:.3f}', ha='center', va='bottom', fontsize=9, fontweight='bold')
+    for k, v in enumerate(values_gcn):
+        if v > 0.05:
+            ax.text(k + width / 2, v + 0.01, f'{v:.3f}', ha='center', va='bottom', fontsize=9, fontweight='bold')
+
+_plot_on_ax(axes[0], 'Total', score_colors['Total'])
+_plot_on_ax(axes[1], 'Bio conservation', score_colors['Bio conservation'])
+
+axes[0].set_ylabel('Score Value', fontsize=14, fontweight='bold')
+fig.suptitle('SCIB Evaluation: Total & Bio conservation', fontsize=16, fontweight='bold')
+handles, labels = axes[0].get_legend_handles_labels()
+fig.legend(handles, labels, loc='lower center', ncol=2, fontsize=12, framealpha=0.9)
+
+plt.tight_layout(rect=[0, 0.05, 1, 0.95])
+
+print(f"Saving combined plot: {output_combined}")
+Path(output_combined).parent.mkdir(parents=True, exist_ok=True)
+plt.savefig(output_combined, dpi=300, bbox_inches='tight')
+plt.close()
+
 print("\n=== Plotting complete! ===")
 print(f"  Graph methods: {all_method_keys}")
 print(f"  Integration types: {integration_types}")
-print(f"  Output PDFs: {output_total}, {output_batch}, {output_bio}")
+print(f"  Output PDFs: {output_total}, {output_batch}, {output_bio}, {output_combined}")
