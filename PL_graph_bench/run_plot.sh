@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# run_plot.sh - Force re-run all plotting rules in the PL_graph_bench_optional pipeline
+# run_plot.sh - Force re-run plotting rules in the PL_graph_bench pipeline
 # Usage:
 #   ./run_plot.sh            # execute plotting rules with 4 jobs (forced)
 #   DRY_RUN=1 ./run_plot.sh  # perform snakemake dry-run
@@ -49,7 +49,8 @@ snakemake --unlock 2>/dev/null || true
 # Plotting rules to run
 RULES=(
   scib_evaluation_plot
-  scib_evaluation_plot_split
+  scib_evaluation_plot_mesenchymal
+  scib_evaluation_plot_split_mesenchymal
 )
 
 SNM_ARGS=( -s Snakefile --cores "$JOBS" )
@@ -57,7 +58,7 @@ if [[ "$DRY_RUN" == "1" ]]; then
   SNM_ARGS+=( -n )
 fi
 
-echo "Running plotting rules in PL_graph_bench_optional (DRY_RUN=${DRY_RUN}, JOBS=${JOBS}, FORCE=${FORCE})"
+echo "Running plotting rules in PL_graph_bench (DRY_RUN=${DRY_RUN}, JOBS=${JOBS}, FORCE=${FORCE})"
 
 if [[ "$FORCE" == "1" ]]; then
   echo "Forcing execution of plotting rules (will run targets even if outputs exist)"

@@ -82,6 +82,9 @@ rule all:
         expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_benchmarker_mesenchymal.pkl"), dataset=DATASETS),
         expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table_plot_mesenchymal.pdf"), dataset=DATASETS),
         expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_comparison_barplot_mesenchymal.pdf"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_comparison_total_mesenchymal.pdf"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_comparison_batch_mesenchymal.pdf"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_comparison_bio_mesenchymal.pdf"), dataset=DATASETS),
         expand(str(OUTPUT_BASE_DIR / "{dataset}/umap_combined_multipage.pdf"), dataset=DATASETS)
 
 # Rule: Preprocess data
@@ -249,4 +252,15 @@ rule scib_evaluation_plot_mesenchymal:
         pdf = str(OUTPUT_BASE_DIR / "{dataset}/scib_comparison_barplot_mesenchymal.pdf")
     script:
         "scripts/scib_evaluation_plot_mesenchymal.py"
+
+# Rule: Plot SCIB comparison bar plots (Mesenchymal lineage only, split by score)
+rule scib_evaluation_plot_split_mesenchymal:
+    input:
+        table = str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table_mesenchymal.csv")
+    output:
+        total_pdf = str(OUTPUT_BASE_DIR / "{dataset}/scib_comparison_total_mesenchymal.pdf"),
+        batch_pdf = str(OUTPUT_BASE_DIR / "{dataset}/scib_comparison_batch_mesenchymal.pdf"),
+        bio_pdf = str(OUTPUT_BASE_DIR / "{dataset}/scib_comparison_bio_mesenchymal.pdf")
+    script:
+        "scripts/scib_evaluation_plot_split_mesenchymal.py"
 
