@@ -176,7 +176,7 @@ plot_single_score('Bio conservation', output_bio, score_colors['Bio conservation
 
 # Combined plot: Total and Bio conservation as subplots
 print("\n=== Creating combined plot (Total + Bio conservation) ===")
-fig, axes = plt.subplots(1, 2, figsize=(11, 5), sharey=True)
+fig, axes = plt.subplots(1, 2, figsize=(13, 6))
 
 def _plot_on_ax(ax, score_name: str, colors: tuple[str, str]) -> None:
     n_methods = len(all_method_keys)
@@ -192,7 +192,8 @@ def _plot_on_ax(ax, score_name: str, colors: tuple[str, str]) -> None:
     ax.bar(x + width / 2, values_gcn, width,
         color=gcn_color, edgecolor='black', linewidth=0.8, label='GCN')
 
-    ax.set_title(score_name, fontsize=15, fontweight='bold')
+    ax.set_title(score_name, fontsize=15, fontweight='bold', pad=15)
+    ax.set_xlabel('Graph Building Method', fontweight='bold', labelpad=10)
     ax.set_xticks(x)
     ax.set_xticklabels(all_method_keys, rotation=45, ha='right', fontsize=11)
 
@@ -212,13 +213,13 @@ _plot_on_ax(axes[0], 'Total', score_colors['Total'])
 _plot_on_ax(axes[1], 'Bio conservation', score_colors['Bio conservation'])
 
 axes[0].set_ylabel('Score Value', fontsize=14, fontweight='bold')
-fig.suptitle('SCIB Evaluation: Total & Bio conservation', fontsize=16, fontweight='bold')
+fig.suptitle('SCIB Evaluation: Total & Bio conservation', fontsize=16, fontweight='bold', y=0.98)
 
 # Add separate legends for each subplot, positioned below each axis
-axes[0].legend(loc='upper center', bbox_to_anchor=(0.5, -0.35), ncol=2, fontsize=11, framealpha=0.9)
-axes[1].legend(loc='upper center', bbox_to_anchor=(0.5, -0.35), ncol=2, fontsize=11, framealpha=0.9)
+axes[0].legend(loc='upper center', bbox_to_anchor=(0.5, -0.28), ncol=2, fontsize=11, framealpha=0.9)
+axes[1].legend(loc='upper center', bbox_to_anchor=(0.5, -0.28), ncol=2, fontsize=11, framealpha=0.9)
 
-plt.tight_layout(rect=[0, 0.25, 1, 0.95])
+plt.subplots_adjust(left=0.1, right=0.95, top=0.92, bottom=0.35, wspace=0.3)
 
 print(f"Saving combined plot: {output_combined}")
 Path(output_combined).parent.mkdir(parents=True, exist_ok=True)
