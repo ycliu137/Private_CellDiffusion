@@ -214,13 +214,11 @@ _plot_on_ax(axes[1], 'Bio conservation', score_colors['Bio conservation'])
 axes[0].set_ylabel('Score Value', fontsize=14, fontweight='bold')
 fig.suptitle('SCIB Evaluation: Total & Bio conservation', fontsize=16, fontweight='bold')
 
-# Get legend handles and labels from first subplot
-handles, labels = axes[0].get_legend_handles_labels()
+# Add separate legends for each subplot, positioned below each axis
+axes[0].legend(loc='upper center', bbox_to_anchor=(0.5, -0.2), ncol=2, fontsize=11, framealpha=0.9)
+axes[1].legend(loc='upper center', bbox_to_anchor=(0.5, -0.2), ncol=2, fontsize=11, framealpha=0.9)
 
-# Place unified legend below the plots in the center
-fig.legend(handles, labels, loc='lower center', bbox_to_anchor=(0.5, -0.15), ncol=2, fontsize=11, framealpha=0.9)
-
-plt.tight_layout(rect=[0, 0.12, 1, 0.95])
+plt.tight_layout(rect=[0, 0.15, 1, 0.95])
 
 print(f"Saving combined plot: {output_combined}")
 Path(output_combined).parent.mkdir(parents=True, exist_ok=True)
