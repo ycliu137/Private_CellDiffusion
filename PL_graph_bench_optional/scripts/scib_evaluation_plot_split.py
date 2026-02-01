@@ -143,7 +143,7 @@ def plot_single_score(score_name: str, output_pdf: str, colors: tuple[str, str])
     ax.set_title(score_name)
     ax.set_xticks(x)
     ax.set_xticklabels(all_method_keys, rotation=45, ha='right')
-    ax.legend(loc='upper right', frameon=True, framealpha=1, edgecolor='#cccccc')
+    ax.legend(loc='upper left', frameon=True, framealpha=1, edgecolor='#cccccc')
 
     all_vals = values_cd + values_gcn
     y_min = max(0, (min(all_vals) if all_vals else 0) - 0.08)
@@ -181,7 +181,7 @@ w_in = COL_DOUBLE_MM * MM_TO_IN
 h_in = w_in * 0.38  # ~68 mm height
 fig, axes_plot = plt.subplots(1, 2, figsize=(w_in, h_in))
 
-def _plot_on_ax(ax, score_name: str, colors: tuple[str, str], panel_label: str) -> None:
+def _plot_on_ax(ax, score_name: str, colors: tuple[str, str]) -> None:
     n_methods = len(all_method_keys)
     width = 0.28
     x = np.arange(n_methods)
@@ -210,15 +210,13 @@ def _plot_on_ax(ax, score_name: str, colors: tuple[str, str], panel_label: str) 
         if v > 0.05:
             ax.text(k + width / 2, v + 0.015, f'{v:.2f}', ha='center', va='bottom', fontsize=6)
 
-    # Panel label (a, b) for Science
-    ax.text(-0.12, 1.02, panel_label, transform=ax.transAxes, fontsize=9, fontweight='bold', va='bottom')
-
-_plot_on_ax(axes_plot[0], 'Total', score_colors['Total'], 'a')
-_plot_on_ax(axes_plot[1], 'Bio conservation', score_colors['Bio conservation'], 'b')
+_plot_on_ax(axes_plot[0], 'Total', score_colors['Total'])
+_plot_on_ax(axes_plot[1], 'Bio conservation', score_colors['Bio conservation'])
 
 axes_plot[0].set_ylabel('Score')
-axes_plot[0].legend(loc='upper right', frameon=True, framealpha=1, edgecolor='#cccccc')
-axes_plot[1].legend(loc='upper right', frameon=True, framealpha=1, edgecolor='#cccccc')
+handles, labels = axes_plot[0].get_legend_handles_labels()
+plt.tight_layout(rect=[0, 0.12, 1, 1])
+fig.legend(handles, labels, loc='lower center', ncol=2, frameon=True, framealpha=1, edgecolor='#cccccc', bbox_to_anchor=(0.5, 0.02))
 
 plt.tight_layout()
 print(f"Saving combined plot: {output_combined}")
