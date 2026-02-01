@@ -129,11 +129,11 @@ def plot_single_score(score_name: str, output_pdf: str, colors: tuple[str, str])
         values_cd.append(scores_data.get((method_key, 'CellDiffusion'), {}).get(score_name, 0.0))
         values_gcn.append(scores_data.get((method_key, 'GCN'), {}).get(score_name, 0.0))
 
-        cd_color, gcn_color = colors
-        ax.bar(x - width / 2, values_cd, width,
-            color=cd_color, edgecolor='black', linewidth=0.8, label='CellDiffusion')
-        ax.bar(x + width / 2, values_gcn, width,
-            color=gcn_color, edgecolor='black', linewidth=0.8, label='GCN')
+    cd_color, gcn_color = colors
+    ax.bar(x - width / 2, values_cd, width,
+        color=cd_color, edgecolor='black', linewidth=0.8, label='CellDiffusion')
+    ax.bar(x + width / 2, values_gcn, width,
+        color=gcn_color, edgecolor='black', linewidth=0.8, label='GCN')
 
     ax.set_xlabel('Graph Building Method', fontweight='bold')
     ax.set_ylabel('Score Value', fontweight='bold')
