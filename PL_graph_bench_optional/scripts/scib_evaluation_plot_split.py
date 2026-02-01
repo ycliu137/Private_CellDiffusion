@@ -176,7 +176,14 @@ plot_single_score('Bio conservation', output_bio, score_colors['Bio conservation
 
 # Combined plot: Total and Bio conservation as subplots
 print("\n=== Creating combined plot (Total + Bio conservation) ===")
-fig, axes = plt.subplots(1, 2, figsize=(13, 6))
+fig = plt.figure(figsize=(14, 6))
+gs = fig.add_gridspec(2, 2, height_ratios=[10, 1], width_ratios=[1, 1], hspace=0.5, wspace=0.3)
+axes_plot = [fig.add_subplot(gs[0, 0]), fig.add_subplot(gs[0, 1])]
+axes_legend = [fig.add_subplot(gs[1, 0]), fig.add_subplot(gs[1, 1])]
+
+# Hide legend axes
+for ax_leg in axes_legend:
+    ax_leg.axis('off')
 
 def _plot_on_ax(ax, score_name: str, colors: tuple[str, str]) -> None:
     n_methods = len(all_method_keys)
@@ -192,8 +199,8 @@ def _plot_on_ax(ax, score_name: str, colors: tuple[str, str]) -> None:
     ax.bar(x + width / 2, values_gcn, width,
         color=gcn_color, edgecolor='black', linewidth=0.8, label='GCN')
 
-    ax.set_title(score_name, fontsize=15, fontweight='bold', pad=15)
-    ax.set_xlabel('Graph Building Method', fontweight='bold', labelpad=10)
+    ax.set_title(score_name, fontsize=16, fontweight='bold', pad=12)
+    ax.set_xlabel('Graph Building Method', fontweight='bold', fontsize=13)
     ax.set_xticks(x)
     ax.set_xticklabels(all_method_keys, rotation=45, ha='right', fontsize=11)
 
@@ -209,17 +216,17 @@ def _plot_on_ax(ax, score_name: str, colors: tuple[str, str]) -> None:
         if v > 0.05:
             ax.text(k + width / 2, v + 0.01, f'{v:.3f}', ha='center', va='bottom', fontsize=9, fontweight='bold')
 
-_plot_on_ax(axes[0], 'Total', score_colors['Total'])
-_plot_on_ax(axes[1], 'Bio conservation', score_colors['Bio conservation'])
+_plot_on_ax(axes_plot[0], 'Total', score_colors['Total'])
+_plot_on_ax(axes_plot[1], 'Bio conservation', score_colors['Bio conservation'])
 
-axes[0].set_ylabel('Score Value', fontsize=14, fontweight='bold')
-fig.suptitle('SCIB Evaluation: Total & Bio conservation', fontsize=16, fontweight='bold', y=0.98)
+axes_plot[0].set_ylabel('Score Value', fontsize=14, fontweight='bold')
+fig.suptitle('SCIB Evaluation: Total & Bio conservation', fontsize=17, fontweight='bold', y=0.98)
 
-# Add separate legends for each subplot, positioned below each axis
-axes[0].legend(loc='upper center', bbox_to_anchor=(0.5, -0.28), ncol=2, fontsize=11, framealpha=0.9)
-axes[1].legend(loc='upper center', bbox_to_anchor=(0.5, -0.28), ncol=2, fontsize=11, framealpha=0.9)
-
-plt.subplots_adjust(left=0.1, right=0.95, top=0.92, bottom=0.35, wspace=0.3)
+# Add legends to legend subplot areas
+for idx, (ax_plot, ax_leg) in enumerate(zip(axes_plot, axes_legend)):
+    handles, labels = ax_plot.get_legend_handles_labels()
+    ax_leg.legend(handles, labels, loc='center', ncol=2, fontsize=12, framealpha=0.9, 
+                  bbox_to_anchor=(0.5, 0.5), frameon=True)
 
 print(f"Saving combined plot: {output_combined}")
 Path(output_combined).parent.mkdir(parents=True, exist_ok=True)
