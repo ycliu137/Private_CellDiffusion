@@ -215,10 +215,10 @@ axes[0].set_ylabel('Score Value', fontsize=14, fontweight='bold')
 fig.suptitle('SCIB Evaluation: Total & Bio conservation', fontsize=16, fontweight='bold')
 
 # Add separate legends for each subplot, positioned below each axis
-axes[0].legend(loc='upper center', bbox_to_anchor=(0.5, -0.2), ncol=2, fontsize=11, framealpha=0.9)
-axes[1].legend(loc='upper center', bbox_to_anchor=(0.5, -0.2), ncol=2, fontsize=11, framealpha=0.9)
+axes[0].legend(loc='upper center', bbox_to_anchor=(0.5, -0.35), ncol=2, fontsize=11, framealpha=0.9)
+axes[1].legend(loc='upper center', bbox_to_anchor=(0.5, -0.35), ncol=2, fontsize=11, framealpha=0.9)
 
-plt.tight_layout(rect=[0, 0.15, 1, 0.95])
+plt.tight_layout(rect=[0, 0.25, 1, 0.95])
 
 print(f"Saving combined plot: {output_combined}")
 Path(output_combined).parent.mkdir(parents=True, exist_ok=True)
