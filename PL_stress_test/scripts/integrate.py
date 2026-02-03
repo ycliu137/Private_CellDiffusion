@@ -128,6 +128,8 @@ print(f"Integration graph shape after adding random edges: {adata.uns['integrati
 #     device=params.device
 # )
 
+adata = sc.read_h5ad(output_h5ad)
+
 # Step 6: Evaluate MNN neighbor purity after integration
 print("\n=== Evaluating MNN neighbor purity (after integration) ===")
 mnn_neighbor_purity_after, _ = cd.eval.evaluate_mnn_neighbor_purity(
@@ -161,6 +163,8 @@ print(f"KNN neighbor purity (after): {knn_neighbor_purity_after}")
 # print(f"Saving to: {output_h5ad}")
 # Path(output_h5ad).parent.mkdir(parents=True, exist_ok=True)
 # adata.write(output_h5ad)
+
+
 
 # Save metrics
 print(f"\n=== Saving metrics ===")
