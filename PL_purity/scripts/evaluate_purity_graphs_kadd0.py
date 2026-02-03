@@ -5,6 +5,8 @@ import sys
 from pathlib import Path
 import csv
 import pandas as pd
+import time
+import random
 
 # Add project root to path first, before importing celldiffusion
 project_root = Path(__file__).parent.parent.parent
@@ -12,6 +14,7 @@ sys.path.insert(0, str(project_root))
 
 import scanpy as sc
 import celldiffusion as cd
+import torch
 
 # Load input and output paths
 input_h5ad = snakemake.input.h5ad
@@ -20,6 +23,29 @@ params = snakemake.params
 
 print(f"Loading data from: {input_h5ad}")
 adata = sc.read_h5ad(input_h5ad)
+
+# CUDA synchronization: Wait for GPU to be available
+if params.device == "cuda":
+    print("\n=== Waiting for GPU availability ===")
+    if torch.cuda.is_available():
+        initial_delay = random.uniform(0, 2)
+        time.sleep(initial_delay)
+        wait_interval = 5
+        waited = 0
+        while True:
+            try:
+                test_tensor = torch.zeros(1, device="cuda")
+                torch.cuda.synchronize()
+                del test_tensor
+                torch.cuda.empty_cache()
+                print(f"GPU is available (waited {waited:.1f}s)")
+                break
+            except RuntimeError as e:
+                if "busy" in str(e).lower() or "unavailable" in str(e).lower():
+                    time.sleep(wait_interval)
+                    waited += wait_interval
+                else:
+                    raise
 
 # Resolve dataset name
 dataset_name = getattr(snakemake.wildcards, "dataset", Path(input_h5ad).parent.name)
