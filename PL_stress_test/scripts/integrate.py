@@ -106,29 +106,29 @@ print(f"Neighbor purity (before): {neighbor_purity_before}")
 
 print(f"Integration graph shape after adding random edges: {adata.uns['integration_edge_index'].shape}")
 
-# # Step 5: Run integration diffusion
-# print("\n=== Running integration diffusion ===")
-# print(f"  Max epochs: {params.max_epoch}")
-# print(f"  Learning rate: {params.lr}")
-# print(f"  Num features: {params.num_features_diffusion}")
-# print(f"  Num heads: {params.num_heads_diffusion}")
-# print(f"  Num steps: {params.num_steps_diffusion}")
-# print(f"  Time increment: {params.time_increment_diffusion}")
-# print(f"  Device: {params.device}")
+# Step 5: Run integration diffusion
+print("\n=== Running integration diffusion ===")
+print(f"  Max epochs: {params.max_epoch}")
+print(f"  Learning rate: {params.lr}")
+print(f"  Num features: {params.num_features_diffusion}")
+print(f"  Num heads: {params.num_heads_diffusion}")
+print(f"  Num steps: {params.num_steps_diffusion}")
+print(f"  Time increment: {params.time_increment_diffusion}")
+print(f"  Device: {params.device}")
 
-# cd.inte.integration_diffusion(
-#     adata,
-#     use_rep='X_fae',
-#     max_epoch=params.max_epoch,
-#     lr=params.lr,
-#     num_features_diffusion=params.num_features_diffusion,
-#     num_heads_diffusion=params.num_heads_diffusion,
-#     num_steps_diffusion=params.num_steps_diffusion,
-#     time_increment_diffusion=params.time_increment_diffusion,
-#     device=params.device
-# )
+cd.inte.integration_diffusion(
+    adata,
+    use_rep='X_fae',
+    max_epoch=params.max_epoch,
+    lr=params.lr,
+    num_features_diffusion=params.num_features_diffusion,
+    num_heads_diffusion=params.num_heads_diffusion,
+    num_steps_diffusion=params.num_steps_diffusion,
+    time_increment_diffusion=params.time_increment_diffusion,
+    device=params.device
+)
 
-adata = sc.read_h5ad(output_h5ad)
+#adata = sc.read_h5ad(output_h5ad)
 
 # Step 6: Evaluate MNN neighbor purity after integration
 print("\n=== Evaluating MNN neighbor purity (after integration) ===")
@@ -153,16 +153,16 @@ print(f"MNN neighbor purity (after): {mnn_neighbor_purity_after}")
 print(f"KNN neighbor purity (after): {knn_neighbor_purity_after}")
 
 
-# # Step 7: Compute UMAP for visualization
-# print("\n=== Computing UMAP ===")
-# sc.pp.neighbors(adata, use_rep='X_dif', n_neighbors=50, n_pcs=50)
-# sc.tl.umap(adata)
+# Step 7: Compute UMAP for visualization
+print("\n=== Computing UMAP ===")
+sc.pp.neighbors(adata, use_rep='X_dif', n_neighbors=50, n_pcs=50)
+sc.tl.umap(adata)
 
-# # Save integrated data
-# print(f"\n=== Saving integrated data ===")
-# print(f"Saving to: {output_h5ad}")
-# Path(output_h5ad).parent.mkdir(parents=True, exist_ok=True)
-# adata.write(output_h5ad)
+# Save integrated data
+print(f"\n=== Saving integrated data ===")
+print(f"Saving to: {output_h5ad}")
+Path(output_h5ad).parent.mkdir(parents=True, exist_ok=True)
+adata.write(output_h5ad)
 
 
 
