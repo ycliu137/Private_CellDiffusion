@@ -1,0 +1,257 @@
+"""
+Snakemake workflow for CellDiffusion stress test pipeline
+"""
+
+import os
+from pathlib import Path
+
+# Load configuration
+configfile: "config.yaml"
+
+# Get datasets list from config
+DATASETS = config.get("datasets", [])
+
+# Define functions for input/output paths based on dataset wildcard
+def get_input_path(wildcards):
+    """Get input path for a dataset"""
+    # Use input_path from config as base directory, append dataset name and .h5ad
+    if "data" in config and "input_path" in config["data"]:
+        input_base = config["data"]["input_path"]
+        # Ensure path ends with / if it's a directory
+        if not input_base.endswith(('.h5ad', '.h5')):
+            if not input_base.endswith('/'):
+                input_base = input_base + "/"
+            input_path = input_base + f"{wildcards.dataset}.h5ad"
+        else:
+            # If it's already a full path to a file, use it directly (backward compatibility)
+            input_path = input_base
+        return input_path
+    # Fallback: construct path from dataset name
+    return f"../data/inputs/integration/{wildcards.dataset}.h5ad"
+
+def get_output_base_dir():
+    """Get base output directory from config"""
+    if "data" in config and "output_dir" in config["data"]:
+        output_base = config["data"]["output_dir"]
+        if Path(output_base).is_absolute():
+            return Path(output_base)
+        else:
+            return Path(output_base).resolve()
+    # Fallback: construct path from default
+    return Path("../data/outputs/stress_tests").resolve()
+
+def get_output_dir(wildcards):
+    """Get output directory for a dataset"""
+    output_base = get_output_base_dir()
+    output_dir = output_base / wildcards.dataset
+    return output_dir
+
+# Get base output directory
+OUTPUT_BASE_DIR = get_output_base_dir()
+OUTPUT_BASE_DIR.mkdir(parents=True, exist_ok=True)
+
+# Get k value (single value) and k_add values (convert single values to lists)
+K_VALUE = config["integration_loss_adj"]["k"]
+k_add_config = config["random_edges"]["k_add"]
+K_ADD_VALUES = [k_add_config] if not isinstance(k_add_config, list) else k_add_config
+
+# Helper functions for aggregate rules
+def get_aggregate_metrics_files(wildcards):
+    """Get list of metrics CSV files to aggregate for a dataset"""
+    return [str(OUTPUT_BASE_DIR / wildcards.dataset / f"metrics_log_kadd{k_add}.csv") for k_add in K_ADD_VALUES]
+
+def get_aggregate_input_files(wildcards):
+    """Get list of integrated h5ad files to aggregate for a dataset"""
+    return [str(OUTPUT_BASE_DIR / wildcards.dataset / f"scDiffusion_integration_kadd{k_add}.h5ad") for k_add in K_ADD_VALUES]
+
+# Rule all: define final outputs for all datasets and k_add combinations
+rule all:
+    input:
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/scDiffusion_integration_kadd{k_add}.h5ad"), dataset=DATASETS, k_add=K_ADD_VALUES),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/metrics_log.csv"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/metrics_plot.pdf"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/aggregated_X_dif.h5ad"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table.csv"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table_plot.pdf"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_evaluation_plot.pdf"), dataset=DATASETS),
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/purity_graphs_kadd0.csv"), dataset=DATASETS),
+        str(OUTPUT_BASE_DIR / "purity_graphs_kadd0_all_datasets.csv"),
+        str(OUTPUT_BASE_DIR / "purity_graphs_kadd0_all_datasets.pdf")
+
+# Rule: Preprocess data
+rule preprocess:
+    input:
+        h5ad = get_input_path
+    output:
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/preprocessed.h5ad")
+    params:
+        output_dir = lambda wildcards: get_output_dir(wildcards).as_posix(),
+        normalized_data = config["normalized_data"],
+        min_cells = config["preprocess"]["min_cells"],
+        target_sum = config["preprocess"]["target_sum"],
+        n_top_genes = config["preprocess"]["n_top_genes"],
+        min_mean = config["preprocess"]["min_mean"],
+        max_mean = config["preprocess"]["max_mean"],
+        min_disp = config["preprocess"]["min_disp"]
+    script:
+        "scripts/preprocess.py"
+
+# Rule: Feature encoding
+rule encode_features:
+    input:
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/preprocessed.h5ad")
+    output:
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/encoded.h5ad")
+    resources:
+        gpu=1  # Limit GPU usage to one task at a time
+    threads: 1  # Limit threads to help ensure sequential execution
+    params:
+        output_dir = lambda wildcards: get_output_dir(wildcards).as_posix(),
+        D_encode_list = config["feature_encoder"]["D_encode_list"],
+        D_decode_list = config["feature_encoder"]["D_decode_list"],
+        max_epoch = config["feature_encoder"]["max_epoch"],
+        lr = config["feature_encoder"]["lr"],
+        device = config["device"]
+    script:
+        "scripts/encode_features.py"
+
+# Rule: Build integration graph and run integration (with k_add as wildcard, k is fixed)
+rule integrate:
+    input:
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/encoded.h5ad")
+    output:
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/scDiffusion_integration_kadd{k_add}.h5ad"),
+        metrics = str(OUTPUT_BASE_DIR / "{dataset}/metrics_log_kadd{k_add}.csv")
+    resources:
+        gpu=1  # Limit GPU usage to one task at a time
+    threads: 1  # Limit threads to help ensure sequential execution
+    params:
+        # Integration graph params
+        n_edges_per_node = config["integration_graph"]["n_edges_per_node"],
+        k_mnn = config["integration_graph"]["k_mnn"],
+        # Loss adj params - use fixed k value from config
+        loss_adj_k = K_VALUE,
+        # Random edges params - use wildcard k_add
+        k_add = lambda wildcards: int(wildcards.k_add),
+        seed = config["random_edges"]["seed"],
+        # Integration diffusion params
+        max_epoch = config["integration_diffusion"]["max_epoch"],
+        lr = config["integration_diffusion"]["lr"],
+        num_features_diffusion = config["integration_diffusion"]["num_features_diffusion"],
+        num_heads_diffusion = config["integration_diffusion"]["num_heads_diffusion"],
+        num_steps_diffusion = config["integration_diffusion"]["num_steps_diffusion"],
+        time_increment_diffusion = config["integration_diffusion"]["time_increment_diffusion"],
+        # Evaluation params
+        label_key = config["evaluation"]["label_key"],
+        batch_key = config["evaluation"]["batch_key"],
+        eval_k_mnn = config["evaluation"]["k_mnn"],
+        # Device
+        device = config["device"],
+        # Pass k_add value for metrics logging
+        k_add_value = lambda wildcards: int(wildcards.k_add)
+    script:
+        "scripts/integrate.py"
+
+# Rule: Aggregate metrics from all k_add combinations
+rule aggregate_metrics:
+    input:
+        metrics_files = get_aggregate_metrics_files
+    output:
+        metrics = str(OUTPUT_BASE_DIR / "{dataset}/metrics_log.csv")
+    run:
+        import csv
+        from pathlib import Path
+        
+        # Read all individual metrics files and combine
+        all_data = []
+        header_written = False
+        for metrics_file in input.metrics_files:
+            metrics_path = Path(metrics_file)
+            if metrics_path.exists() and metrics_path.stat().st_size > 0:
+                with open(metrics_path, 'r') as f:
+                    reader = csv.reader(f)
+                    header = next(reader)  # Read header
+                    if not header_written:
+                        # Use the first header (should be the same for all)
+                        all_data.append(header)
+                        header_written = True
+                    for row in reader:
+                        if row:  # Skip empty rows
+                            all_data.append(row)
+        
+        # Write combined metrics
+        with open(output.metrics, 'w', newline='') as f:
+            writer = csv.writer(f)
+            for row in all_data:
+                writer.writerow(row)
+
+# Rule: Plot metrics
+rule plot_metrics:
+    input:
+        metrics = str(OUTPUT_BASE_DIR / "{dataset}/metrics_log.csv")
+    output:
+        pdf = str(OUTPUT_BASE_DIR / "{dataset}/metrics_plot.pdf")
+    script:
+        "scripts/plot_metrics.py"
+
+
+# Rule: Evaluate neighbor purity on kadd0 integration output using X_fae and X_dif
+rule evaluate_purity_graphs_kadd0:
+    input:
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/scDiffusion_integration_kadd0.h5ad")
+    output:
+        csv = str(OUTPUT_BASE_DIR / "{dataset}/purity_graphs_kadd0.csv")
+    params:
+        n_edges_per_node = config["integration_graph"]["n_edges_per_node"],
+        k_mnn = config["integration_graph"]["k_mnn"],
+        label_key = config["evaluation"]["label_key"],
+        batch_key = config["evaluation"]["batch_key"],
+        device = config["device"]
+    script:
+        "scripts/evaluate_purity_graphs_kadd0.py"
+
+
+# Rule: Aggregate X_dif from all integration outputs
+rule aggregate_X_dif:
+    input:
+        h5ad_files = get_aggregate_input_files
+    output:
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/aggregated_X_dif.h5ad")
+    script:
+        "scripts/aggregate_X_dif.py"
+
+
+# Rule: SCIB evaluation - benchmark different k_add integration results
+rule scib_evaluation:
+    input:
+        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/aggregated_X_dif.h5ad")
+    output:
+        results = str(OUTPUT_BASE_DIR / "{dataset}/scib_benchmarker.pkl"),
+        table = str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table.csv"),
+        plot = str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table_plot.pdf")
+    params:
+        batch_key = config["evaluation"]["batch_key"],
+        label_key = config["evaluation"]["label_key"],
+        n_jobs = config.get("scib_evaluation", {}).get("n_jobs", 1)
+    script:
+        "scripts/scib_evaluation.py"
+
+# Rule: Plot SCIB evaluation results - aggregate scores vs k_add
+rule scib_evaluation_plot:
+    input:
+        table = str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table.csv")
+    output:
+        pdf = str(OUTPUT_BASE_DIR / "{dataset}/scib_evaluation_plot.pdf")
+    script:
+        "scripts/scib_evaluation_plot.py"
+
+
+# Rule: Plot neighbor purity across datasets for kadd0
+rule plot_purity_graphs_all_datasets:
+    input:
+        csvs = expand(str(OUTPUT_BASE_DIR / "{dataset}/purity_graphs_kadd0.csv"), dataset=DATASETS)
+    output:
+        csv = str(OUTPUT_BASE_DIR / "purity_graphs_kadd0_all_datasets.csv"),
+        pdf = str(OUTPUT_BASE_DIR / "purity_graphs_kadd0_all_datasets.pdf")
+    script:
+        "scripts/plot_purity_graphs_all_datasets.py"
