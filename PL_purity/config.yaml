@@ -31,8 +31,8 @@ feature_encoder:
 
 # Integration graph parameters
 integration_graph:
-  n_edges_per_node: 15
-  k_mnn: 15
+  n_edges_per_node: 50
+  k_mnn: 50
 
 # Integration loss adjacency parameters
 integration_loss_adj:
