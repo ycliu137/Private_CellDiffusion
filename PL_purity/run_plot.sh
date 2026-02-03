@@ -52,9 +52,13 @@ if ! command -v snakemake &> /dev/null; then
   exit 1
 fi
 
-# Plotting rules to run
-RULES=(
+# Plotting rules allowed (dependencies) and explicit targets to run
+ALLOWED_RULES=(
   evaluate_purity_graphs_kadd0
+  plot_purity_graphs_all_datasets
+)
+
+TARGETS=(
   plot_purity_graphs_all_datasets
 )
 
@@ -63,16 +67,16 @@ if [[ "$DRY_RUN" == "1" ]]; then
   SNM_ARGS+=( -n )
 fi
 if [[ "$ALLOW_ONLY" == "1" ]]; then
-  SNM_ARGS+=( --allowed-rules "${RULES[@]}" )
+  SNM_ARGS+=( --allowed-rules "${ALLOWED_RULES[@]}" )
 fi
 
 echo "Running plotting rules in PL_purity (DRY_RUN=${DRY_RUN}, JOBS=${JOBS}, FORCE=${FORCE}, ALLOW_ONLY=${ALLOW_ONLY})"
 
 if [[ "$FORCE" == "1" ]]; then
   echo "Forcing execution of plotting rules (will run targets even if outputs exist)"
-  snakemake "${SNM_ARGS[@]}" "${RULES[@]}" --forcerun "${RULES[@]}"
+  snakemake "${SNM_ARGS[@]}" "${TARGETS[@]}" --forcerun "${TARGETS[@]}"
 else
-  snakemake "${SNM_ARGS[@]}" "${RULES[@]}"
+  snakemake "${SNM_ARGS[@]}" "${TARGETS[@]}"
 fi
 
 echo "Done."
