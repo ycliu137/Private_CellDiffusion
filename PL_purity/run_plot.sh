@@ -70,7 +70,7 @@ echo "Running plotting rules in PL_purity (DRY_RUN=${DRY_RUN}, JOBS=${JOBS}, FOR
 
 if [[ "$FORCE" == "1" ]]; then
   echo "Forcing execution of plotting rules (will run targets even if outputs exist)"
-  snakemake "${SNM_ARGS[@]}" --forcerun "${RULES[@]}"
+  snakemake "${SNM_ARGS[@]}" "${RULES[@]}" --forcerun "${RULES[@]}"
 else
   snakemake "${SNM_ARGS[@]}" "${RULES[@]}"
 fi
