@@ -13,14 +13,17 @@ cd "$SCRIPT_DIR"
 DRY_RUN=0
 JOBS=4
 FORCE=1
+ALLOW_ONLY=1
 
-# Parse command-line options: -n (dry-run), -j N (jobs), -F (force=1), -f (force=0)
-while getopts ":Fnj:f" opt; do
+# Parse command-line options: -n (dry-run), -j N (jobs), -F (force=1), -f (force=0), -a (allow only rules), -A (allow dependencies)
+while getopts ":Fnj:faA" opt; do
   case ${opt} in
     F ) FORCE=1 ;;
     n ) DRY_RUN=1 ;;
     j ) JOBS=${OPTARG} ;;
     f ) FORCE=0 ;;
+    a ) ALLOW_ONLY=1 ;;
+    A ) ALLOW_ONLY=0 ;;
     \? ) echo "Usage: $0 [-F] [-f] [-n] [-j jobs]"; exit 1 ;;
   esac
 done
@@ -59,8 +62,11 @@ SNM_ARGS=( -s Snakefile --cores "$JOBS" )
 if [[ "$DRY_RUN" == "1" ]]; then
   SNM_ARGS+=( -n )
 fi
+if [[ "$ALLOW_ONLY" == "1" ]]; then
+  SNM_ARGS+=( --allowed-rules "${RULES[@]}" )
+fi
 
-echo "Running plotting rules in PL_purity (DRY_RUN=${DRY_RUN}, JOBS=${JOBS}, FORCE=${FORCE})"
+echo "Running plotting rules in PL_purity (DRY_RUN=${DRY_RUN}, JOBS=${JOBS}, FORCE=${FORCE}, ALLOW_ONLY=${ALLOW_ONLY})"
 
 if [[ "$FORCE" == "1" ]]; then
   echo "Forcing execution of plotting rules (will run targets even if outputs exist)"
