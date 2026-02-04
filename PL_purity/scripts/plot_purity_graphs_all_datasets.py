@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 input_csvs = snakemake.input.csvs
 output_csv = snakemake.output.csv
 output_pdf = snakemake.output.pdf
-dataset_names = snakemake.config.get("dataset_names", {})
+dataset_names = snakemake.config.get("dataset_names") or {}
 
 print(f"Reading {len(input_csvs)} CSV files")
 frames = []
