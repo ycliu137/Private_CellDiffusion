@@ -56,10 +56,12 @@ fi
 ALLOWED_RULES=(
   evaluate_purity_graphs_kadd0
   plot_purity_graphs_all_datasets
+  plot_scib_total_score_all_datasets
 )
 
 TARGETS=(
   plot_purity_graphs_all_datasets
+  plot_scib_total_score_all_datasets
 )
 
 SNM_ARGS=( -s Snakefile --cores "$JOBS" )

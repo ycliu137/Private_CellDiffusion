@@ -73,11 +73,7 @@ rule all:
         expand(str(OUTPUT_BASE_DIR / "{dataset}/aggregated_X_dif.h5ad"), dataset=DATASETS),
         expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table.csv"), dataset=DATASETS),
         expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table_plot.pdf"), dataset=DATASETS),
-        expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_evaluation_plot.pdf"), dataset=DATASETS),
-        expand(str(OUTPUT_BASE_DIR / "{dataset}/purity_graphs_kadd0.csv"), dataset=DATASETS),
-        str(OUTPUT_BASE_DIR / "purity_graphs_kadd0_all_datasets.csv"),
-        str(OUTPUT_BASE_DIR / "purity_graphs_kadd0_all_datasets.pdf"),
-        str(OUTPUT_BASE_DIR / "scib_total_score_all_datasets.pdf")
+        expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_evaluation_plot.pdf"), dataset=DATASETS)
 
 # Rule: Preprocess data
 rule preprocess:
@@ -229,40 +225,3 @@ rule scib_evaluation_plot:
         pdf = str(OUTPUT_BASE_DIR / "{dataset}/scib_evaluation_plot.pdf")
     script:
         "scripts/scib_evaluation_plot.py"
-
-
-# Rule: Plot SCIB total score across datasets
-rule plot_scib_total_score_all_datasets:
-    input:
-        tables = expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table.csv"), dataset=DATASETS)
-    output:
-        pdf = str(OUTPUT_BASE_DIR / "scib_total_score_all_datasets.pdf")
-    script:
-        "scripts/plot_scib_total_score_all_datasets.py"
-        
-
-# Rule: Evaluate neighbor purity on kadd0 integration output using X_fae and X_dif
-rule evaluate_purity_graphs_kadd0:
-    input:
-        h5ad = str(OUTPUT_BASE_DIR / "{dataset}/scDiffusion_integration_kadd0.h5ad")
-    output:
-        csv = str(OUTPUT_BASE_DIR / "{dataset}/purity_graphs_kadd0.csv")
-    params:
-        n_edges_per_node = config["integration_graph"]["n_edges_per_node"],
-        k_mnn = config["integration_graph"]["k_mnn"],
-        label_key = config["evaluation"]["label_key"],
-        batch_key = config["evaluation"]["batch_key"],
-        device = config["device"]
-    script:
-        "scripts/evaluate_purity_graphs_kadd0.py"
-
-
-# Rule: Plot neighbor purity across datasets for kadd0
-rule plot_purity_graphs_all_datasets:
-    input:
-        csvs = expand(str(OUTPUT_BASE_DIR / "{dataset}/purity_graphs_kadd0.csv"), dataset=DATASETS)
-    output:
-        csv = str(OUTPUT_BASE_DIR / "purity_graphs_kadd0_all_datasets.csv"),
-        pdf = str(OUTPUT_BASE_DIR / "purity_graphs_kadd0_all_datasets.pdf")
-    script:
-        "scripts/plot_purity_graphs_all_datasets.py"
