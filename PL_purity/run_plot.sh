@@ -54,6 +54,7 @@ fi
 
 # Plotting rules allowed (dependencies) and explicit targets to run
 ALLOWED_RULES=(
+  evaluate_purity_graphs_kadd0
   plot_purity_graphs_all_datasets
   plot_scib_total_score_all_datasets
 )
