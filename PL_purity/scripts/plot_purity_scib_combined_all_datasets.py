@@ -94,7 +94,8 @@ if not scib_series:
 # ----------------------
 # Create combined figure
 # ----------------------
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6), constrained_layout=True)
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5), constrained_layout=False)
+fig.subplots_adjust(wspace=0.35)
 
 # Panel A: bar chart
 x = np.arange(len(purity_df))

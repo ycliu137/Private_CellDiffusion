@@ -40,7 +40,7 @@ integration_loss_adj:
 
 # Random edges parameters
 random_edges:
-  k_add: [0] #, 5, 10, 15, 20, 25]
+  k_add: [0, 5, 10, 15, 20, 25]
   seed: 42
 
 # Integration diffusion parameters
