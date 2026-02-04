@@ -64,9 +64,8 @@ for table_path in input_tables:
 if plotted == 0:
     raise ValueError("No datasets with valid Total score to plot")
 
-ax.set_xlabel("k_add", fontsize=12, fontweight='bold')
-ax.set_ylabel("Total Score", fontsize=12, fontweight='bold')
-ax.set_title("SCIB Total Score vs k_add (All Datasets)", fontsize=14, fontweight='bold')
+ax.set_xlabel("Percentages of Added Random Edges", fontsize=12, fontweight='bold')
+ax.set_ylabel("Total Score (scib-metrics)", fontsize=12, fontweight='bold')
 ax.grid(True, alpha=0.3, linestyle='--')
 ax.legend(loc='best', fontsize=8, framealpha=0.9)
 

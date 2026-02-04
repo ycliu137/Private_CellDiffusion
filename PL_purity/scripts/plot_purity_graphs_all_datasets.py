@@ -25,7 +25,7 @@ if not frames:
     raise ValueError("No input CSV files provided")
 
 combined = pd.concat(frames, ignore_index=True)
-required_cols = ["dataset", "neighbor_purity_X_fae", "neighbor_purity_X_dif"]
+required_cols = ["dataset", "neighbor_purity_X_dif", "neighbor_purity_X_fae"]
 missing_cols = [col for col in required_cols if col not in combined.columns]
 if missing_cols:
     raise ValueError(f"Missing required columns: {missing_cols}")
@@ -46,13 +46,12 @@ x = np.arange(len(combined))
 bar_width = 0.35
 
 ax.bar(x - bar_width / 2, combined["neighbor_purity_X_fae"],
-       width=bar_width, label="X_fae graph", color="#1f77b4")
+       width=bar_width, label="Before diffusion", color="#1f77b4")
 ax.bar(x + bar_width / 2, combined["neighbor_purity_X_dif"],
-       width=bar_width, label="X_dif graph", color="#ff7f0e")
+       width=bar_width, label="After diffusion", color="#ff7f0e")
 
 ax.set_xlabel("Datasets", fontsize=12, fontweight="bold")
-ax.set_ylabel("Neighbor Purity", fontsize=12, fontweight="bold")
-ax.set_title("Neighbor Purity by Dataset", fontsize=14, fontweight="bold")
+ax.set_ylabel("Edge Accuracy", fontsize=12, fontweight="bold")
 ax.set_xticks(x)
 ax.set_xticklabels(combined["dataset"], rotation=45, ha="right")
 ax.legend(fontsize=10, loc="best")
