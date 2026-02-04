@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 input_csvs = snakemake.input.csvs
 output_csv = snakemake.output.csv
 output_pdf = snakemake.output.pdf
+dataset_names = snakemake.config.get("dataset_names", {})
 
 print(f"Reading {len(input_csvs)} CSV files")
 frames = []
@@ -33,6 +34,9 @@ if missing_cols:
 # Sort by dataset name for consistent plotting
 combined = combined.sort_values("dataset").reset_index(drop=True)
 
+# Map dataset display names if provided
+combined["dataset_display"] = combined["dataset"].map(lambda x: dataset_names.get(x, x))
+
 # Save combined CSV
 print(f"Saving combined CSV to: {output_csv}")
 Path(output_csv).parent.mkdir(parents=True, exist_ok=True)
@@ -53,7 +57,7 @@ ax.bar(x + bar_width / 2, combined["neighbor_purity_X_fae"],
 ax.set_xlabel("Datasets", fontsize=12, fontweight="bold")
 ax.set_ylabel("Edge Accuracy", fontsize=12, fontweight="bold")
 ax.set_xticks(x)
-ax.set_xticklabels(combined["dataset"], rotation=45, ha="right")
+ax.set_xticklabels(combined["dataset_display"], rotation=45, ha="right")
 ax.legend(fontsize=10, loc="best")
 ax.grid(axis="y", alpha=0.3, linestyle="--")
 

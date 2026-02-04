@@ -70,3 +70,9 @@ device: "cuda"  # or "cpu"
 scib_evaluation:
   n_jobs: 1  # Number of parallel jobs for scib benchmark (1 is recommended for stability)
 
+dataset_names: 
+"Endom314K_GSM4577312_GSM6574543": "Endom-1"
+"Endom314K_GSM6605435_GSM6605432": "Endom-2"
+"Endom314K_GSM6605435_GSM6605434": "Endom-3"
+"Endom314K_GSM6605436_GSM6605440": "Endom-4"
+"Endom314K_GSM6605437_GSM6605434": "Endom-5"

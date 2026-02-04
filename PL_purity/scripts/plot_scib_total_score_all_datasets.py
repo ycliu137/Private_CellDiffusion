@@ -11,6 +11,7 @@ import re
 
 input_tables = snakemake.input.tables
 output_pdf = snakemake.output.pdf
+dataset_names = snakemake.config.get("dataset_names", {})
 
 print(f"Reading {len(input_tables)} SCIB result tables")
 
@@ -20,6 +21,7 @@ plotted = 0
 for table_path in input_tables:
     table_path = str(table_path)
     dataset_name = Path(table_path).parent.name
+    display_name = dataset_names.get(dataset_name, dataset_name)
     df = pd.read_csv(table_path, index_col=0)
 
     # Remove metric type row if present
@@ -57,7 +59,7 @@ for table_path in input_tables:
         df[total_col].values,
         marker='o',
         linewidth=2,
-        label=dataset_name
+        label=display_name
     )
     plotted += 1
 
