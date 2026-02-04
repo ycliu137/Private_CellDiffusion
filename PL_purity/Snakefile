@@ -77,7 +77,8 @@ rule all:
         expand(str(OUTPUT_BASE_DIR / "{dataset}/purity_graphs_kadd0.csv"), dataset=DATASETS),
         str(OUTPUT_BASE_DIR / "purity_graphs_kadd0_all_datasets.csv"),
         str(OUTPUT_BASE_DIR / "purity_graphs_kadd0_all_datasets.pdf"),
-        str(OUTPUT_BASE_DIR / "scib_total_score_all_datasets.pdf")
+        str(OUTPUT_BASE_DIR / "scib_total_score_all_datasets.pdf"),
+        str(OUTPUT_BASE_DIR / "purity_scib_combined_all_datasets.pdf")
 
 # Rule: Preprocess data
 rule preprocess:
@@ -239,6 +240,17 @@ rule plot_scib_total_score_all_datasets:
         pdf = str(OUTPUT_BASE_DIR / "scib_total_score_all_datasets.pdf")
     script:
         "scripts/plot_scib_total_score_all_datasets.py"
+
+
+# Rule: Combine purity bar plot and SCIB total score into one PDF (side-by-side)
+rule plot_purity_scib_combined_all_datasets:
+    input:
+        purity_csvs = expand(str(OUTPUT_BASE_DIR / "{dataset}/purity_graphs_kadd0.csv"), dataset=DATASETS),
+        scib_tables = expand(str(OUTPUT_BASE_DIR / "{dataset}/scib_results_table.csv"), dataset=DATASETS)
+    output:
+        pdf = str(OUTPUT_BASE_DIR / "purity_scib_combined_all_datasets.pdf")
+    script:
+        "scripts/plot_purity_scib_combined_all_datasets.py"
         
 
 # Rule: Evaluate neighbor purity on kadd0 integration output using X_fae and X_dif
