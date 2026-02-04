@@ -45,9 +45,9 @@ fig, ax = plt.subplots(figsize=(12, 6))
 x = np.arange(len(combined))
 bar_width = 0.35
 
-ax.bar(x - bar_width / 2, combined["neighbor_purity_X_fae"],
+ax.bar(x - bar_width / 2, combined["neighbor_purity_X_dif"],
        width=bar_width, label="Before diffusion", color="#1f77b4")
-ax.bar(x + bar_width / 2, combined["neighbor_purity_X_dif"],
+ax.bar(x + bar_width / 2, combined["neighbor_purity_X_fae"],
        width=bar_width, label="After diffusion", color="#ff7f0e")
 
 ax.set_xlabel("Datasets", fontsize=12, fontweight="bold")
