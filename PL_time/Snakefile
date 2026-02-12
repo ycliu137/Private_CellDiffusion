@@ -21,7 +21,7 @@ def get_input_path(wildcards):
     return str(INPUT_BASE / (wildcards.dataset + ".h5ad"))
 
 def get_input_path_seurat_10X(wildcards):
-    return str(INPUT_BASE / wildcards.dataset)
+    return str(INPUT_BASE / "10X/" + wildcards.dataset)
 
 # All datasets and methods
 DATASETS = config["datasets"]
@@ -37,6 +37,8 @@ rule all:
 
 # Rule: CellDiffusion timing
 rule celldiffusion_timing:
+    resources:
+        gpu=1  # Serialize GPU tasks when only one GPU available
     input:
         h5ad = get_input_path
     output:
@@ -114,6 +116,8 @@ rule harmony_timing:
 
 # Rule: scVI timing
 rule scvi_timing:
+    resources:
+        gpu=1  # Serialize GPU tasks when only one GPU available
     input:
         h5ad = get_input_path
     output:

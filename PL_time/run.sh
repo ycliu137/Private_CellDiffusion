@@ -62,10 +62,12 @@ echo ""
 CORES=${1:-4}
 echo "Using $CORES cores"
 
+# --resources gpu=1: only 1 GPU available; GPU tasks (CellDiffusion, scVI) wait until GPU is free
 snakemake \
     --snakefile Snakefile \
     --configfile config.yaml \
     --cores "$CORES" \
+    --resources gpu=1 \
     --use-conda
 
 echo ""
