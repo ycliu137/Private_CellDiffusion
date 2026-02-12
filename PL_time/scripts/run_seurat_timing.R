@@ -1,12 +1,30 @@
 #!/usr/bin/env Rscript
 #
 # Seurat integration with timing measurements
-# Records dataset statistics and running time for each step
+# Records dataset statistics, running time, and max CPU memory
 #
 
 library(Seurat)
 library(Matrix)
 library(jsonlite)
+
+# ========================================
+# Helper: Get current process RSS memory in GB
+# ========================================
+get_rss_gb <- function() {
+  pid <- Sys.getpid()
+  out <- tryCatch(
+    system2("ps", c("-o", "rss=", "-p", pid), stdout=TRUE, stderr=NULL),
+    error = function(e) character(0)
+  )
+  if (length(out) > 0 && nzchar(trimws(out[1]))) {
+    return(as.numeric(trimws(out[1])) / 1024 / 1024)  # KB -> GB
+  }
+  NA_real_
+}
+
+# Track max CPU memory (sample at end of each step)
+max_cpu_mem_gb <- 0
 
 # ========================================
 # Helper function: Read 10X data into Seurat
@@ -149,6 +167,7 @@ if (batch_key %in% names(obs_data)) {
 }
 
 timing_list$steps$load_data <- as.numeric(difftime(Sys.time(), t0, units="secs"))
+max_cpu_mem_gb <- max(max_cpu_mem_gb, get_rss_gb(), na.rm=TRUE)
 
  # ===== Step 0: Preprocessing =====
 cat("\n=== Step 0: Preprocessing ===\n")
@@ -172,6 +191,7 @@ seurat_list <- lapply(seurat_list, function(x) {
 })
 
 timing_list$steps$preprocessing <- as.numeric(difftime(Sys.time(), t0, units="secs"))
+max_cpu_mem_gb <- max(max_cpu_mem_gb, get_rss_gb(), na.rm=TRUE)
 cat("Preprocessing time:", timing_list$steps$preprocessing, "s\n")
 
 # ===== Step 1: Integration (Anchors) =====
@@ -184,6 +204,7 @@ seurat_obj <- IntegrateData(anchorset = anchors)
 DefaultAssay(seurat_obj) <- "integrated"
 
 timing_list$steps$integration <- as.numeric(difftime(Sys.time(), t0, units="secs"))
+max_cpu_mem_gb <- max(max_cpu_mem_gb, get_rss_gb(), na.rm=TRUE)
 cat("Integration time:", timing_list$steps$integration, "s\n")
 
 # ===== Step 2: PCA =====
@@ -194,6 +215,7 @@ seurat_obj <- ScaleData(seurat_obj)
 seurat_obj <- RunPCA(seurat_obj, npcs=params$dims, verbose=FALSE)
 
 timing_list$steps$pca <- as.numeric(difftime(Sys.time(), t0, units="secs"))
+max_cpu_mem_gb <- max(max_cpu_mem_gb, get_rss_gb(), na.rm=TRUE)
 cat("PCA time:", timing_list$steps$pca, "s\n")
 
 # ===== Step 3: UMAP =====
@@ -208,6 +230,7 @@ seurat_obj <- RunUMAP(
 )
 
 timing_list$steps$umap <- as.numeric(difftime(Sys.time(), t0, units="secs"))
+max_cpu_mem_gb <- max(max_cpu_mem_gb, get_rss_gb(), na.rm=TRUE)
 cat("UMAP time:", timing_list$steps$umap, "s\n")
 
 # ===== Step 4: Leiden Clustering =====
@@ -224,6 +247,7 @@ seurat_obj <- FindClusters(
 seurat_obj$leiden_seurat <- seurat_obj$seurat_clusters
 
 timing_list$steps$leiden <- as.numeric(difftime(Sys.time(), t0, units="secs"))
+max_cpu_mem_gb <- max(max_cpu_mem_gb, get_rss_gb(), na.rm=TRUE)
 cat("Leiden time:", timing_list$steps$leiden, "s\n")
 
 # ===== Save results =====
@@ -250,6 +274,11 @@ timing_list$total_time <- timing_list$total_time / 60
 dir.create(dirname(output_timing), showWarnings=FALSE, recursive=TRUE)
 write_json(timing_list, output_timing, pretty=TRUE)
 cat("Timing saved to:", output_timing, "\n")
+
+# Record max memory (Seurat is CPU-only)
+stats_list$max_cpu_memory_gb <- round(max_cpu_mem_gb, 3)
+stats_list$max_gpu_memory_gb <- NULL
+cat("Max CPU memory:", stats_list$max_cpu_memory_gb, "GB\n")
 
 dir.create(dirname(output_stats), showWarnings=FALSE, recursive=TRUE)
 write_json(stats_list, output_stats, pretty=TRUE)

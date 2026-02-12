@@ -79,7 +79,7 @@ $PM install -n ${ENV_NAME} -c conda-forge \
 
 # Install Harmony, scVI, and remaining packages via pip
 echo "Installing Harmony, scVI, snakemake, and additional dependencies..."
-$PM run -n ${ENV_NAME} pip install harmonypy scvi-tools snakemake
+$PM run -n ${ENV_NAME} pip install harmonypy scvi-tools snakemake psutil
 $PM run -n ${ENV_NAME} pip install pytorch-lightning rich jax jaxlib numpyro
 $PM run -n ${ENV_NAME} pip install -r requirements.txt
 

@@ -14,6 +14,8 @@ import numpy as np
 input_files = snakemake.input
 output_table = snakemake.output.table
 output_plot = snakemake.output.plot
+output_cpu_memory = getattr(snakemake.output, "cpu_memory_table", None)
+output_gpu_memory = getattr(snakemake.output, "gpu_memory_table", None)
 
 print(f"\n=== Aggregating Timing Results ===")
 
@@ -94,9 +96,17 @@ for f, data in zip(stats_files, stats_data):
     if dataset not in stats_dfs:
         stats_dfs[dataset] = {}
     
+    def _get_mem(val):
+        v = data.get(val)
+        if v is None:
+            return np.nan
+        return _normalize_numeric(v) if v is not None else np.nan
+
     stats_dfs[dataset][method] = {
         'n_cells': _normalize_numeric(data['n_cells']),
-        'n_batches': _normalize_numeric(data['n_batches'])
+        'n_batches': _normalize_numeric(data['n_batches']),
+        'max_cpu_memory_gb': _get_mem('max_cpu_memory_gb'),
+        'max_gpu_memory_gb': _get_mem('max_gpu_memory_gb'),
     }
 
 # Build comprehensive benchmark table
@@ -211,5 +221,69 @@ try:
         print(f"Benchmark table plot saved to: {output_plot}")
 except Exception as e:
     print(f"Warning: Could not create table plot: {e}")
+
+# Build CPU memory benchmark table
+if output_cpu_memory:
+    cpu_rows = []
+    for dataset in sorted(stats_dfs.keys()):
+        stats_info = stats_dfs[dataset]
+        first_method = list(stats_info.keys())[0]
+        n_cells = stats_info[first_method]['n_cells']
+        n_batches = stats_info[first_method]['n_batches']
+        row = {'Dataset': dataset, 'N_Cells': n_cells, 'N_Batches': n_batches}
+        for method in ['CellDiffusion', 'Harmony', 'scVI', 'Seurat']:
+            if method in stats_info:
+                v = stats_info[method].get('max_cpu_memory_gb', np.nan)
+                row[f'{method}_CPU_GB'] = round(v, 3) if not (isinstance(v, float) and np.isnan(v)) else np.nan
+            else:
+                row[f'{method}_CPU_GB'] = np.nan
+        cpu_rows.append(row)
+    df_cpu = pd.DataFrame(cpu_rows)
+    df_cpu['N_Cells'] = pd.to_numeric(df_cpu['N_Cells'], errors='coerce')
+    df_cpu['N_Batches'] = pd.to_numeric(df_cpu['N_Batches'], errors='coerce')
+    # Summary row
+    n_cells_mean = df_cpu['N_Cells'].mean(skipna=True)
+    n_batches_mean = df_cpu['N_Batches'].mean(skipna=True)
+    sum_row = {'Dataset': 'Average', 'N_Cells': f"~{int(n_cells_mean)}" if not pd.isna(n_cells_mean) else "", 'N_Batches': f"~{n_batches_mean:.1f}" if not pd.isna(n_batches_mean) else ""}
+    for c in df_cpu.columns:
+        if '_CPU_GB' in c:
+            m = df_cpu[c].mean(skipna=True)
+            sum_row[c] = round(m, 3) if not pd.isna(m) else np.nan
+    df_cpu = pd.concat([df_cpu, pd.DataFrame([sum_row])], ignore_index=True)
+    Path(output_cpu_memory).parent.mkdir(parents=True, exist_ok=True)
+    df_cpu.to_csv(output_cpu_memory, index=False)
+    print(f"\nCPU memory table saved to: {output_cpu_memory}")
+    print(df_cpu.to_string(index=False))
+
+# Build GPU memory benchmark table
+if output_gpu_memory:
+    gpu_rows = []
+    for dataset in sorted(stats_dfs.keys()):
+        stats_info = stats_dfs[dataset]
+        first_method = list(stats_info.keys())[0]
+        n_cells = stats_info[first_method]['n_cells']
+        n_batches = stats_info[first_method]['n_batches']
+        row = {'Dataset': dataset, 'N_Cells': n_cells, 'N_Batches': n_batches}
+        for method in ['CellDiffusion', 'Harmony', 'scVI', 'Seurat']:
+            if method in stats_info:
+                v = stats_info[method].get('max_gpu_memory_gb', np.nan)
+                row[f'{method}_GPU_GB'] = round(v, 3) if v is not None and not (isinstance(v, float) and np.isnan(v)) else np.nan
+            else:
+                row[f'{method}_GPU_GB'] = np.nan
+        gpu_rows.append(row)
+    df_gpu = pd.DataFrame(gpu_rows)
+    df_gpu['N_Cells'] = pd.to_numeric(df_gpu['N_Cells'], errors='coerce')
+    df_gpu['N_Batches'] = pd.to_numeric(df_gpu['N_Batches'], errors='coerce')
+    # Summary row (only for methods that use GPU)
+    sum_row = {'Dataset': 'Average', 'N_Cells': f"~{int(df_gpu['N_Cells'].mean(skipna=True))}", 'N_Batches': f"~{df_gpu['N_Batches'].mean(skipna=True):.1f}"}
+    for c in df_gpu.columns:
+        if '_GPU_GB' in c:
+            m = df_gpu[c].dropna()
+            sum_row[c] = round(float(m.mean()), 3) if len(m) > 0 else np.nan
+    df_gpu = pd.concat([df_gpu, pd.DataFrame([sum_row])], ignore_index=True)
+    Path(output_gpu_memory).parent.mkdir(parents=True, exist_ok=True)
+    df_gpu.to_csv(output_gpu_memory, index=False)
+    print(f"\nGPU memory table saved to: {output_gpu_memory}")
+    print(df_gpu.to_string(index=False))
 
 print("\n=== Timing aggregation complete! ===")

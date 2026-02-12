@@ -1,6 +1,6 @@
 """
 scVI integration with timing measurements.
-Records dataset statistics and running time.
+Records dataset statistics, running time, and max CPU/GPU memory.
 """
 import sys
 import json
@@ -8,9 +8,11 @@ import time
 from pathlib import Path
 from datetime import datetime
 
-# Add project root to path
+# Add project root and PL_time scripts to path
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
+sys.path.insert(0, str(Path(__file__).parent))
+from memory_monitor import start_cpu_monitor, stop_cpu_monitor, get_max_gpu_memory_gb, reset_gpu_stats
 
 import scanpy as sc
 import scvi
@@ -45,6 +47,11 @@ stats_dict = {
 print(f"\n=== scVI Timing Pipeline ===")
 print(f"Input: {input_h5ad}")
 print(f"Output: {output_h5ad}")
+
+# Start memory monitoring
+_ = start_cpu_monitor()
+if torch.cuda.is_available():
+    reset_gpu_stats()
 
 # Load data
 t0 = time.time()
@@ -193,6 +200,14 @@ Path(output_timing).parent.mkdir(parents=True, exist_ok=True)
 with open(output_timing, 'w') as f:
     json.dump(timing_dict, f, indent=2)
 print(f"Timing saved to: {output_timing}")
+
+# Record max memory
+stats_dict["max_cpu_memory_gb"] = stop_cpu_monitor()
+gpu_mem = get_max_gpu_memory_gb()
+stats_dict["max_gpu_memory_gb"] = gpu_mem if gpu_mem is not None else None
+print(f"Max CPU memory: {stats_dict['max_cpu_memory_gb']:.3f} GB" if stats_dict['max_cpu_memory_gb'] is not None else "Max CPU memory: N/A (psutil required)")
+if stats_dict.get("max_gpu_memory_gb"):
+    print(f"Max GPU memory: {stats_dict['max_gpu_memory_gb']:.3f} GB")
 
 # Save statistics
 Path(output_stats).parent.mkdir(parents=True, exist_ok=True)

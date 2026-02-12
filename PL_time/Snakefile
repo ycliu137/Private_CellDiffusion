@@ -31,7 +31,9 @@ rule all:
     input:
         # Final benchmark table and plot
         str(OUTPUT_BASE / "timing_benchmark_table.csv"),
-        str(OUTPUT_BASE / "timing_benchmark_plot.pdf")
+        str(OUTPUT_BASE / "timing_benchmark_plot.pdf"),
+        str(OUTPUT_BASE / "cpu_memory_benchmark_table.csv"),
+        str(OUTPUT_BASE / "gpu_memory_benchmark_table.csv")
 
 # Rule: CellDiffusion timing
 rule celldiffusion_timing:
@@ -173,6 +175,8 @@ rule aggregate_timing:
         expand(str(OUTPUT_BASE / "{dataset}/seurat_stats.json"), dataset=DATASETS),
     output:
         table = str(OUTPUT_BASE / "timing_benchmark_table.csv"),
-        plot = str(OUTPUT_BASE / "timing_benchmark_plot.pdf")
+        plot = str(OUTPUT_BASE / "timing_benchmark_plot.pdf"),
+        cpu_memory_table = str(OUTPUT_BASE / "cpu_memory_benchmark_table.csv"),
+        gpu_memory_table = str(OUTPUT_BASE / "gpu_memory_benchmark_table.csv")
     script:
         "scripts/aggregate_timing_results.py"

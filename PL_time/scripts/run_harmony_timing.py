@@ -1,6 +1,6 @@
 """
 Harmony integration with timing measurements.
-Records dataset statistics and running time.
+Records dataset statistics, running time, and max CPU memory.
 """
 import sys
 import json
@@ -8,9 +8,11 @@ import time
 from pathlib import Path
 from datetime import datetime
 
-# Add project root to path
+# Add project root and PL_time scripts to path
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
+sys.path.insert(0, str(Path(__file__).parent))
+from memory_monitor import start_cpu_monitor, stop_cpu_monitor
 
 import scanpy as sc
 import harmonypy
@@ -41,6 +43,9 @@ stats_dict = {
 print(f"\n=== Harmony Timing Pipeline ===")
 print(f"Input: {input_h5ad}")
 print(f"Output: {output_h5ad}")
+
+# Start memory monitoring
+_ = start_cpu_monitor()
 
 # Load data
 t0 = time.time()
@@ -188,6 +193,11 @@ Path(output_timing).parent.mkdir(parents=True, exist_ok=True)
 with open(output_timing, 'w') as f:
     json.dump(timing_dict, f, indent=2)
 print(f"Timing saved to: {output_timing}")
+
+# Record max memory (Harmony is CPU-only)
+stats_dict["max_cpu_memory_gb"] = stop_cpu_monitor()
+stats_dict["max_gpu_memory_gb"] = None
+print(f"Max CPU memory: {stats_dict['max_cpu_memory_gb']:.3f} GB" if stats_dict['max_cpu_memory_gb'] is not None else "Max CPU memory: N/A (psutil required)")
 
 # Save statistics
 Path(output_stats).parent.mkdir(parents=True, exist_ok=True)
