@@ -63,43 +63,50 @@ read_10x_to_seurat <- function(data_dir) {
     # ===== Read metadata CSVs =====
     obs_data <- list()
     
+    # Helper: align metadata length to cell count
+    # If too long: take first n cells; if too short: pad by repeating last value
+    align_to_cells <- function(vec, n_cells, name) {
+        n <- length(vec)
+        if (n == n_cells) return(vec)
+        if (n > n_cells) {
+            warning(sprintf("%s length (%d) > cell count (%d), using first %d", name, n, n_cells, n_cells))
+            return(vec[seq_len(n_cells)])
+        }
+        warning(sprintf("%s length (%d) < cell count (%d), padding with last value", name, n, n_cells))
+        c(vec, rep(vec[n], n_cells - n))
+    }
+
+    n_cells <- ncol(seurat_obj)
+
     # Read batch.csv (single column, no header/index)
     batch_file <- file.path(data_dir, "batch.csv")
     if (file.exists(batch_file)) {
         cat("Reading batch metadata from:", batch_file, "\n")
         batch_data <- read.csv(batch_file, header=FALSE, stringsAsFactors=FALSE)[[1]]
-        
-        if (length(batch_data) == ncol(seurat_obj)) {
-            # Use configured batch_key for metadata column
-            seurat_obj[[batch_key]] <- batch_data
-            obs_data[[batch_key]] <- batch_data
-            n_batches <- length(unique(batch_data))
-            cat("  Batch metadata added:", n_batches, "batches\n")
-            cat("  Batch IDs:", paste(unique(batch_data), collapse=", "), "\n")
-        } else {
-            warning(sprintf("Batch file length (%d) does not match cell count (%d)",
-                          length(batch_data), ncol(seurat_obj)))
-        }
+        batch_data <- align_to_cells(batch_data, n_cells, "Batch file")
+        seurat_obj[[batch_key]] <- batch_data
+        obs_data[[batch_key]] <- batch_data
+        n_batches <- length(unique(batch_data))
+        cat("  Batch metadata added:", n_batches, "batches\n")
+        cat("  Batch IDs:", paste(unique(batch_data), collapse=", "), "\n")
     } else {
-        warning("batch.csv not found in", data_dir)
+        warning("batch.csv not found in ", data_dir)
+        seurat_obj[[batch_key]] <- rep("batch1", n_cells)
+        obs_data[[batch_key]] <- seurat_obj[[batch_key]]
+        cat("  Added dummy batch column (single batch)\n")
     }
-    
+
     # Read labels.csv
     labels_file <- file.path(data_dir, "labels.csv")
     if (file.exists(labels_file)) {
         cat("Reading label metadata from:", labels_file, "\n")
         label_data <- read.csv(labels_file, header=FALSE, stringsAsFactors=FALSE)[[1]]
-        
-        if (length(label_data) == ncol(seurat_obj)) {
-            seurat_obj$label <- label_data
-            obs_data$label <- label_data
-            cat("  Label metadata added:", length(unique(label_data)), "unique labels\n")
-        } else {
-            warning(sprintf("Labels file length (%d) does not match cell count (%d)",
-                          length(label_data), ncol(seurat_obj)))
-        }
+        label_data <- align_to_cells(label_data, n_cells, "Labels file")
+        seurat_obj$label <- label_data
+        obs_data$label <- label_data
+        cat("  Label metadata added:", length(unique(label_data)), "unique labels\n")
     } else {
-        warning("labels.csv not found in", data_dir)
+        warning("labels.csv not found in ", data_dir)
     }
     
     # Return dataset stats along with object
