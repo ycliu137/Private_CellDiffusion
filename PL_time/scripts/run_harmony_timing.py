@@ -1,7 +1,11 @@
 """
 Harmony integration with timing measurements.
 Records dataset statistics, running time, and max CPU memory.
+Harmony uses PyTorch; force CPU to avoid GPU conflicts when only one GPU is available.
 """
+import os
+os.environ["CUDA_VISIBLE_DEVICES"] = ""  # Force CPU (must be before torch/harmonypy import)
+
 import sys
 import json
 import time
